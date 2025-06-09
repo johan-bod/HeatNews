@@ -54,7 +54,7 @@ const NewsDemo = () => {
 
   const scopes = [
     { id: 'local', label: 'Hyper-Local', icon: MapPin, color: 'text-red-400' },
-    { id: 'regional', label: 'Regional', icon: Building, color: 'text-slate-400' },
+    { id: 'regional', label: 'Regional', icon: Building, color: 'text-blue-400' },
     { id: 'global', label: 'Global', icon: Globe, color: 'text-red-300' }
   ];
 
@@ -62,11 +62,11 @@ const NewsDemo = () => {
     <section className="py-20 px-6 relative">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-white mb-6">
             See News Through 
-            <span className="bg-gradient-to-r from-red-400 to-slate-400 bg-clip-text text-transparent"> Location</span>
+            <span className="bg-gradient-to-r from-red-400 to-blue-400 bg-clip-text text-transparent"> Location</span>
           </h2>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+          <p className="font-merriweather text-xl text-slate-300 max-w-2xl mx-auto">
             Filter and discover news from your neighborhood to the world. Experience how location transforms your news feed.
           </p>
         </div>
@@ -80,9 +80,9 @@ const NewsDemo = () => {
                 <Button
                   key={scope.id}
                   variant={selectedScope === scope.id ? "default" : "ghost"}
-                  className={`mx-1 rounded-full px-6 py-3 transition-all duration-300 ${
+                  className={`font-lato mx-1 rounded-full px-6 py-3 transition-all duration-300 ${
                     selectedScope === scope.id 
-                      ? 'bg-gradient-to-r from-red-600 to-slate-600 text-white shadow-lg' 
+                      ? 'bg-gradient-to-r from-red-600 to-blue-600 text-white shadow-lg' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
                   }`}
                   onClick={() => setSelectedScope(scope.id)}
@@ -105,10 +105,10 @@ const NewsDemo = () => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white mb-2 hover:text-red-400 transition-colors cursor-pointer">
+                    <h3 className="font-montserrat text-lg font-semibold text-white mb-2 hover:text-red-400 transition-colors cursor-pointer">
                       {item.title}
                     </h3>
-                    <div className="flex items-center text-sm text-slate-400 space-x-4">
+                    <div className="flex items-center font-lato text-sm text-slate-400 space-x-4">
                       <span className="flex items-center">
                         <MapPin className="w-3 h-3 mr-1" />
                         {item.location}
@@ -134,8 +134,8 @@ const NewsDemo = () => {
                 <div className="w-32 h-32 border-2 border-red-400/30 rounded-full animate-ping"></div>
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Interactive Map Coming Soon</h3>
-            <p className="text-slate-300">
+            <h3 className="font-montserrat text-2xl font-bold text-white mb-4">Interactive Map Coming Soon</h3>
+            <p className="font-merriweather text-slate-300">
               Visualize news stories on an interactive world map. Click anywhere to discover local stories.
             </p>
           </div>

@@ -7,9 +7,9 @@ const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-900/20 via-transparent to-slate-900/20">
+      <div className="absolute inset-0 bg-gradient-to-br from-red-900/20 via-transparent to-blue-900/20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(220,38,38,0.1),transparent_50%)]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(100,116,139,0.1),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.1),transparent_50%)]"></div>
       </div>
 
       {/* Floating particles effect */}
@@ -37,24 +37,24 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Main heading */}
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-slate-100 to-white bg-clip-text text-transparent leading-tight">
+        {/* Main heading - Montserrat for headlines */}
+        <h1 className="font-montserrat text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-slate-100 to-white bg-clip-text text-transparent leading-tight">
           News, Mapped.
           <br />
           <span className="text-4xl md:text-6xl text-red-400">Everywhere.</span>
         </h1>
 
-        {/* Subtitle */}
-        <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+        {/* Subtitle - Mix of fonts */}
+        <p className="font-merriweather text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
           Experience news like never before. From your neighborhood to the globe, 
           discover stories that matter to you, exactly where they happen.
         </p>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Lato for clickable items */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
           <Button 
             size="lg" 
-            className="bg-gradient-to-r from-red-600 to-slate-600 hover:from-red-700 hover:to-slate-700 text-white px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-red-500/25 transition-all duration-300 transform hover:scale-105"
+            className="font-lato bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-red-500/25 transition-all duration-300 transform hover:scale-105"
           >
             <Zap className="w-5 h-5 mr-2" />
             Try Demo
@@ -62,26 +62,26 @@ const Hero = () => {
           <Button 
             variant="outline" 
             size="lg"
-            className="border-red-400/50 text-red-400 hover:bg-red-400/10 px-8 py-4 text-lg rounded-full backdrop-blur-sm transition-all duration-300"
+            className="font-lato border-red-400/50 text-red-400 hover:bg-red-400/10 px-8 py-4 text-lg rounded-full backdrop-blur-sm transition-all duration-300"
           >
             <MapPin className="w-5 h-5 mr-2" />
             Learn More
           </Button>
         </div>
 
-        {/* Stats */}
+        {/* Stats - Montserrat for impact */}
         <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
           <div className="text-center">
-            <div className="text-3xl font-bold text-red-400 mb-2">Global</div>
-            <div className="text-slate-400">Coverage</div>
+            <div className="font-montserrat text-3xl font-bold text-red-400 mb-2">Global</div>
+            <div className="font-lato text-slate-400">Coverage</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-slate-400 mb-2">Real-time</div>
-            <div className="text-slate-400">Updates</div>
+            <div className="font-montserrat text-3xl font-bold text-blue-400 mb-2">Real-time</div>
+            <div className="font-lato text-slate-400">Updates</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-red-300 mb-2">Hyper-local</div>
-            <div className="text-slate-400">Focus</div>
+            <div className="font-montserrat text-3xl font-bold text-red-300 mb-2">Hyper-local</div>
+            <div className="font-lato text-slate-400">Focus</div>
           </div>
         </div>
       </div>

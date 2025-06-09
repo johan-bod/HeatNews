@@ -15,7 +15,7 @@ const Features = () => {
       icon: Zap,
       title: "Real-Time Updates",
       description: "Stay ahead with instant notifications as stories develop in your area and worldwide",
-      color: "text-slate-400"
+      color: "text-blue-400"
     },
     {
       icon: Filter,
@@ -27,7 +27,7 @@ const Features = () => {
       icon: Bell,
       title: "Contextual Alerts",
       description: "Get notified about breaking news that matters to your location and interests",
-      color: "text-slate-300"
+      color: "text-blue-300"
     },
     {
       icon: Shield,
@@ -39,7 +39,7 @@ const Features = () => {
       icon: Sparkles,
       title: "Hyper-Local Discovery",
       description: "Discover neighborhood stories and community events you won't find anywhere else",
-      color: "text-slate-400"
+      color: "text-blue-400"
     }
   ];
 
@@ -47,11 +47,11 @@ const Features = () => {
     <section className="py-20 px-6 relative">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-white mb-6">
             Powered by 
-            <span className="bg-gradient-to-r from-red-400 to-slate-400 bg-clip-text text-transparent"> Intelligence</span>
+            <span className="bg-gradient-to-r from-red-400 to-blue-400 bg-clip-text text-transparent"> Intelligence</span>
           </h2>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+          <p className="font-merriweather text-xl text-slate-300 max-w-2xl mx-auto">
             Advanced technology meets intuitive design to revolutionize how you consume and interact with news.
           </p>
         </div>
@@ -69,10 +69,10 @@ const Features = () => {
                     <Icon className={`w-12 h-12 ${feature.color} mx-auto group-hover:scale-110 transition-transform duration-300`} />
                     <div className={`absolute inset-0 ${feature.color.replace('text-', 'bg-')}/10 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300`}></div>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-4 group-hover:text-red-400 transition-colors">
+                  <h3 className="font-montserrat text-xl font-bold text-white mb-4 group-hover:text-red-400 transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="text-slate-300 leading-relaxed">
+                  <p className="font-merriweather text-slate-300 leading-relaxed">
                     {feature.description}
                   </p>
                 </CardContent>
