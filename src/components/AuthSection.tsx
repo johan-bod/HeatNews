@@ -1,121 +1,93 @@
 
 import React from 'react';
-import { LogIn, UserPlus, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { User, Mail, Lock, UserPlus } from 'lucide-react';
 
 const AuthSection = () => {
   return (
     <section className="py-20 px-6 relative">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-slate-800 mb-6">
             Join the 
-            <span className="bg-gradient-to-r from-red-400 to-blue-400 bg-clip-text text-transparent"> Future</span>
+            <span className="bg-gradient-to-r from-red-600 to-blue-600 bg-clip-text text-transparent"> Revolution</span>
           </h2>
-          <p className="font-merriweather text-xl text-slate-300 max-w-2xl mx-auto">
-            Connect to save your preferences, get personalized feeds, and access premium features.
+          <p className="font-merriweather text-xl text-slate-600 max-w-2xl mx-auto">
+            Get early access to NewsMap and be among the first to experience location-based news discovery.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Sign In Card */}
-          <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50 hover:border-red-500/50 transition-all duration-300">
-            <CardHeader className="text-center pb-4">
+          {/* Sign In */}
+          <Card className="bg-white/70 backdrop-blur-sm border-slate-300/50 shadow-lg">
+            <CardHeader className="text-center">
               <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <LogIn className="w-6 h-6 text-white" />
+                <User className="w-6 h-6 text-white" />
               </div>
-              <CardTitle className="font-montserrat text-2xl text-white">Welcome Back</CardTitle>
-              <p className="font-lato text-slate-400">Sign in to your account</p>
+              <CardTitle className="font-montserrat text-2xl text-slate-800">Welcome Back</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="font-lato text-slate-300">Email</Label>
+                <Label htmlFor="signin-email" className="font-lato text-slate-700">Email</Label>
                 <Input 
-                  id="email" 
+                  id="signin-email" 
                   type="email" 
-                  placeholder="your@email.com"
-                  className="font-lato bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-red-500"
+                  placeholder="Enter your email"
+                  className="bg-white/80 border-slate-300 focus:border-red-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="font-lato text-slate-300">Password</Label>
+                <Label htmlFor="signin-password" className="font-lato text-slate-700">Password</Label>
                 <Input 
-                  id="password" 
+                  id="signin-password" 
                   type="password" 
-                  placeholder="••••••••"
-                  className="font-lato bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-red-500"
+                  placeholder="Enter your password"
+                  className="bg-white/80 border-slate-300 focus:border-red-500"
                 />
               </div>
-              <Button className="font-lato w-full bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white transition-all duration-300">
+              <Button className="font-lato w-full bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white">
+                <Lock className="w-4 h-4 mr-2" />
                 Sign In
               </Button>
-              <p className="text-center text-sm text-slate-400">
-                <a href="#" className="font-lato text-red-400 hover:text-red-300 transition-colors">Forgot password?</a>
-              </p>
             </CardContent>
           </Card>
 
-          {/* Sign Up Card */}
-          <Card className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50 hover:border-blue-500/50 transition-all duration-300">
-            <CardHeader className="text-center pb-4">
+          {/* Sign Up */}
+          <Card className="bg-white/70 backdrop-blur-sm border-slate-300/50 shadow-lg">
+            <CardHeader className="text-center">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <UserPlus className="w-6 h-6 text-white" />
               </div>
-              <CardTitle className="font-montserrat text-2xl text-white">Get Started</CardTitle>
-              <p className="font-lato text-slate-400">Create your account</p>
+              <CardTitle className="font-montserrat text-2xl text-slate-800">Get Started</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="new-email" className="font-lato text-slate-300">Email</Label>
+                <Label htmlFor="signup-name" className="font-lato text-slate-700">Full Name</Label>
                 <Input 
-                  id="new-email" 
-                  type="email" 
-                  placeholder="your@email.com"
-                  className="font-lato bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
+                  id="signup-name" 
+                  type="text" 
+                  placeholder="Enter your name"
+                  className="bg-white/80 border-slate-300 focus:border-blue-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-password" className="font-lato text-slate-300">Password</Label>
+                <Label htmlFor="signup-email" className="font-lato text-slate-700">Email</Label>
                 <Input 
-                  id="new-password" 
-                  type="password" 
-                  placeholder="••••••••"
-                  className="font-lato bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
+                  id="signup-email" 
+                  type="email" 
+                  placeholder="Enter your email"
+                  className="bg-white/80 border-slate-300 focus:border-blue-500"
                 />
               </div>
-              <Button className="font-lato w-full bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-red-700 text-white transition-all duration-300">
-                Create Account
+              <Button className="font-lato w-full bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-700 hover:to-red-700 text-white">
+                <Mail className="w-4 h-4 mr-2" />
+                Get Early Access
               </Button>
-              <p className="text-center text-sm text-slate-400">
-                By signing up, you agree to our <a href="#" className="font-lato text-slate-400 hover:text-slate-300 transition-colors">Terms</a>
-              </p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Features Preview */}
-        <div className="mt-16 text-center">
-          <div className="bg-slate-800/20 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/30">
-            <Settings className="w-8 h-8 text-red-400 mx-auto mb-4" />
-            <h3 className="font-montserrat text-xl font-bold text-white mb-4">Personalize Your Experience</h3>
-            <div className="grid md:grid-cols-3 gap-6 text-sm text-slate-300">
-              <div>
-                <div className="font-montserrat text-red-400 font-semibold mb-1">Custom Locations</div>
-                <div className="font-lato">Set multiple locations for comprehensive coverage</div>
-              </div>
-              <div>
-                <div className="font-montserrat text-blue-400 font-semibold mb-1">Topic Preferences</div>
-                <div className="font-lato">Choose categories that matter most to you</div>
-              </div>
-              <div>
-                <div className="font-montserrat text-red-300 font-semibold mb-1">Smart Notifications</div>
-                <div className="font-lato">Get alerts tailored to your interests and location</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </section>

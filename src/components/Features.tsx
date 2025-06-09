@@ -47,11 +47,11 @@ const Features = () => {
     <section className="py-20 px-6 relative">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-slate-800 mb-6">
             Powered by 
-            <span className="bg-gradient-to-r from-red-400 to-blue-400 bg-clip-text text-transparent"> Intelligence</span>
+            <span className="bg-gradient-to-r from-red-600 to-blue-600 bg-clip-text text-transparent"> Intelligence</span>
           </h2>
-          <p className="font-merriweather text-xl text-slate-300 max-w-2xl mx-auto">
+          <p className="font-merriweather text-xl text-slate-600 max-w-2xl mx-auto">
             Advanced technology meets intuitive design to revolutionize how you consume and interact with news.
           </p>
         </div>
@@ -62,17 +62,17 @@ const Features = () => {
             return (
               <Card 
                 key={index}
-                className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50 hover:border-red-500/50 transition-all duration-500 transform hover:scale-105 hover:shadow-xl hover:shadow-red-500/10 group"
+                className="bg-white/60 backdrop-blur-sm border-slate-300/50 hover:border-red-500/50 transition-all duration-500 transform hover:scale-105 hover:shadow-xl hover:shadow-red-500/10 group"
               >
                 <CardContent className="p-8 text-center">
                   <div className="relative mb-6">
-                    <Icon className={`w-12 h-12 ${feature.color} mx-auto group-hover:scale-110 transition-transform duration-300`} />
-                    <div className={`absolute inset-0 ${feature.color.replace('text-', 'bg-')}/10 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300`}></div>
+                    <Icon className={`w-12 h-12 ${feature.color.replace('text-red-400', 'text-red-600').replace('text-blue-400', 'text-blue-600').replace('text-red-300', 'text-red-500').replace('text-blue-300', 'text-blue-500')} mx-auto group-hover:scale-110 transition-transform duration-300`} />
+                    <div className={`absolute inset-0 ${feature.color.replace('text-', 'bg-').replace('-400', '-600').replace('-300', '-500')}/10 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300`}></div>
                   </div>
-                  <h3 className="font-montserrat text-xl font-bold text-white mb-4 group-hover:text-red-400 transition-colors">
+                  <h3 className="font-montserrat text-xl font-bold text-slate-800 mb-4 group-hover:text-red-600 transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="font-merriweather text-slate-300 leading-relaxed">
+                  <p className="font-merriweather text-slate-600 leading-relaxed">
                     {feature.description}
                   </p>
                 </CardContent>
