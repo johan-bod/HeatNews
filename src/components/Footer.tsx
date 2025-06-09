@@ -10,20 +10,20 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center mb-4">
-              <Globe className="w-6 h-6 text-blue-400 mr-2" />
+              <Globe className="w-6 h-6 text-red-400 mr-2" />
               <span className="text-xl font-bold text-white">NewsMap</span>
             </div>
             <p className="text-slate-400 mb-6 max-w-md">
               Revolutionizing how you discover and consume news through intelligent geolocation and personalized filtering.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">
+              <a href="#" className="text-slate-400 hover:text-red-400 transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">
+              <a href="#" className="text-slate-400 hover:text-red-400 transition-colors">
                 <Github className="w-5 h-5" />
               </a>
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">
+              <a href="#" className="text-slate-400 hover:text-red-400 transition-colors">
                 <Mail className="w-5 h-5" />
               </a>
             </div>

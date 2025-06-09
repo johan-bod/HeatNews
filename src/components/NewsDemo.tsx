@@ -53,9 +53,9 @@ const NewsDemo = () => {
   };
 
   const scopes = [
-    { id: 'local', label: 'Hyper-Local', icon: MapPin, color: 'text-green-400' },
-    { id: 'regional', label: 'Regional', icon: Building, color: 'text-blue-400' },
-    { id: 'global', label: 'Global', icon: Globe, color: 'text-purple-400' }
+    { id: 'local', label: 'Hyper-Local', icon: MapPin, color: 'text-red-400' },
+    { id: 'regional', label: 'Regional', icon: Building, color: 'text-slate-400' },
+    { id: 'global', label: 'Global', icon: Globe, color: 'text-red-300' }
   ];
 
   return (
@@ -64,7 +64,7 @@ const NewsDemo = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             See News Through 
-            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"> Location</span>
+            <span className="bg-gradient-to-r from-red-400 to-slate-400 bg-clip-text text-transparent"> Location</span>
           </h2>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
             Filter and discover news from your neighborhood to the world. Experience how location transforms your news feed.
@@ -82,7 +82,7 @@ const NewsDemo = () => {
                   variant={selectedScope === scope.id ? "default" : "ghost"}
                   className={`mx-1 rounded-full px-6 py-3 transition-all duration-300 ${
                     selectedScope === scope.id 
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
+                      ? 'bg-gradient-to-r from-red-600 to-slate-600 text-white shadow-lg' 
                       : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
                   }`}
                   onClick={() => setSelectedScope(scope.id)}
@@ -100,12 +100,12 @@ const NewsDemo = () => {
           {newsItems[selectedScope as keyof typeof newsItems].map((item, index) => (
             <Card 
               key={index} 
-              className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50 hover:border-blue-500/50 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10"
+              className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50 hover:border-red-500/50 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/10"
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white mb-2 hover:text-blue-400 transition-colors cursor-pointer">
+                    <h3 className="text-lg font-semibold text-white mb-2 hover:text-red-400 transition-colors cursor-pointer">
                       {item.title}
                     </h3>
                     <div className="flex items-center text-sm text-slate-400 space-x-4">
@@ -114,7 +114,7 @@ const NewsDemo = () => {
                         {item.location}
                       </span>
                       <span>{item.time}</span>
-                      <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full text-xs">
+                      <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs">
                         {item.category}
                       </span>
                     </div>
@@ -129,9 +129,9 @@ const NewsDemo = () => {
         <div className="mt-16 text-center">
           <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl p-12 border border-slate-700/50 max-w-4xl mx-auto">
             <div className="relative">
-              <Globe className="w-24 h-24 text-blue-400 mx-auto mb-6 animate-pulse" />
+              <Globe className="w-24 h-24 text-red-400 mx-auto mb-6 animate-pulse" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-32 h-32 border-2 border-blue-400/30 rounded-full animate-ping"></div>
+                <div className="w-32 h-32 border-2 border-red-400/30 rounded-full animate-ping"></div>
               </div>
             </div>
             <h3 className="text-2xl font-bold text-white mb-4">Interactive Map Coming Soon</h3>

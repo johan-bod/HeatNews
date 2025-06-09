@@ -9,25 +9,25 @@ const Features = () => {
       icon: Map,
       title: "Geo-Intelligent Filtering",
       description: "AI-powered location detection automatically surfaces relevant local and global news",
-      color: "text-blue-400"
+      color: "text-red-400"
     },
     {
       icon: Zap,
       title: "Real-Time Updates",
       description: "Stay ahead with instant notifications as stories develop in your area and worldwide",
-      color: "text-yellow-400"
+      color: "text-slate-400"
     },
     {
       icon: Filter,
       title: "Smart Curation",
       description: "Machine learning algorithms learn your preferences to deliver personalized news feeds",
-      color: "text-green-400"
+      color: "text-red-300"
     },
     {
       icon: Bell,
       title: "Contextual Alerts",
       description: "Get notified about breaking news that matters to your location and interests",
-      color: "text-purple-400"
+      color: "text-slate-300"
     },
     {
       icon: Shield,
@@ -39,7 +39,7 @@ const Features = () => {
       icon: Sparkles,
       title: "Hyper-Local Discovery",
       description: "Discover neighborhood stories and community events you won't find anywhere else",
-      color: "text-cyan-400"
+      color: "text-slate-400"
     }
   ];
 
@@ -49,7 +49,7 @@ const Features = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Powered by 
-            <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent"> Intelligence</span>
+            <span className="bg-gradient-to-r from-red-400 to-slate-400 bg-clip-text text-transparent"> Intelligence</span>
           </h2>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
             Advanced technology meets intuitive design to revolutionize how you consume and interact with news.
@@ -62,14 +62,14 @@ const Features = () => {
             return (
               <Card 
                 key={index}
-                className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50 hover:border-blue-500/50 transition-all duration-500 transform hover:scale-105 hover:shadow-xl hover:shadow-blue-500/10 group"
+                className="bg-slate-800/30 backdrop-blur-sm border-slate-700/50 hover:border-red-500/50 transition-all duration-500 transform hover:scale-105 hover:shadow-xl hover:shadow-red-500/10 group"
               >
                 <CardContent className="p-8 text-center">
                   <div className="relative mb-6">
                     <Icon className={`w-12 h-12 ${feature.color} mx-auto group-hover:scale-110 transition-transform duration-300`} />
                     <div className={`absolute inset-0 ${feature.color.replace('text-', 'bg-')}/10 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300`}></div>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-4 group-hover:text-blue-400 transition-colors">
+                  <h3 className="text-xl font-bold text-white mb-4 group-hover:text-red-400 transition-colors">
                     {feature.title}
                   </h3>
                   <p className="text-slate-300 leading-relaxed">
