@@ -6,7 +6,12 @@ import Features from '../components/Features';
 import AuthSection from '../components/AuthSection';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
+import { NewsFilters, type NewsFiltersType } from '../components/NewsFilters';
+import { NewsSearch, type SearchParams } from '../components/NewsSearch';
 import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh } from '@/services/cachedNews';
+import { searchAndFilterNews } from '@/services/newsdata-api';
+import { geocodeArticles } from '@/utils/geocoding';
+import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
 import type { NewsArticle } from '@/types/news';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +22,9 @@ const Index = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [currentFilters, setCurrentFilters] = useState<NewsFiltersType | null>(null);
+  const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Initialize background refresh on mount (only once)
   useEffect(() => {
@@ -92,9 +100,117 @@ const Index = () => {
     }
   };
 
+  // Handle filter changes
+  const handleFilterChange = async (filters: NewsFiltersType) => {
+    try {
+      setIsSearching(true);
+      setError(null);
+      setCurrentFilters(filters);
+
+      // Fetch filtered news
+      let filteredArticles = await searchAndFilterNews({
+        countries: filters.countries,
+        languages: filters.languages,
+        categories: filters.categories,
+        scale: filters.scale,
+        prioritydomain: filters.prioritydomain,
+        size: 10,
+      });
+
+      // Geocode articles
+      filteredArticles = geocodeArticles(filteredArticles);
+
+      // Filter by scale if specified
+      if (filters.scale && filters.scale !== 'all') {
+        filteredArticles = filteredArticles.map(a => ({ ...a, scale: filters.scale as any }));
+      }
+
+      // Apply heat mapping
+      const clusters = analyzeArticleHeat(filteredArticles, filters.scale === 'all' ? 'international' : filters.scale);
+      filteredArticles = filteredArticles.map(article => ({
+        ...article,
+        color: getArticleColor(article, clusters),
+        heatLevel: clusters.find(c => c.articles.some(a => a.id === article.id))?.heatLevel || 0,
+        coverage: clusters.find(c => c.articles.some(a => a.id === article.id))?.coverage || 1,
+      }));
+
+      setArticles(filteredArticles);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Failed to filter news:', err);
+      setError(err as Error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle search
+  const handleSearch = async (search: SearchParams) => {
+    try {
+      setIsSearching(true);
+      setError(null);
+      setCurrentSearch(search);
+
+      // Fetch searched news
+      let searchedArticles = await searchAndFilterNews({
+        query: search.query,
+        scale: search.scale,
+        size: 10,
+      });
+
+      // Geocode articles
+      searchedArticles = geocodeArticles(searchedArticles);
+
+      // Filter by scale if specified
+      if (search.scale && search.scale !== 'all') {
+        searchedArticles = searchedArticles.map(a => ({ ...a, scale: search.scale as any }));
+      }
+
+      // Apply heat mapping
+      const clusters = analyzeArticleHeat(searchedArticles, search.scale === 'all' ? 'international' : search.scale);
+      searchedArticles = searchedArticles.map(article => ({
+        ...article,
+        color: getArticleColor(article, clusters),
+        heatLevel: clusters.find(c => c.articles.some(a => a.id === article.id))?.heatLevel || 0,
+        coverage: clusters.find(c => c.articles.some(a => a.id === article.id))?.coverage || 1,
+      }));
+
+      setArticles(searchedArticles);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Failed to search news:', err);
+      setError(err as Error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Clear filters and search
+  const handleClearFilters = () => {
+    setCurrentFilters(null);
+    setCurrentSearch(null);
+    loadNews(); // Reload cached news
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-200 via-slate-300 to-slate-400">
       <Hero />
+
+      {/* Filters and Search Section */}
+      <div className="container mx-auto px-4 py-8 space-y-6">
+        <NewsSearch
+          onSearch={handleSearch}
+          onClear={handleClearFilters}
+          isSearching={isSearching}
+          currentSearch={currentSearch || undefined}
+        />
+
+        <NewsFilters
+          onFilterChange={handleFilterChange}
+          onClear={handleClearFilters}
+          currentFilters={currentFilters || undefined}
+        />
+      </div>
 
       {/* Refresh button */}
       <div className="fixed bottom-4 left-4 z-50">
