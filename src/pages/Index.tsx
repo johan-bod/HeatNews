@@ -6,7 +6,7 @@ import Features from '../components/Features';
 import AuthSection from '../components/AuthSection';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
-import { getCachedNews, refreshNewsCache } from '@/services/cachedNews';
+import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh } from '@/services/cachedNews';
 import type { NewsArticle } from '@/types/news';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,34 +18,53 @@ const Index = () => {
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Load cached news on mount (no API call unless cache is empty)
+  // Initialize background refresh on mount (only once)
   useEffect(() => {
-    const loadNews = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    initializeBackgroundRefresh();
 
-        // This will use cache if available, only fetch if cache is expired
-        const newsConfig = await getCachedNews();
-
-        // Combine Bretagne + International news
-        const allArticles = [
-          ...newsConfig.bretagne,
-          ...newsConfig.international,
-        ];
-
-        setArticles(allArticles);
-        setLastUpdated(new Date(newsConfig.lastUpdated));
-      } catch (err) {
-        console.error('Failed to load news:', err);
-        setError(err as Error);
-      } finally {
-        setIsLoading(false);
-      }
+    // Listen for background refresh completion
+    const handleCacheRefresh = () => {
+      console.log('🔔 Cache was refreshed in background, reloading data...');
+      loadNews();
     };
 
+    window.addEventListener('cacheRefreshed', handleCacheRefresh);
+
+    return () => {
+      window.removeEventListener('cacheRefreshed', handleCacheRefresh);
+    };
+  }, []);
+
+  // Load cached news on mount (no API call unless cache is empty/expired)
+  useEffect(() => {
     loadNews();
   }, []);
+
+  const loadNews = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // This will use cache if available, only fetch if cache is expired
+      // Also triggers background refresh if cache is older than 4 hours
+      const newsConfig = await getCachedNews();
+
+      // Combine Argentina + Asia + International news
+      const allArticles = [
+        ...newsConfig.argentinaLocal,
+        ...newsConfig.asiaNational,
+        ...newsConfig.international,
+      ];
+
+      setArticles(allArticles);
+      setLastUpdated(new Date(newsConfig.lastUpdated));
+    } catch (err) {
+      console.error('Failed to load news:', err);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Manual refresh handler
   const handleRefresh = async () => {
@@ -56,9 +75,10 @@ const Index = () => {
       // Force refresh the cache
       const newsConfig = await refreshNewsCache();
 
-      // Combine Bretagne + International news
+      // Combine Argentina + Asia + International news
       const allArticles = [
-        ...newsConfig.bretagne,
+        ...newsConfig.argentinaLocal,
+        ...newsConfig.asiaNational,
         ...newsConfig.international,
       ];
 
@@ -125,6 +145,9 @@ const Index = () => {
       {!isLoading && articles.length > 0 && (
         <div className="fixed top-4 right-4 z-40 bg-green-500/90 text-white px-4 py-2 rounded-lg shadow-lg text-xs font-lato">
           ✓ Using cached data (no API calls)
+          <div className="text-[10px] mt-1 opacity-80">
+            Auto-refreshes every 4 hours in background
+          </div>
         </div>
       )}
     </div>
