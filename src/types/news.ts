@@ -19,6 +19,11 @@ export interface NewsArticle {
   };
   thumbnail?: string;
   tags?: string[];
+  // Heat mapping for topic popularity
+  heatLevel?: number; // 0-100
+  color?: string; // Hex/RGB color for visualization
+  coverage?: number; // Number of sources covering this topic
+  scale?: 'local' | 'regional' | 'national' | 'international';
 }
 
 // NewsData.io API Types

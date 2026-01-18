@@ -1,22 +1,9 @@
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import type { NewsArticle } from '@/types/news';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, MapPin, Calendar } from 'lucide-react';
+import { ExternalLink, MapPin, Calendar, Flame } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix for default marker icons in React Leaflet
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-});
 
 interface NewsMapProps {
   articles: NewsArticle[];
@@ -50,6 +37,18 @@ function FitBounds({ articles }: { articles: NewsArticle[] }) {
   return null;
 }
 
+/**
+ * Get heat description based on heat level
+ */
+function getHeatDescription(heatLevel?: number): string {
+  if (!heatLevel) return 'Single source';
+  if (heatLevel <= 20) return 'Limited coverage';
+  if (heatLevel <= 40) return 'Moderate coverage';
+  if (heatLevel <= 60) return 'Good coverage';
+  if (heatLevel <= 80) return 'High coverage';
+  return 'Very hot topic!';
+}
+
 export function NewsMap({ articles, center = [20, 0], zoom = 2 }: NewsMapProps) {
   const articlesWithLocation = articles.filter(a => a.coordinates);
 
@@ -67,61 +66,123 @@ export function NewsMap({ articles, center = [20, 0], zoom = 2 }: NewsMapProps) 
 
       <FitBounds articles={articlesWithLocation} />
 
-      {articlesWithLocation.map((article) => (
-        <Marker
-          key={article.id}
-          position={[article.coordinates!.lat, article.coordinates!.lng]}
-        >
-          <Popup maxWidth={300} className="news-popup">
-            <div className="p-2">
-              <div className="flex items-start gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-red-600 mt-1 flex-shrink-0" />
-                <h3 className="font-montserrat font-semibold text-sm leading-tight">
-                  {article.title}
-                </h3>
-              </div>
+      {articlesWithLocation.map((article) => {
+        // Use article color from heat map, default to grey
+        const color = article.color || '#6B7280';
+        const heatLevel = article.heatLevel || 0;
+        const coverage = article.coverage || 1;
 
-              {article.description && (
-                <p className="font-merriweather text-xs text-slate-600 mb-3 line-clamp-3">
-                  {article.description}
-                </p>
-              )}
+        // Radius based on heat level (hotter = bigger)
+        const radius = 8 + (heatLevel / 100) * 12; // 8-20px
 
-              <div className="flex flex-wrap gap-2 mb-3">
-                {article.category && (
-                  <Badge variant="secondary" className="text-xs">
-                    {article.category}
-                  </Badge>
-                )}
-                {article.location && (
-                  <Badge variant="outline" className="text-xs">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    {article.location}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  <span>
-                    {new Date(article.publishedAt).toLocaleDateString()}
+        return (
+          <CircleMarker
+            key={article.id}
+            center={[article.coordinates!.lat, article.coordinates!.lng]}
+            radius={radius}
+            pathOptions={{
+              fillColor: color,
+              color: color,
+              weight: 2,
+              opacity: 0.8,
+              fillOpacity: 0.6,
+            }}
+          >
+            <Popup maxWidth={350} className="news-popup">
+              <div className="p-2">
+                {/* Heat indicator */}
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+                  <div
+                    className="w-4 h-4 rounded-full border-2"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: color,
+                      opacity: 0.8
+                    }}
+                  />
+                  <div className="flex items-center gap-1">
+                    <Flame
+                      className="w-4 h-4"
+                      style={{ color: heatLevel > 50 ? '#EF4444' : '#6B7280' }}
+                    />
+                    <span className="text-xs font-semibold text-slate-700">
+                      {getHeatDescription(heatLevel)}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    ({coverage} {coverage === 1 ? 'source' : 'sources'})
                   </span>
                 </div>
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Read more
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+
+                <div className="flex items-start gap-2 mb-2">
+                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0" style={{ color }} />
+                  <h3 className="font-montserrat font-semibold text-sm leading-tight">
+                    {article.title}
+                  </h3>
+                </div>
+
+                {article.description && (
+                  <p className="font-merriweather text-xs text-slate-600 mb-3 line-clamp-3">
+                    {article.description}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {article.scale && (
+                    <Badge
+                      variant="secondary"
+                      className="text-xs"
+                      style={{
+                        backgroundColor: `${color}20`,
+                        color: heatLevel > 50 ? '#991B1B' : '#374151',
+                        borderColor: color
+                      }}
+                    >
+                      {article.scale}
+                    </Badge>
+                  )}
+                  {article.category && (
+                    <Badge variant="secondary" className="text-xs">
+                      {article.category}
+                    </Badge>
+                  )}
+                  {article.location && (
+                    <Badge variant="outline" className="text-xs">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {article.location}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>
+                      {new Date(article.publishedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <a
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Read more
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                {/* Source */}
+                <div className="mt-2 pt-2 border-t border-slate-200">
+                  <span className="text-xs text-slate-500">
+                    Source: <span className="font-medium">{article.source.name}</span>
+                  </span>
+                </div>
               </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            </Popup>
+          </CircleMarker>
+        );
+      })}
     </MapContainer>
   );
 }
