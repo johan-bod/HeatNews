@@ -1,5 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
 import Features from '../components/Features';
@@ -16,6 +17,9 @@ import type { NewsArticle } from '@/types/news';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Type for article scale (without 'all')
+type ArticleScale = 'local' | 'regional' | 'national' | 'international';
+
 const Index = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,35 +30,50 @@ const Index = () => {
   const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Initialize background refresh on mount (only once)
-  useEffect(() => {
-    initializeBackgroundRefresh();
+  // Shared function to process articles with geocoding and heat mapping
+  const processArticles = useCallback((
+    articles: NewsArticle[],
+    scale: 'all' | 'local' | 'regional' | 'national' | 'international'
+  ): NewsArticle[] => {
+    // Geocode articles
+    let processed = geocodeArticles(articles);
 
-    // Listen for background refresh completion
-    const handleCacheRefresh = () => {
-      console.log('🔔 Cache was refreshed in background, reloading data...');
-      loadNews();
-    };
+    // Apply scale if specified
+    const scaleValue = scale === 'all' ? 'international' : scale;
+    if (scale !== 'all') {
+      processed = processed.map(a => ({ ...a, scale: scaleValue as ArticleScale }));
+    }
 
-    window.addEventListener('cacheRefreshed', handleCacheRefresh);
+    // Analyze heat and create clusters
+    const clusters = analyzeArticleHeat(processed, scaleValue as ArticleScale);
 
-    return () => {
-      window.removeEventListener('cacheRefreshed', handleCacheRefresh);
-    };
+    // Build lookup map for O(1) performance instead of O(n) find operations
+    const articleClusterMap = new Map<string, typeof clusters[0]>();
+    clusters.forEach(cluster => {
+      cluster.articles.forEach(a => {
+        articleClusterMap.set(a.id, cluster);
+      });
+    });
+
+    // Map articles with heat data
+    return processed.map(article => {
+      const cluster = articleClusterMap.get(article.id);
+      return {
+        ...article,
+        color: cluster ? getArticleColor(article, clusters) : '#6B7280',
+        heatLevel: cluster?.heatLevel || 0,
+        coverage: cluster?.coverage || 1,
+      };
+    });
   }, []);
 
-  // Load cached news on mount (no API call unless cache is empty/expired)
-  useEffect(() => {
-    loadNews();
-  }, []);
-
-  const loadNews = async () => {
+  // Load cached news (memoized to prevent unnecessary re-creations)
+  const loadNews = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       // This will use cache if available, only fetch if cache is expired
-      // Also triggers background refresh if cache is older than 4 hours
       const newsConfig = await getCachedNews();
 
       // Combine Argentina + Asia + International news
@@ -72,10 +91,33 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  // Manual refresh handler
-  const handleRefresh = async () => {
+  // Initialize background refresh on mount (only once)
+  useEffect(() => {
+    const cleanup = initializeBackgroundRefresh();
+
+    // Listen for background refresh completion
+    const handleCacheRefresh = () => {
+      console.log('🔔 Cache was refreshed in background, reloading data...');
+      loadNews();
+    };
+
+    window.addEventListener('cacheRefreshed', handleCacheRefresh);
+
+    return () => {
+      cleanup(); // Clean up interval
+      window.removeEventListener('cacheRefreshed', handleCacheRefresh);
+    };
+  }, [loadNews]);
+
+  // Load cached news on mount
+  useEffect(() => {
+    loadNews();
+  }, [loadNews]);
+
+  // Manual refresh handler (memoized)
+  const handleRefresh = useCallback(async () => {
     try {
       setIsRefreshing(true);
       setError(null);
@@ -98,17 +140,17 @@ const Index = () => {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
-  // Handle filter changes
-  const handleFilterChange = async (filters: NewsFiltersType) => {
+  // Handle filter changes (memoized with shared processing)
+  const handleFilterChange = useCallback(async (filters: NewsFiltersType) => {
     try {
       setIsSearching(true);
       setError(null);
       setCurrentFilters(filters);
 
       // Fetch filtered news
-      let filteredArticles = await searchAndFilterNews({
+      const filteredArticles = await searchAndFilterNews({
         countries: filters.countries,
         languages: filters.languages,
         categories: filters.categories,
@@ -117,24 +159,10 @@ const Index = () => {
         size: 10,
       });
 
-      // Geocode articles
-      filteredArticles = geocodeArticles(filteredArticles);
+      // Process with geocoding and heat mapping
+      const processed = processArticles(filteredArticles, filters.scale);
 
-      // Filter by scale if specified
-      if (filters.scale && filters.scale !== 'all') {
-        filteredArticles = filteredArticles.map(a => ({ ...a, scale: filters.scale as any }));
-      }
-
-      // Apply heat mapping
-      const clusters = analyzeArticleHeat(filteredArticles, filters.scale === 'all' ? 'international' : filters.scale);
-      filteredArticles = filteredArticles.map(article => ({
-        ...article,
-        color: getArticleColor(article, clusters),
-        heatLevel: clusters.find(c => c.articles.some(a => a.id === article.id))?.heatLevel || 0,
-        coverage: clusters.find(c => c.articles.some(a => a.id === article.id))?.coverage || 1,
-      }));
-
-      setArticles(filteredArticles);
+      setArticles(processed);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to filter news:', err);
@@ -142,40 +170,26 @@ const Index = () => {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [processArticles]);
 
-  // Handle search
-  const handleSearch = async (search: SearchParams) => {
+  // Handle search (memoized with shared processing)
+  const handleSearch = useCallback(async (search: SearchParams) => {
     try {
       setIsSearching(true);
       setError(null);
       setCurrentSearch(search);
 
       // Fetch searched news
-      let searchedArticles = await searchAndFilterNews({
+      const searchedArticles = await searchAndFilterNews({
         query: search.query,
         scale: search.scale,
         size: 10,
       });
 
-      // Geocode articles
-      searchedArticles = geocodeArticles(searchedArticles);
+      // Process with geocoding and heat mapping
+      const processed = processArticles(searchedArticles, search.scale);
 
-      // Filter by scale if specified
-      if (search.scale && search.scale !== 'all') {
-        searchedArticles = searchedArticles.map(a => ({ ...a, scale: search.scale as any }));
-      }
-
-      // Apply heat mapping
-      const clusters = analyzeArticleHeat(searchedArticles, search.scale === 'all' ? 'international' : search.scale);
-      searchedArticles = searchedArticles.map(article => ({
-        ...article,
-        color: getArticleColor(article, clusters),
-        heatLevel: clusters.find(c => c.articles.some(a => a.id === article.id))?.heatLevel || 0,
-        coverage: clusters.find(c => c.articles.some(a => a.id === article.id))?.coverage || 1,
-      }));
-
-      setArticles(searchedArticles);
+      setArticles(processed);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to search news:', err);
@@ -183,17 +197,18 @@ const Index = () => {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [processArticles]);
 
-  // Clear filters and search
-  const handleClearFilters = () => {
+  // Clear filters and search (memoized)
+  const handleClearFilters = useCallback(() => {
     setCurrentFilters(null);
     setCurrentSearch(null);
     loadNews(); // Reload cached news
-  };
+  }, [loadNews]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-200 via-slate-300 to-slate-400">
+      <Navbar />
       <Hero />
 
       {/* Filters and Search Section */}

@@ -61,188 +61,47 @@
 - Marker size proportional to heat level
 - Coverage metrics in popups
 
+### 4. **Comprehensive Filter System** ✅
+
+**Implemented Features:**
+- 21 countries with flag emojis (multi-select)
+- 14 languages (multi-select)
+- 12 categories with icons (multi-select)
+- 5 scale options (all/local/regional/national/international)
+- Source priority filter (all/top/medium)
+- Collapsible UI with active filter count
+- Apply and Reset buttons
+- Integrated with NewsData.io API
+
+**Files:**
+- `src/components/NewsFilters.tsx` - Filter component
+- `src/services/newsdata-api.ts` - searchAndFilterNews() function
+- `src/pages/Index.tsx` - Integration with heat mapping
+
+### 5. **Search Bar with Topic & Scale Filtering** ✅
+
+**Implemented Features:**
+- Topic search input with suggestions
+- Enter key support
+- 5 scale filter options in grid layout
+- 8 suggested searches (climate change, elections, technology, etc.)
+- Active search indicator
+- Clear button
+- Loading state with spinner
+- Integrated with NewsData.io API
+
+**Files:**
+- `src/components/NewsSearch.tsx` - Search component
+- `src/pages/Index.tsx` - Integration with filtering and heat mapping
+
 ---
 
 ## 🚧 Features To Implement
 
-### 4. **Comprehensive Filter System** (High Priority)
+### 6. **Google OAuth Authentication** (High Priority)
 
-**Goal**: Let users filter by all NewsData.io parameters
 
-**Available NewsData.io Filters:**
-
-| Filter | Options | Example |
-|--------|---------|---------|
-| **Country** | 206 countries | us, gb, fr, ar, jp, etc. |
-| **Language** | 89 languages | en, es, fr, de, ja, zh, etc. |
-| **Category** | 12 categories | business, politics, sports, tech, etc. |
-| **Domain** | Specific domains | bbc.com, cnn.com, etc. |
-| **Priority** | top, medium, low | Only top-tier sources |
-| **Timeframe** | Date ranges | Last 24h, week, month |
-
-**Implementation Plan:**
-
-**Step 1: Create Filter Component**
-```bash
-# Create new file
-touch src/components/NewsFilters.tsx
-```
-
-**Step 2: Add Filter UI**
-```typescript
-// src/components/NewsFilters.tsx
-import { Select } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-
-export function NewsFilters({ onFilterChange }) {
-  return (
-    <div className="filters">
-      <Select name="country">
-        <option value="">All Countries</option>
-        <option value="us">United States</option>
-        <option value="gb">United Kingdom</option>
-        <option value="ar">Argentina</option>
-        {/* Add all 206 countries */}
-      </Select>
-
-      <Select name="category">
-        <option value="">All Categories</option>
-        <option value="business">Business</option>
-        <option value="politics">Politics</option>
-        <option value="sports">Sports</option>
-        {/* Add all 12 categories */}
-      </Select>
-
-      <Select name="language">
-        <option value="en">English</option>
-        <option value="es">Spanish</option>
-        <option value="fr">French</option>
-        {/* Add all 89 languages */}
-      </Select>
-
-      <Select name="scale">
-        <option value="all">All Scales</option>
-        <option value="local">Local</option>
-        <option value="national">National</option>
-        <option value="international">International</option>
-      </Select>
-    </div>
-  );
-}
-```
-
-**Step 3: Create Custom Search Function**
-```typescript
-// src/services/newsdata-api.ts
-export async function searchNewsWithFilters(filters: {
-  country?: string[];
-  language?: string;
-  category?: string[];
-  scale?: 'local' | 'national' | 'international';
-  query?: string;
-}) {
-  const response = await fetchNewsDataArticles({
-    country: filters.country,
-    language: filters.language,
-    category: filters.category,
-    query: filters.query,
-    size: 10,
-  });
-
-  // Apply scale filtering and heat mapping
-  let articles = response.results.map(convertNewsDataArticle);
-  articles = geocodeArticles(articles);
-
-  // Filter by scale if specified
-  if (filters.scale) {
-    articles = articles.filter(a => a.scale === filters.scale);
-  }
-
-  return articles;
-}
-```
-
-**Step 4: Integrate into Index Page**
-```typescript
-// Add to src/pages/Index.tsx
-const [filters, setFilters] = useState({});
-
-<NewsFilters onFilterChange={setFilters} />
-<NewsDemo articles={filteredArticles} />
-```
-
-**Estimated Time**: 4-6 hours
-
----
-
-### 5. **Search Bar with Topic & Scale Filtering** (High Priority)
-
-**Goal**: Allow users to search for specific topics
-
-**Implementation Plan:**
-
-**Step 1: Create Search Component**
-```bash
-# Create new file
-touch src/components/NewsSearch.tsx
-```
-
-**Step 2: Build Search UI**
-```typescript
-// src/components/NewsSearch.tsx
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-
-export function NewsSearch({ onSearch }) {
-  const [query, setQuery] = useState('');
-  const [scale, setScale] = useState('all');
-
-  const handleSearch = async () => {
-    const results = await searchNewsWithFilters({
-      query,
-      scale: scale !== 'all' ? scale : undefined,
-    });
-    onSearch(results);
-  };
-
-  return (
-    <div className="search-bar">
-      <Input
-        placeholder="Search for topics... (e.g., climate change, elections)"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-      />
-
-      <Select value={scale} onChange={setScale}>
-        <option value="all">All Scales</option>
-        <option value="local">Local Only</option>
-        <option value="national">National Only</option>
-        <option value="international">International Only</option>
-      </Select>
-
-      <Button onClick={handleSearch}>
-        <Search className="w-4 h-4 mr-2" />
-        Search
-      </Button>
-    </div>
-  );
-}
-```
-
-**Step 3: Add to Index Page**
-```typescript
-<NewsSearch onSearch={handleSearchResults} />
-```
-
-**API Usage**: 1 request per search (user-triggered)
-
-**Estimated Time**: 2-3 hours
-
----
-
-### 6. **Google OAuth Authentication** (Medium Priority)
+### 6. **Google OAuth Authentication** (High Priority)
 
 **Goal**: User login with Google
 
@@ -413,7 +272,7 @@ export function LoginButton() {
 
 ---
 
-### 7. **Admin Panel** (Low Priority - Depends on Auth)
+### 7. **Admin Panel** (Medium Priority - Depends on Auth)
 
 **Goal**: Admin-only interface for managing content
 
@@ -514,11 +373,11 @@ const { isAdmin } = useAuth();
 
 ## 📋 Implementation Timeline
 
-### Phase 1: Filters & Search (Immediate - 1-2 days)
+### Phase 1: Filters & Search ✅ COMPLETE
 1. ✅ 4-hour caching (DONE)
 2. ✅ Argentina + Asia news (DONE)
-3. 🔲 Comprehensive filters (4-6 hours)
-4. 🔲 Search bar (2-3 hours)
+3. ✅ Comprehensive filters (DONE)
+4. ✅ Search bar (DONE)
 
 ### Phase 2: Authentication (1-2 days)
 5. 🔲 Firebase setup (1 hour)
@@ -548,15 +407,8 @@ Open: http://localhost:5173/
 - ✅ Color-coded heat map markers
 - ✅ "Auto-refreshes every 4 hours" badge
 - ✅ Background refresh after 4 hours
-
-### To Implement Filters (Next Priority):
-
-1. **Create NewsFilters component**
-2. **Add to Index page**
-3. **Connect to API**
-4. **Test filtering**
-
-See detailed steps in **Section 4** above.
+- ✅ Advanced Filters component (collapsible)
+- ✅ Search bar with topic search and scale filtering
 
 ### To Add Authentication:
 

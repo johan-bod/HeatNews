@@ -284,13 +284,22 @@ export async function getAllCachedArticles(): Promise<NewsArticle[]> {
   ];
 }
 
+// Store interval ID to prevent multiple intervals
+let refreshIntervalId: NodeJS.Timeout | null = null;
+
 /**
  * Initialize background refresh checker
  * Call this once when app starts
+ * Returns cleanup function to clear the interval
  */
-export function initializeBackgroundRefresh(): void {
+export function initializeBackgroundRefresh(): () => void {
+  // Clear any existing interval first
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId);
+  }
+
   // Check every 5 minutes if cache needs refresh
-  setInterval(() => {
+  refreshIntervalId = setInterval(() => {
     if (shouldRefreshCache()) {
       console.log('⏰ Automatic 4-hour refresh triggered');
       refreshCacheInBackground();
@@ -298,4 +307,13 @@ export function initializeBackgroundRefresh(): void {
   }, BACKGROUND_REFRESH_CHECK_INTERVAL);
 
   console.log('✅ Background refresh checker initialized (checks every 5 minutes)');
+
+  // Return cleanup function
+  return () => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId);
+      refreshIntervalId = null;
+      console.log('🧹 Background refresh checker cleaned up');
+    }
+  };
 }
