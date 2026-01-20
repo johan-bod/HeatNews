@@ -8,30 +8,31 @@ import { setCacheData, getCacheData, getCacheMetadata } from '@/utils/cache';
  * Pre-configured news queries for landing page
  */
 export interface CachedNewsConfig {
-  argentinaLocal: NewsArticle[]; // Hyperlocal news for Mendoza, Argentina
+  localNews: NewsArticle[]; // Local news based on user location (default: France)
   asiaNational: NewsArticle[]; // National news from Asian countries
   international: NewsArticle[]; // International news
   lastUpdated: number;
 }
 
-const CACHE_KEY_ARGENTINA = 'argentina_local_news';
+const CACHE_KEY_LOCAL = 'local_news';
 const CACHE_KEY_ASIA = 'asia_national_news';
 const CACHE_KEY_INTERNATIONAL = 'international_news';
 const CACHE_KEY_LAST_REFRESH = 'last_background_refresh';
+const CACHE_KEY_USER_LOCATION = 'user_detected_location';
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 const BACKGROUND_REFRESH_CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 
 /**
- * Fetch Argentina local news (Mendoza region)
+ * Fetch France local news (Île-de-France, Provence, Lyon, etc.)
  */
-async function fetchArgentinaLocalNews(): Promise<NewsArticle[]> {
+async function fetchFranceLocalNews(): Promise<NewsArticle[]> {
   try {
     const response = await fetchNewsDataArticles({
-      country: 'ar', // Argentina
-      language: 'es', // Spanish
+      country: 'fr', // France
+      language: 'fr', // French
       size: 10,
-      // Search for Mendoza and other major Argentine cities
-      query: 'Mendoza OR Córdoba OR Rosario OR "Buenos Aires"',
+      // Search for major French regions and cities
+      query: 'Paris OR Lyon OR Marseille OR Toulouse OR Nice OR Bordeaux OR Lille',
     });
 
     let articles = response.results.map(convertNewsDataArticle);
@@ -59,7 +60,7 @@ async function fetchArgentinaLocalNews(): Promise<NewsArticle[]> {
 
     return articles;
   } catch (error) {
-    console.error('Failed to fetch Argentina local news:', error);
+    console.error('Failed to fetch France local news:', error);
     return [];
   }
 }
@@ -170,7 +171,7 @@ export async function getCachedNews(
 ): Promise<CachedNewsConfig> {
   // Try to get from cache first
   if (!forceRefresh) {
-    const cachedArgentina = getCacheData<NewsArticle[]>(CACHE_KEY_ARGENTINA);
+    const cachedArgentina = getCacheData<NewsArticle[]>(CACHE_KEY_LOCAL);
     const cachedAsia = getCacheData<NewsArticle[]>(CACHE_KEY_ASIA);
     const cachedInternational = getCacheData<NewsArticle[]>(
       CACHE_KEY_INTERNATIONAL
@@ -190,7 +191,7 @@ export async function getCachedNews(
       const metadata = getCacheMetadata(CACHE_KEY_LAST_REFRESH);
 
       return {
-        argentinaLocal: cachedArgentina,
+        localNews: cachedArgentina,
         asiaNational: cachedAsia,
         international: cachedInternational,
         lastUpdated: metadata?.timestamp || Date.now(),
@@ -208,8 +209,8 @@ export async function getCachedNews(
  * Fetch fresh news and update cache
  */
 async function fetchAndCacheNews(): Promise<CachedNewsConfig> {
-  const [argentinaLocal, asiaNational, international] = await Promise.all([
-    fetchArgentinaLocalNews(),
+  const [localNews, asiaNational, international] = await Promise.all([
+    fetchFranceLocalNews(),
     fetchAsiaNationalNews(),
     fetchInternationalNews(),
   ]);
@@ -217,8 +218,8 @@ async function fetchAndCacheNews(): Promise<CachedNewsConfig> {
   const now = Date.now();
 
   // Cache the results
-  setCacheData(CACHE_KEY_ARGENTINA, argentinaLocal, {
-    region: 'Mendoza, Argentina',
+  setCacheData(CACHE_KEY_LOCAL, localNews, {
+    region: 'France',
     scale: 'local',
     ttl: CACHE_TTL,
   });
@@ -243,7 +244,7 @@ async function fetchAndCacheNews(): Promise<CachedNewsConfig> {
   });
 
   return {
-    argentinaLocal,
+    localNews,
     asiaNational,
     international,
     lastUpdated: now,
@@ -278,7 +279,7 @@ export async function refreshNewsCache(): Promise<CachedNewsConfig> {
 export async function getAllCachedArticles(): Promise<NewsArticle[]> {
   const config = await getCachedNews();
   return [
-    ...config.argentinaLocal,
+    ...config.localNews,
     ...config.asiaNational,
     ...config.international,
   ];

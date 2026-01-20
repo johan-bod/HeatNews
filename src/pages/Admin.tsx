@@ -30,16 +30,17 @@ export default function Admin() {
   const loadCacheStats = () => {
     try {
       const stats = {
-        argentinaCache: getCacheData('newsdata_argentina_local'),
-        asiaCache: getCacheData('newsdata_asia_national'),
-        internationalCache: getCacheData('newsdata_international'),
+        localCache: getCacheData('local_news'),
+        asiaCache: getCacheData('asia_national_news'),
+        internationalCache: getCacheData('international_news'),
       };
 
       setCacheStats(stats);
 
       // Get last refresh time from any cache
-      if (stats.argentinaCache?.lastUpdated) {
-        setLastRefresh(new Date(stats.argentinaCache.lastUpdated));
+      const lastRefreshTimestamp = getCacheData<number>('last_background_refresh');
+      if (lastRefreshTimestamp) {
+        setLastRefresh(new Date(lastRefreshTimestamp));
       }
     } catch (error) {
       console.error('Failed to load cache stats:', error);
@@ -64,9 +65,11 @@ export default function Admin() {
   const handleClearCache = () => {
     if (confirm('Are you sure you want to clear all cache? This will trigger a fresh API fetch.')) {
       try {
-        localStorage.removeItem('newsdata_argentina_local');
-        localStorage.removeItem('newsdata_asia_national');
-        localStorage.removeItem('newsdata_international');
+        // Clear all cache keys (with news_cache_ prefix)
+        localStorage.removeItem('news_cache_local_news');
+        localStorage.removeItem('news_cache_asia_national_news');
+        localStorage.removeItem('news_cache_international_news');
+        localStorage.removeItem('news_cache_last_background_refresh');
         clearExpiredCache();
         loadCacheStats();
         alert('✅ All cache cleared successfully!');
@@ -129,7 +132,7 @@ export default function Admin() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {cacheStats?.argentinaCache ? '3 regions cached' : 'No cached data'}
+                {cacheStats?.localCache ? '3 regions cached' : 'No cached data'}
               </p>
             </CardContent>
           </Card>
@@ -156,7 +159,7 @@ export default function Admin() {
               <div className="text-2xl font-bold">
                 {cacheStats
                   ? `~${(
-                      parseFloat(calculateCacheSize(cacheStats.argentinaCache)) +
+                      parseFloat(calculateCacheSize(cacheStats.localCache)) +
                       parseFloat(calculateCacheSize(cacheStats.asiaCache)) +
                       parseFloat(calculateCacheSize(cacheStats.internationalCache))
                     ).toFixed(1)} KB`
@@ -182,21 +185,21 @@ export default function Admin() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Argentina Cache */}
+              {/* France Local Cache */}
               <div className="border border-slate-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">🇦🇷 Argentina Local</h3>
+                  <h3 className="font-semibold text-sm">🇫🇷 France Local</h3>
                   <Badge variant="outline" className="text-xs">
-                    {cacheStats?.argentinaCache?.articles?.length || 0} articles
+                    {cacheStats?.localCache?.articles?.length || 0} articles
                   </Badge>
                 </div>
                 <p className="text-xs text-slate-500 mb-2">
-                  Size: {calculateCacheSize(cacheStats?.argentinaCache)}
+                  Size: {calculateCacheSize(cacheStats?.localCache)}
                 </p>
-                {cacheStats?.argentinaCache?.lastUpdated && (
+                {cacheStats?.localCache?.lastUpdated && (
                   <p className="text-xs text-slate-500">
                     Updated:{' '}
-                    {new Date(cacheStats.argentinaCache.lastUpdated).toLocaleString()}
+                    {new Date(cacheStats.localCache.lastUpdated).toLocaleString()}
                   </p>
                 )}
               </div>
