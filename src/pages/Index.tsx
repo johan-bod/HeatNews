@@ -9,6 +9,7 @@ import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
 import { NewsFilters, type NewsFiltersType } from '../components/NewsFilters';
 import { NewsSearch, type SearchParams } from '../components/NewsSearch';
+import { AdBanner } from '../components/AdBanner';
 import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh } from '@/services/cachedNews';
 import { searchAndFilterNews } from '@/services/newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
@@ -224,6 +225,14 @@ const Index = () => {
           onFilterChange={handleFilterChange}
           onClear={handleClearFilters}
           currentFilters={currentFilters || undefined}
+        />
+
+        {/* Non-intrusive ad placement - horizontal banner */}
+        <AdBanner
+          adSlot={import.meta.env.VITE_ADSENSE_SLOT_HORIZONTAL || '1234567890'}
+          format="horizontal"
+          responsive={true}
+          className="my-8"
         />
       </div>
 
