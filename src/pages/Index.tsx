@@ -115,7 +115,11 @@ const Index = () => {
 
   // Load cached news on mount
   useEffect(() => {
-    loadNews();
+    loadNews().catch(err => {
+      console.error('Failed to load initial news:', err);
+      setError(err as Error);
+      setIsLoading(false);
+    });
   }, [loadNews]);
 
   // Manual refresh handler (memoized)
@@ -214,6 +218,18 @@ const Index = () => {
       <Navbar />
       <Hero />
 
+      {/* Show loading indicator on initial load */}
+      {isLoading && articles.length === 0 && !error && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 shadow-2xl text-center max-w-md">
+            <RefreshCw className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Loading News</h3>
+            <p className="text-slate-600 text-sm">Fetching latest articles from around the world...</p>
+            <p className="text-slate-400 text-xs mt-2">This may take a few seconds on first load</p>
+          </div>
+        </div>
+      )}
+
       {/* Filters and Search Section */}
       <div className="container mx-auto px-4 py-8 space-y-6">
         <NewsSearch
@@ -265,11 +281,37 @@ const Index = () => {
       <AuthSection />
       <Footer />
 
-      {/* Error toast */}
-      {error && (
+      {/* Error display */}
+      {error && articles.length === 0 && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 shadow-2xl text-center max-w-md">
+            <div className="w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Unable to Load News</h3>
+            <p className="text-slate-600 text-sm mb-4">{error.message}</p>
+            <div className="space-y-2">
+              <Button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="w-full"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Retrying...' : 'Try Again'}
+              </Button>
+              <p className="text-xs text-slate-400">
+                Make sure you have an internet connection and the API key is valid
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error toast (when there are already articles loaded) */}
+      {error && articles.length > 0 && (
         <div className="fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
           <p className="font-lato text-sm">
-            <strong>Failed to load news.</strong>
+            <strong>Failed to refresh news.</strong>
             <br />
             {error.message}
             <br />
