@@ -8,14 +8,16 @@ import { setCacheData, getCacheData, getCacheMetadata } from '@/utils/cache';
  * Pre-configured news queries for landing page
  */
 export interface CachedNewsConfig {
-  localNews: NewsArticle[]; // Local news based on user location (default: France)
-  asiaNational: NewsArticle[]; // National news from Asian countries
-  international: NewsArticle[]; // International news
+  localNews: NewsArticle[]; // Hyperlocal: French cities (Paris, Lyon, etc.)
+  regionalNews: NewsArticle[]; // Regional: French regions (Bretagne, Provence, etc.)
+  nationalNews: NewsArticle[]; // National: European countries (France, Germany, UK, etc.)
+  international: NewsArticle[]; // International: Worldwide news
   lastUpdated: number;
 }
 
 const CACHE_KEY_LOCAL = 'local_news';
-const CACHE_KEY_ASIA = 'asia_national_news';
+const CACHE_KEY_REGIONAL = 'regional_news';
+const CACHE_KEY_NATIONAL = 'national_news';
 const CACHE_KEY_INTERNATIONAL = 'international_news';
 const CACHE_KEY_LAST_REFRESH = 'last_background_refresh';
 const CACHE_KEY_USER_LOCATION = 'user_detected_location';
@@ -23,7 +25,7 @@ const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 const BACKGROUND_REFRESH_CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 
 /**
- * Fetch France local news (Île-de-France, Provence, Lyon, etc.)
+ * Fetch France hyperlocal news (major French cities)
  */
 async function fetchFranceLocalNews(): Promise<NewsArticle[]> {
   try {
@@ -31,7 +33,7 @@ async function fetchFranceLocalNews(): Promise<NewsArticle[]> {
       country: 'fr', // France
       language: 'fr', // French
       size: 10,
-      // Search for major French regions and cities
+      // Search for major French cities (hyperlocal)
       query: 'Paris OR Lyon OR Marseille OR Toulouse OR Nice OR Bordeaux OR Lille',
     });
 
@@ -66,12 +68,55 @@ async function fetchFranceLocalNews(): Promise<NewsArticle[]> {
 }
 
 /**
- * Fetch Asia national news
+ * Fetch France regional news (French regions: Bretagne, Provence, Normandie, etc.)
  */
-async function fetchAsiaNationalNews(): Promise<NewsArticle[]> {
+async function fetchFranceRegionalNews(): Promise<NewsArticle[]> {
   try {
     const response = await fetchNewsDataArticles({
-      country: ['in', 'jp', 'cn', 'kr', 'sg', 'th', 'id', 'my'], // Asian countries
+      country: 'fr', // France
+      language: 'fr', // French
+      size: 10,
+      // Search for French regions (intermediate between city and country)
+      query: 'Bretagne OR Provence OR Normandie OR "Auvergne-Rhône-Alpes" OR "Nouvelle-Aquitaine" OR Occitanie',
+    });
+
+    let articles = response.results.map(convertNewsDataArticle);
+
+    // Geocode articles
+    articles = geocodeArticles(articles);
+
+    // Mark as regional scale
+    articles = articles.map(a => ({ ...a, scale: 'regional' as const }));
+
+    // Analyze heat for regional scale
+    const clusters = analyzeArticleHeat(articles, 'regional');
+
+    // Apply colors to articles
+    articles = articles.map(article => ({
+      ...article,
+      color: getArticleColor(article, clusters),
+      heatLevel: clusters.find(c =>
+        c.articles.some(a => a.id === article.id)
+      )?.heatLevel || 0,
+      coverage: clusters.find(c =>
+        c.articles.some(a => a.id === article.id)
+      )?.coverage || 1,
+    }));
+
+    return articles;
+  } catch (error) {
+    console.error('Failed to fetch France regional news:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch Europe national news (individual European countries)
+ */
+async function fetchEuropeNationalNews(): Promise<NewsArticle[]> {
+  try {
+    const response = await fetchNewsDataArticles({
+      country: ['fr', 'de', 'gb', 'it', 'es', 'nl', 'be', 'ch'], // European countries
       language: 'en',
       size: 10,
       category: ['top', 'politics', 'business'],
@@ -102,7 +147,7 @@ async function fetchAsiaNationalNews(): Promise<NewsArticle[]> {
 
     return articles;
   } catch (error) {
-    console.error('Failed to fetch Asia national news:', error);
+    console.error('Failed to fetch Europe national news:', error);
     return [];
   }
 }
@@ -171,15 +216,14 @@ export async function getCachedNews(
 ): Promise<CachedNewsConfig> {
   // Try to get from cache first
   if (!forceRefresh) {
-    const cachedArgentina = getCacheData<NewsArticle[]>(CACHE_KEY_LOCAL);
-    const cachedAsia = getCacheData<NewsArticle[]>(CACHE_KEY_ASIA);
-    const cachedInternational = getCacheData<NewsArticle[]>(
-      CACHE_KEY_INTERNATIONAL
-    );
+    const cachedLocal = getCacheData<NewsArticle[]>(CACHE_KEY_LOCAL);
+    const cachedRegional = getCacheData<NewsArticle[]>(CACHE_KEY_REGIONAL);
+    const cachedNational = getCacheData<NewsArticle[]>(CACHE_KEY_NATIONAL);
+    const cachedInternational = getCacheData<NewsArticle[]>(CACHE_KEY_INTERNATIONAL);
 
     // If we have cached data, return it immediately
-    if (cachedArgentina && cachedAsia && cachedInternational) {
-      console.log('📦 Using cached news data');
+    if (cachedLocal && cachedRegional && cachedNational && cachedInternational) {
+      console.log('📦 Using cached news data (4 scales)');
 
       // Check if we should refresh in background
       if (shouldRefreshCache()) {
@@ -191,8 +235,9 @@ export async function getCachedNews(
       const metadata = getCacheMetadata(CACHE_KEY_LAST_REFRESH);
 
       return {
-        localNews: cachedArgentina,
-        asiaNational: cachedAsia,
+        localNews: cachedLocal,
+        regionalNews: cachedRegional,
+        nationalNews: cachedNational,
         international: cachedInternational,
         lastUpdated: metadata?.timestamp || Date.now(),
       };
@@ -207,25 +252,33 @@ export async function getCachedNews(
 
 /**
  * Fetch fresh news and update cache
+ * Fetches all 4 scales: Local (cities) → Regional (regions) → National (countries) → International (global)
  */
 async function fetchAndCacheNews(): Promise<CachedNewsConfig> {
-  const [localNews, asiaNational, international] = await Promise.all([
-    fetchFranceLocalNews(),
-    fetchAsiaNationalNews(),
-    fetchInternationalNews(),
+  const [localNews, regionalNews, nationalNews, international] = await Promise.all([
+    fetchFranceLocalNews(),      // French cities
+    fetchFranceRegionalNews(),   // French regions (Bretagne, etc.)
+    fetchEuropeNationalNews(),   // European countries
+    fetchInternationalNews(),    // Worldwide
   ]);
 
   const now = Date.now();
 
   // Cache the results
   setCacheData(CACHE_KEY_LOCAL, localNews, {
-    region: 'France',
+    region: 'France - Cities',
     scale: 'local',
     ttl: CACHE_TTL,
   });
 
-  setCacheData(CACHE_KEY_ASIA, asiaNational, {
-    region: 'Asia',
+  setCacheData(CACHE_KEY_REGIONAL, regionalNews, {
+    region: 'France - Regions',
+    scale: 'regional',
+    ttl: CACHE_TTL,
+  });
+
+  setCacheData(CACHE_KEY_NATIONAL, nationalNews, {
+    region: 'Europe - Countries',
     scale: 'national',
     ttl: CACHE_TTL,
   });
@@ -245,7 +298,8 @@ async function fetchAndCacheNews(): Promise<CachedNewsConfig> {
 
   return {
     localNews,
-    asiaNational,
+    regionalNews,
+    nationalNews,
     international,
     lastUpdated: now,
   };

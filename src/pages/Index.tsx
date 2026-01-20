@@ -77,10 +77,11 @@ const Index = () => {
       // This will use cache if available, only fetch if cache is expired
       const newsConfig = await getCachedNews();
 
-      // Combine Local + Asia + International news
+      // Combine all 4 scales: Local → Regional → National → International
       const allArticles = [
         ...newsConfig.localNews,
-        ...newsConfig.asiaNational,
+        ...newsConfig.regionalNews,
+        ...newsConfig.nationalNews,
         ...newsConfig.international,
       ];
 
@@ -126,10 +127,11 @@ const Index = () => {
       // Force refresh the cache
       const newsConfig = await refreshNewsCache();
 
-      // Combine Local + Asia + International news
+      // Combine all 4 scales: Local → Regional → National → International
       const allArticles = [
         ...newsConfig.localNews,
-        ...newsConfig.asiaNational,
+        ...newsConfig.regionalNews,
+        ...newsConfig.nationalNews,
         ...newsConfig.international,
       ];
 

@@ -31,7 +31,8 @@ export default function Admin() {
     try {
       const stats = {
         localCache: getCacheData('local_news'),
-        asiaCache: getCacheData('asia_national_news'),
+        regionalCache: getCacheData('regional_news'),
+        nationalCache: getCacheData('national_news'),
         internationalCache: getCacheData('international_news'),
       };
 
@@ -67,7 +68,8 @@ export default function Admin() {
       try {
         // Clear all cache keys (with news_cache_ prefix)
         localStorage.removeItem('news_cache_local_news');
-        localStorage.removeItem('news_cache_asia_national_news');
+        localStorage.removeItem('news_cache_regional_news');
+        localStorage.removeItem('news_cache_national_news');
         localStorage.removeItem('news_cache_international_news');
         localStorage.removeItem('news_cache_last_background_refresh');
         clearExpiredCache();
@@ -132,7 +134,7 @@ export default function Admin() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {cacheStats?.localCache ? '3 regions cached' : 'No cached data'}
+                {cacheStats?.localCache ? '4 regions cached' : 'No cached data'}
               </p>
             </CardContent>
           </Card>
@@ -160,7 +162,8 @@ export default function Admin() {
                 {cacheStats
                   ? `~${(
                       parseFloat(calculateCacheSize(cacheStats.localCache)) +
-                      parseFloat(calculateCacheSize(cacheStats.asiaCache)) +
+                      parseFloat(calculateCacheSize(cacheStats.regionalCache)) +
+                      parseFloat(calculateCacheSize(cacheStats.nationalCache)) +
                       parseFloat(calculateCacheSize(cacheStats.internationalCache))
                     ).toFixed(1)} KB`
                   : '0 KB'}
@@ -184,11 +187,11 @@ export default function Admin() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* France Local Cache */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Hyperlocal - French Cities */}
               <div className="border border-slate-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">🇫🇷 France Local</h3>
+                  <h3 className="font-semibold text-sm">🇫🇷 Hyperlocal</h3>
                   <Badge variant="outline" className="text-xs">
                     {cacheStats?.localCache?.articles?.length || 0} articles
                   </Badge>
@@ -196,6 +199,7 @@ export default function Admin() {
                 <p className="text-xs text-slate-500 mb-2">
                   Size: {calculateCacheSize(cacheStats?.localCache)}
                 </p>
+                <p className="text-xs text-slate-400 mb-2">French cities</p>
                 {cacheStats?.localCache?.lastUpdated && (
                   <p className="text-xs text-slate-500">
                     Updated:{' '}
@@ -204,25 +208,45 @@ export default function Admin() {
                 )}
               </div>
 
-              {/* Asia Cache */}
+              {/* Regional - French Regions */}
               <div className="border border-slate-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">🌏 Asia National</h3>
+                  <h3 className="font-semibold text-sm">🏛️ Regional</h3>
                   <Badge variant="outline" className="text-xs">
-                    {cacheStats?.asiaCache?.articles?.length || 0} articles
+                    {cacheStats?.regionalCache?.articles?.length || 0} articles
                   </Badge>
                 </div>
                 <p className="text-xs text-slate-500 mb-2">
-                  Size: {calculateCacheSize(cacheStats?.asiaCache)}
+                  Size: {calculateCacheSize(cacheStats?.regionalCache)}
                 </p>
-                {cacheStats?.asiaCache?.lastUpdated && (
+                <p className="text-xs text-slate-400 mb-2">French regions</p>
+                {cacheStats?.regionalCache?.lastUpdated && (
                   <p className="text-xs text-slate-500">
-                    Updated: {new Date(cacheStats.asiaCache.lastUpdated).toLocaleString()}
+                    Updated: {new Date(cacheStats.regionalCache.lastUpdated).toLocaleString()}
                   </p>
                 )}
               </div>
 
-              {/* International Cache */}
+              {/* National - European Countries */}
+              <div className="border border-slate-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-sm">🇪🇺 National</h3>
+                  <Badge variant="outline" className="text-xs">
+                    {cacheStats?.nationalCache?.articles?.length || 0} articles
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-500 mb-2">
+                  Size: {calculateCacheSize(cacheStats?.nationalCache)}
+                </p>
+                <p className="text-xs text-slate-400 mb-2">European countries</p>
+                {cacheStats?.nationalCache?.lastUpdated && (
+                  <p className="text-xs text-slate-500">
+                    Updated: {new Date(cacheStats.nationalCache.lastUpdated).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              {/* International - Worldwide */}
               <div className="border border-slate-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-sm">🌍 International</h3>
@@ -233,6 +257,7 @@ export default function Admin() {
                 <p className="text-xs text-slate-500 mb-2">
                   Size: {calculateCacheSize(cacheStats?.internationalCache)}
                 </p>
+                <p className="text-xs text-slate-400 mb-2">Worldwide news</p>
                 {cacheStats?.internationalCache?.lastUpdated && (
                   <p className="text-xs text-slate-500">
                     Updated:{' '}
@@ -280,9 +305,9 @@ export default function Admin() {
                     <Zap className="w-4 h-4 text-blue-500" />
                     <h3 className="font-semibold text-sm">Estimated Daily Usage</h3>
                   </div>
-                  <p className="text-2xl font-bold text-blue-600">~18 requests</p>
+                  <p className="text-2xl font-bold text-blue-600">~24 requests</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    6 auto-refreshes per day × 3 regions
+                    6 auto-refreshes per day × 4 regions
                   </p>
                 </div>
 
@@ -292,7 +317,7 @@ export default function Admin() {
                     <h3 className="font-semibold text-sm">Free Tier Limit</h3>
                   </div>
                   <p className="text-2xl font-bold text-green-600">200 / day</p>
-                  <p className="text-xs text-slate-500 mt-1">91% reduction from 200</p>
+                  <p className="text-xs text-slate-500 mt-1">88% reduction from 200</p>
                 </div>
               </div>
 
