@@ -40,6 +40,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isAdmin = user ? adminEmails.includes(user.email || '') : false;
 
   useEffect(() => {
+    // If Firebase is not configured, skip auth
+    if (!auth) {
+      console.warn('⚠️ Firebase authentication not available');
+      setLoading(false);
+      return;
+    }
+
     // Listen for authentication state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -61,6 +68,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Sign in with Google
   const signInWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+      throw new Error('Firebase authentication is not configured. Please add Firebase credentials to .env file.');
+    }
+
     try {
       setLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
@@ -75,6 +86,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Logout
   const logout = async () => {
+    if (!auth) {
+      throw new Error('Firebase authentication is not configured.');
+    }
+
     try {
       await firebaseSignOut(auth);
       console.log('✅ Logout successful');
