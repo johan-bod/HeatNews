@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
-import Features from '../components/Features';
+import { ScaleCards } from '../components/ScaleCards';
 import AuthSection from '../components/AuthSection';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
@@ -258,8 +258,8 @@ const Index = () => {
       </div>
 
       <NewsDemo articles={articles} isLoading={isLoading} />
+      <ScaleCards articles={articles} isLoading={isLoading} />
       <MapSection articles={articles} />
-      <Features />
       <AuthSection />
       <Footer />
 

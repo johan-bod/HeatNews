@@ -10,7 +10,7 @@ interface MapSectionProps {
 
 const MapSection = ({ articles }: MapSectionProps) => {
   return (
-    <section className="py-20 px-6 relative">
+    <section id="news-map-section" className="py-20 px-6 relative scroll-mt-20">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-slate-800 mb-6">
