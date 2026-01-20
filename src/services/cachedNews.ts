@@ -334,7 +334,8 @@ export async function getAllCachedArticles(): Promise<NewsArticle[]> {
   const config = await getCachedNews();
   return [
     ...config.localNews,
-    ...config.asiaNational,
+    ...config.regionalNews,
+    ...config.nationalNews,
     ...config.international,
   ];
 }
