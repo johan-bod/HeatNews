@@ -1,8 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Flame } from 'lucide-react';
 import { LoginButton } from './LoginButton';
+import { PreferencesButton } from './PreferencesButton';
 
-export default function Navbar() {
+interface NavbarProps {
+  onOpenPreferences?: () => void;
+}
+
+export default function Navbar({ onOpenPreferences }: NavbarProps) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-ivory-50/90 backdrop-blur-md border-b border-amber-200/40">
       <div className="container mx-auto px-4">
@@ -18,6 +23,7 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-4">
+            {onOpenPreferences && <PreferencesButton onClick={onOpenPreferences} />}
             <LoginButton />
           </div>
         </div>
