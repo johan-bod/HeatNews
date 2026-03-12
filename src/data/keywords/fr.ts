@@ -134,7 +134,6 @@ export const FR_KEYWORDS: Record<string, Topic> = {
   'cotisation': 'economy',
   'revenu': 'economy',
   'salaire minimum': 'economy',
-  'pouvoir d\'achat': 'economy',
   'coût de la vie': 'economy',
   'inégalités': 'economy',
   'fracture sociale': 'social',
@@ -476,7 +475,6 @@ export const FR_KEYWORDS: Record<string, Topic> = {
   'covoiturage': 'transport',
   'autoroute': 'transport',
   'péage': 'transport',
-  'voiture électrique': 'transport',
   'borne de recharge': 'transport',
   'ratp': 'transport',
   'île-de-france mobilités': 'transport',
@@ -608,7 +606,6 @@ export const FR_KEYWORDS: Record<string, Topic> = {
   'judaïsme': 'religion',
   'protestant': 'religion',
   'protestantisme': 'religion',
-  'laïcité': 'religion',
   'séparation de l\'église et de l\'état': 'religion',
   'fête religieuse': 'religion',
   'mosquée': 'religion',
@@ -662,6 +659,5 @@ export const FR_KEYWORDS: Record<string, Topic> = {
   'influenceur': 'media',
   'podcast': 'media',
   'streaming': 'media',
-  'réseaux sociaux': 'media',
 
 };
