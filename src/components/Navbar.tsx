@@ -13,7 +13,7 @@ export default function Navbar() {
               <div className="absolute inset-0 bg-amber-500/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <span className="font-display font-bold text-lg tracking-tight text-navy-800">
-              Heat<span className="text-amber-600">News</span>
+              Heat<span className="text-amber-600">Story</span>
             </span>
           </Link>
 

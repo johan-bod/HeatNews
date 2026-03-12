@@ -10,7 +10,7 @@ const Footer = () => {
             <div className="flex items-center gap-2 mb-3">
               <Flame className="w-5 h-5 text-amber-600" />
               <span className="font-display text-lg font-bold text-navy-800">
-                Heat<span className="text-amber-600">News</span>
+                Heat<span className="text-amber-600">Story</span>
               </span>
             </div>
             <p className="font-body text-sm text-navy-700/60 leading-relaxed">
@@ -44,7 +44,7 @@ const Footer = () => {
 
         <div className="border-t border-amber-200/20 mt-10 pt-6 text-center">
           <p className="font-body text-xs text-navy-700/35">
-            &copy; {new Date().getFullYear()} HeatNews. Built with real-time data.
+            &copy; {new Date().getFullYear()} HeatStory. Built with real-time data.
           </p>
         </div>
       </div>
