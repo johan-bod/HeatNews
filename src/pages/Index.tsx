@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
@@ -15,6 +15,11 @@ import { indexArticleTopics } from '@/utils/topicIndexer';
 import type { NewsArticle } from '@/types/news';
 import { RefreshCw, AlertTriangle, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePreferences } from '@/hooks/usePreferences';
+import type { Topic } from '@/data/keywords/taxonomy';
+import type { PreferenceLocation } from '@/types/preferences';
+
+const OnboardingModal = lazy(() => import('@/components/onboarding/OnboardingModal'));
 
 type ArticleScale = 'local' | 'regional' | 'national' | 'international';
 type ScaleFilter = 'all' | ArticleScale;
@@ -79,6 +84,8 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedScale, setSelectedScale] = useState<ScaleFilter>('all');
   const [globeFlyTo, setGlobeFlyTo] = useState<((lat: number, lng: number) => void) | null>(null);
+  const { preferences, needsOnboarding, setTopics, setLocations, completeOnboarding, updatePreferences } = usePreferences();
+  const [showPreferences, setShowPreferences] = useState(false);
 
   const articles = useMemo(() => {
     if (selectedScale === 'all') return allArticles;
@@ -197,6 +204,24 @@ const Index = () => {
     loadNews();
   }, [loadNews]);
 
+  const handleOnboardingComplete = useCallback(async (topics: Topic[], locations: PreferenceLocation[]) => {
+    await updatePreferences({
+      topics,
+      locations,
+      onboardingComplete: true,
+    });
+    setShowPreferences(false);
+  }, [updatePreferences]);
+
+  const handleOnboardingSkip = useCallback(async () => {
+    await completeOnboarding();
+    setShowPreferences(false);
+  }, [completeOnboarding]);
+
+  const handleOpenPreferences = useCallback(() => {
+    setShowPreferences(true);
+  }, []);
+
   // Full-page loading screen on initial load
   if (isLoading && allArticles.length === 0) {
     return (
@@ -215,7 +240,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background noise-bg relative">
-      <Navbar />
+      <Navbar onOpenPreferences={preferences.onboardingComplete ? handleOpenPreferences : undefined} />
       <Hero />
 
       {/* API key warning */}
@@ -239,7 +264,11 @@ const Index = () => {
       )}
 
       {/* Globe — full width, dark background */}
-      <MapSection articles={allArticles} onFlyToReady={(fn) => setGlobeFlyTo(() => fn)} />
+      <MapSection
+        articles={allArticles}
+        onFlyToReady={(fn) => setGlobeFlyTo(() => fn)}
+        preferenceLocations={preferences.locations}
+      />
 
       {/* Search & Filters */}
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
@@ -291,6 +320,18 @@ const Index = () => {
           </p>
         </div>
       )}
+
+      {/* Onboarding / Preferences modal */}
+      <Suspense fallback={null}>
+        {(needsOnboarding || showPreferences) && (
+          <OnboardingModal
+            onComplete={handleOnboardingComplete}
+            onSkip={handleOnboardingSkip}
+            initialTopics={preferences.topics}
+            initialLocations={preferences.locations}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };
