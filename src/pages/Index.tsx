@@ -11,6 +11,8 @@ import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh } from '@/
 import { searchAndFilterNews } from '@/services/newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
+import type { StoryCluster } from '@/utils/topicClustering';
+import { indexArticleTopics } from '@/utils/topicIndexer';
 import type { NewsArticle } from '@/types/news';
 import { RefreshCw, AlertTriangle, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,8 +33,18 @@ function processFilteredArticles(
     processed = processed.map(a => ({ ...a, scale: scaleValue }));
   }
 
+  // Run topic indexer
+  processed = processed.map(a => {
+    const topics = indexArticleTopics(a, a.language || 'en');
+    return {
+      ...a,
+      primaryTopic: topics.primary || undefined,
+      secondaryTopics: topics.secondary.length > 0 ? topics.secondary : undefined,
+    };
+  });
+
   const clusters = analyzeArticleHeat(processed, scaleValue);
-  const clusterMap = new Map<string, typeof clusters[0]>();
+  const clusterMap = new Map<string, StoryCluster>();
   clusters.forEach(cluster => {
     cluster.articles.forEach(a => clusterMap.set(a.id, cluster));
   });
