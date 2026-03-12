@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
-import { ScaleCards } from '../components/ScaleCards';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
 import { NewsFilters, type NewsFiltersType } from '../components/NewsFilters';
@@ -185,10 +184,6 @@ const Index = () => {
     loadNews();
   }, [loadNews]);
 
-  const handleScaleSelect = useCallback((scale: string) => {
-    setSelectedScale(prev => prev === scale ? 'all' : scale as ScaleFilter);
-  }, []);
-
   // Full-page loading screen on initial load
   if (isLoading && allArticles.length === 0) {
     return (
@@ -230,6 +225,9 @@ const Index = () => {
         </div>
       )}
 
+      {/* Globe — full width, dark background */}
+      <MapSection articles={allArticles} />
+
       {/* Search & Filters */}
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
         <NewsSearch
@@ -263,14 +261,7 @@ const Index = () => {
         )}
       </div>
 
-      <ScaleCards
-        articles={allArticles}
-        isLoading={isLoading}
-        selectedScale={selectedScale}
-        onScaleSelect={handleScaleSelect}
-      />
       <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} />
-      <MapSection articles={articles} />
       <Footer />
 
       {/* Error toast */}
