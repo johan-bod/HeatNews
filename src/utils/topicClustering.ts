@@ -293,29 +293,3 @@ export function getArticleColor(
   return '#6B7280'; // Default grey
 }
 
-/**
- * Get article heat level based on scale
- */
-export function getArticleHeatLevel(
-  article: NewsArticle,
-  allArticles: NewsArticle[],
-  scale: 'local' | 'regional' | 'national' | 'international'
-): { heatLevel: number; color: string; coverage: number } {
-  // Find similar articles (same topic)
-  const similarArticles = allArticles.filter(other => {
-    if (other.id === article.id) return true;
-
-    const similarity = calculateSimilarity(
-      article.title + ' ' + (article.description || ''),
-      other.title + ' ' + (other.description || '')
-    );
-
-    return similarity >= 0.3;
-  });
-
-  const coverage = new Set(similarArticles.map(a => a.source.name)).size;
-  const heatLevel = calculateHeatLevel(coverage, scale);
-  const color = heatLevelToColor(heatLevel);
-
-  return { heatLevel, color, coverage };
-}

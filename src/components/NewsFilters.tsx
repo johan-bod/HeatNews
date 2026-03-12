@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,6 @@ interface NewsFiltersProps {
   currentFilters?: NewsFiltersType;
 }
 
-// Available countries (most popular ones)
 const COUNTRIES = [
   { code: 'ar', name: 'Argentina', flag: '🇦🇷' },
   { code: 'au', name: 'Australia', flag: '🇦🇺' },
@@ -44,7 +43,6 @@ const COUNTRIES = [
   { code: 'us', name: 'United States', flag: '🇺🇸' },
 ];
 
-// Available languages
 const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Spanish' },
@@ -62,34 +60,33 @@ const LANGUAGES = [
   { code: 'th', name: 'Thai' },
 ];
 
-// Available categories
 const CATEGORIES = [
-  { id: 'business', name: 'Business', icon: '💼' },
-  { id: 'entertainment', name: 'Entertainment', icon: '🎬' },
-  { id: 'environment', name: 'Environment', icon: '🌍' },
-  { id: 'food', name: 'Food', icon: '🍽️' },
-  { id: 'health', name: 'Health', icon: '🏥' },
-  { id: 'politics', name: 'Politics', icon: '🏛️' },
-  { id: 'science', name: 'Science', icon: '🔬' },
-  { id: 'sports', name: 'Sports', icon: '⚽' },
-  { id: 'technology', name: 'Technology', icon: '💻' },
-  { id: 'top', name: 'Top Stories', icon: '⭐' },
-  { id: 'tourism', name: 'Tourism', icon: '✈️' },
-  { id: 'world', name: 'World', icon: '🌐' },
+  { id: 'business', name: 'Business' },
+  { id: 'entertainment', name: 'Entertainment' },
+  { id: 'environment', name: 'Environment' },
+  { id: 'food', name: 'Food' },
+  { id: 'health', name: 'Health' },
+  { id: 'politics', name: 'Politics' },
+  { id: 'science', name: 'Science' },
+  { id: 'sports', name: 'Sports' },
+  { id: 'technology', name: 'Technology' },
+  { id: 'top', name: 'Top Stories' },
+  { id: 'tourism', name: 'Tourism' },
+  { id: 'world', name: 'World' },
 ];
 
 const SCALES = [
-  { id: 'all', name: 'All Scales', icon: '🌐' },
-  { id: 'local', name: 'Local', icon: '📍' },
-  { id: 'regional', name: 'Regional', icon: '🗺️' },
-  { id: 'national', name: 'National', icon: '🏴' },
-  { id: 'international', name: 'International', icon: '🌍' },
+  { id: 'all', name: 'All' },
+  { id: 'local', name: 'Local' },
+  { id: 'regional', name: 'Regional' },
+  { id: 'national', name: 'National' },
+  { id: 'international', name: 'International' },
 ];
 
 const PRIORITIES = [
   { id: 'all', name: 'All Sources' },
-  { id: 'top', name: 'Top Tier Only' },
-  { id: 'medium', name: 'Medium & Above' },
+  { id: 'top', name: 'Top Tier' },
+  { id: 'medium', name: 'Medium+' },
 ];
 
 export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFiltersProps) {
@@ -106,7 +103,6 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
     const newCountries = localFilters.countries.includes(code)
       ? localFilters.countries.filter(c => c !== code)
       : [...localFilters.countries, code];
-
     setLocalFilters({ ...localFilters, countries: newCountries });
   };
 
@@ -114,7 +110,6 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
     const newLanguages = localFilters.languages.includes(code)
       ? localFilters.languages.filter(l => l !== code)
       : [...localFilters.languages, code];
-
     setLocalFilters({ ...localFilters, languages: newLanguages });
   };
 
@@ -122,27 +117,15 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
     const newCategories = localFilters.categories.includes(id)
       ? localFilters.categories.filter(c => c !== id)
       : [...localFilters.categories, id];
-
     setLocalFilters({ ...localFilters, categories: newCategories });
   };
 
-  const applyFilters = () => {
-    onFilterChange(localFilters);
-  };
+  const applyFilters = () => onFilterChange(localFilters);
 
   const resetFilters = () => {
-    const defaultFilters: NewsFiltersType = {
-      countries: [],
-      languages: [],
-      categories: [],
-      scale: 'all',
-    };
-    setLocalFilters(defaultFilters);
-    if (onClear) {
-      onClear();
-    } else {
-      onFilterChange(defaultFilters);
-    }
+    const df: NewsFiltersType = { countries: [], languages: [], categories: [], scale: 'all' };
+    setLocalFilters(df);
+    onClear ? onClear() : onFilterChange(df);
   };
 
   const activeFiltersCount =
@@ -153,145 +136,119 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
     (localFilters.prioritydomain ? 1 : 0);
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm border border-slate-300 rounded-lg shadow-md">
-      {/* Filter Header */}
+    <div className="bg-ivory-50/80 border border-amber-200/30 rounded-lg">
+      {/* Header */}
       <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/50 transition-colors"
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-amber-50/30 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <Filter className="w-5 h-5 text-slate-600" />
-          <h3 className="font-montserrat font-semibold text-slate-800">
-            Advanced Filters
-          </h3>
+        <div className="flex items-center gap-2.5">
+          <Filter className="w-4 h-4 text-navy-700/40" />
+          <h3 className="font-display text-sm font-semibold text-navy-800">Advanced Filters</h3>
           {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="bg-blue-500 text-white">
-              {activeFiltersCount} active
+            <Badge className="bg-amber-600 text-white font-body text-[10px]">
+              {activeFiltersCount}
             </Badge>
           )}
         </div>
-        {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-slate-600" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-slate-600" />
-        )}
+        {isExpanded
+          ? <ChevronUp className="w-4 h-4 text-navy-700/30" />
+          : <ChevronDown className="w-4 h-4 text-navy-700/30" />
+        }
       </div>
 
-      {/* Filter Content */}
       {isExpanded && (
-        <div className="p-6 border-t border-slate-200 space-y-6">
-          {/* Scale Filter */}
+        <div className="p-5 border-t border-amber-200/20 space-y-5">
+          {/* Scale */}
           <div>
-            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-              News Scale
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {SCALES.map(scale => (
+            <Label className="font-body text-xs font-semibold text-navy-700/50 mb-2 block">Scale</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {SCALES.map(s => (
                 <Button
-                  key={scale.id}
-                  variant={localFilters.scale === scale.id ? 'default' : 'outline'}
+                  key={s.id}
+                  variant={localFilters.scale === s.id ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setLocalFilters({ ...localFilters, scale: scale.id as any })}
-                  className={
-                    localFilters.scale === scale.id
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700'
-                      : ''
-                  }
+                  onClick={() => setLocalFilters({ ...localFilters, scale: s.id as NewsFiltersType['scale'] })}
+                  className={`font-body text-xs h-8 ${
+                    localFilters.scale === s.id
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                      : 'border-amber-200/40 text-navy-700/50 hover:border-amber-300'
+                  }`}
                 >
-                  <span className="mr-2">{scale.icon}</span>
-                  {scale.name}
+                  {s.name}
                 </Button>
               ))}
             </div>
           </div>
 
-          {/* Countries Filter */}
+          {/* Countries */}
           <div>
-            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-              Countries ({localFilters.countries.length} selected)
+            <Label className="font-body text-xs font-semibold text-navy-700/50 mb-2 block">
+              Countries ({localFilters.countries.length})
             </Label>
-            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 bg-slate-50 rounded-md">
-              {COUNTRIES.map(country => (
+            <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 bg-white/60 rounded-md border border-amber-200/20">
+              {COUNTRIES.map(c => (
                 <Badge
-                  key={country.code}
-                  variant={
-                    localFilters.countries.includes(country.code)
-                      ? 'default'
-                      : 'outline'
-                  }
-                  className={`cursor-pointer transition-all ${
-                    localFilters.countries.includes(country.code)
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'hover:bg-slate-100'
+                  key={c.code}
+                  variant={localFilters.countries.includes(c.code) ? 'default' : 'outline'}
+                  className={`cursor-pointer font-body text-[11px] transition-all ${
+                    localFilters.countries.includes(c.code)
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600'
+                      : 'border-amber-200/30 text-navy-700/40 hover:bg-amber-50 hover:border-amber-300'
                   }`}
-                  onClick={() => toggleCountry(country.code)}
+                  onClick={() => toggleCountry(c.code)}
                 >
-                  <span className="mr-1">{country.flag}</span>
-                  {country.name}
-                  {localFilters.countries.includes(country.code) && (
-                    <X className="w-3 h-3 ml-1" />
-                  )}
+                  <span className="mr-1">{c.flag}</span>
+                  {c.name}
+                  {localFilters.countries.includes(c.code) && <X className="w-2.5 h-2.5 ml-1" />}
                 </Badge>
               ))}
             </div>
           </div>
 
-          {/* Languages Filter */}
+          {/* Languages */}
           <div>
-            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-              Languages ({localFilters.languages.length} selected)
+            <Label className="font-body text-xs font-semibold text-navy-700/50 mb-2 block">
+              Languages ({localFilters.languages.length})
             </Label>
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-slate-50 rounded-md">
-              {LANGUAGES.map(lang => (
+            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 bg-white/60 rounded-md border border-amber-200/20">
+              {LANGUAGES.map(l => (
                 <Badge
-                  key={lang.code}
-                  variant={
-                    localFilters.languages.includes(lang.code)
-                      ? 'default'
-                      : 'outline'
-                  }
-                  className={`cursor-pointer transition-all ${
-                    localFilters.languages.includes(lang.code)
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'hover:bg-slate-100'
+                  key={l.code}
+                  variant={localFilters.languages.includes(l.code) ? 'default' : 'outline'}
+                  className={`cursor-pointer font-body text-[11px] transition-all ${
+                    localFilters.languages.includes(l.code)
+                      ? 'bg-sky-600 hover:bg-sky-700 text-white border-sky-600'
+                      : 'border-amber-200/30 text-navy-700/40 hover:bg-sky-50 hover:border-sky-300'
                   }`}
-                  onClick={() => toggleLanguage(lang.code)}
+                  onClick={() => toggleLanguage(l.code)}
                 >
-                  {lang.name}
-                  {localFilters.languages.includes(lang.code) && (
-                    <X className="w-3 h-3 ml-1" />
-                  )}
+                  {l.name}
+                  {localFilters.languages.includes(l.code) && <X className="w-2.5 h-2.5 ml-1" />}
                 </Badge>
               ))}
             </div>
           </div>
 
-          {/* Categories Filter */}
+          {/* Categories */}
           <div>
-            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-              Categories ({localFilters.categories.length} selected)
+            <Label className="font-body text-xs font-semibold text-navy-700/50 mb-2 block">
+              Categories ({localFilters.categories.length})
             </Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {CATEGORIES.map(cat => (
                 <Badge
                   key={cat.id}
-                  variant={
+                  variant={localFilters.categories.includes(cat.id) ? 'default' : 'outline'}
+                  className={`cursor-pointer font-body text-[11px] transition-all ${
                     localFilters.categories.includes(cat.id)
-                      ? 'default'
-                      : 'outline'
-                  }
-                  className={`cursor-pointer transition-all ${
-                    localFilters.categories.includes(cat.id)
-                      ? 'bg-purple-600 hover:bg-purple-700'
-                      : 'hover:bg-slate-100'
+                      ? 'bg-violet-600 hover:bg-violet-700 text-white border-violet-600'
+                      : 'border-amber-200/30 text-navy-700/40 hover:bg-violet-50 hover:border-violet-300'
                   }`}
                   onClick={() => toggleCategory(cat.id)}
                 >
-                  <span className="mr-1">{cat.icon}</span>
                   {cat.name}
-                  {localFilters.categories.includes(cat.id) && (
-                    <X className="w-3 h-3 ml-1" />
-                  )}
+                  {localFilters.categories.includes(cat.id) && <X className="w-2.5 h-2.5 ml-1" />}
                 </Badge>
               ))}
             </div>
@@ -299,46 +256,43 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
 
           {/* Source Priority */}
           <div>
-            <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-              Source Priority
-            </Label>
+            <Label className="font-body text-xs font-semibold text-navy-700/50 mb-2 block">Source Priority</Label>
             <Select
               value={localFilters.prioritydomain || 'all'}
-              onValueChange={(value: any) =>
+              onValueChange={(value: string) =>
                 setLocalFilters({
                   ...localFilters,
-                  prioritydomain: value === 'all' ? undefined : value,
+                  prioritydomain: value === 'all' ? undefined : value as 'top' | 'medium' | 'low',
                 })
               }
             >
-              <SelectTrigger className="w-64">
+              <SelectTrigger className="w-48 font-body text-sm border-amber-200/40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PRIORITIES.map(priority => (
-                  <SelectItem key={priority.id} value={priority.id}>
-                    {priority.name}
+                {PRIORITIES.map(p => (
+                  <SelectItem key={p.id} value={p.id} className="font-body text-sm">
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-slate-200">
+          {/* Actions */}
+          <div className="flex gap-2 pt-3 border-t border-amber-200/20">
             <Button
               onClick={applyFilters}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-body text-sm"
             >
-              <Filter className="w-4 h-4 mr-2" />
+              <Filter className="w-3.5 h-3.5 mr-1.5" />
               Apply Filters
             </Button>
             <Button
               onClick={resetFilters}
               variant="outline"
-              className="hover:bg-slate-100"
+              className="border-amber-200/40 hover:bg-amber-50 font-body text-sm"
             >
-              <X className="w-4 h-4 mr-2" />
               Reset
             </Button>
           </div>

@@ -95,7 +95,7 @@ export function getCacheMetadata(key: string): CacheMetadata | null {
 
     if (!cached) return null;
 
-    const entry: CachedNewsData<any> = JSON.parse(cached);
+    const entry: CachedNewsData<unknown> = JSON.parse(cached);
 
     return entry.metadata;
   } catch (error) {
@@ -121,7 +121,7 @@ export function clearExpiredCache(): void {
       const cached = localStorage.getItem(key);
       if (!cached) continue;
 
-      const entry: CachedNewsData<any> = JSON.parse(cached);
+      const entry: CachedNewsData<unknown> = JSON.parse(cached);
 
       if (now > entry.metadata.expiresAt) {
         keysToRemove.push(key);

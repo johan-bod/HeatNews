@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, Shield, User, Loader2 } from 'lucide-react';
@@ -20,7 +20,7 @@ export function LoginButton() {
     try {
       setIsLoading(true);
       await signInWithGoogle();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign in failed:', error);
       alert('Failed to sign in. Please try again.');
     } finally {
@@ -32,7 +32,7 @@ export function LoginButton() {
     try {
       setIsLoading(true);
       await logout();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Logout failed:', error);
       alert('Failed to logout. Please try again.');
     } finally {

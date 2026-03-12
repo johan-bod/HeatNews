@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import type { NewsArticle } from '@/types/news';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ interface NewsMapProps {
   zoom?: number;
 }
 
-// Component to fit bounds when articles change
 function FitBounds({ articles }: { articles: NewsArticle[] }) {
   const map = useMap();
 
@@ -25,10 +24,8 @@ function FitBounds({ articles }: { articles: NewsArticle[] }) {
       ] as [number, number]);
 
       if (bounds.length === 1) {
-        // Single marker - just center on it
         map.setView(bounds[0], 6);
       } else {
-        // Multiple markers - fit all in view
         map.fitBounds(bounds, { padding: [50, 50] });
       }
     }
@@ -37,9 +34,6 @@ function FitBounds({ articles }: { articles: NewsArticle[] }) {
   return null;
 }
 
-/**
- * Get heat description based on heat level
- */
 function getHeatDescription(heatLevel?: number): string {
   if (!heatLevel) return 'Single source';
   if (heatLevel <= 20) return 'Limited coverage';
@@ -56,24 +50,21 @@ export function NewsMap({ articles, center = [20, 0], zoom = 2 }: NewsMapProps) 
     <MapContainer
       center={center}
       zoom={zoom}
-      className="h-full w-full rounded-lg"
+      className="h-full w-full"
       scrollWheelZoom={true}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
 
       <FitBounds articles={articlesWithLocation} />
 
       {articlesWithLocation.map((article) => {
-        // Use article color from heat map, default to grey
-        const color = article.color || '#6B7280';
+        const color = article.color || '#94A3B8';
         const heatLevel = article.heatLevel || 0;
         const coverage = article.coverage || 1;
-
-        // Radius based on heat level (hotter = bigger)
-        const radius = 8 + (heatLevel / 100) * 12; // 8-20px
+        const radius = 7 + (heatLevel / 100) * 11;
 
         return (
           <CircleMarker
@@ -83,99 +74,94 @@ export function NewsMap({ articles, center = [20, 0], zoom = 2 }: NewsMapProps) 
             pathOptions={{
               fillColor: color,
               color: color,
-              weight: 2,
-              opacity: 0.8,
-              fillOpacity: 0.6,
+              weight: 1.5,
+              opacity: 0.7,
+              fillOpacity: 0.5,
             }}
           >
-            <Popup maxWidth={350} className="news-popup">
-              <div className="p-2">
-                {/* Heat indicator */}
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
+            <Popup maxWidth={320} className="news-popup">
+              <div className="p-1.5">
+                <div className="flex items-center gap-2 mb-2.5 pb-2 border-b" style={{ borderColor: `${color}30` }}>
                   <div
-                    className="w-4 h-4 rounded-full border-2"
-                    style={{
-                      backgroundColor: color,
-                      borderColor: color,
-                      opacity: 0.8
-                    }}
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: color, opacity: 0.8 }}
                   />
                   <div className="flex items-center gap-1">
                     <Flame
-                      className="w-4 h-4"
-                      style={{ color: heatLevel > 50 ? '#EF4444' : '#6B7280' }}
+                      className="w-3.5 h-3.5"
+                      style={{ color: heatLevel > 50 ? '#EF4444' : '#94A3B8' }}
                     />
-                    <span className="text-xs font-semibold text-slate-700">
+                    <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '11px', fontWeight: 600, color: '#1E2A3A' }}>
                       {getHeatDescription(heatLevel)}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-500">
+                  <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '10px', color: '#94A3B8' }}>
                     ({coverage} {coverage === 1 ? 'source' : 'sources'})
                   </span>
                 </div>
 
-                <div className="flex items-start gap-2 mb-2">
-                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0" style={{ color }} />
-                  <h3 className="font-montserrat font-semibold text-sm leading-tight">
+                <div className="flex items-start gap-1.5 mb-1.5">
+                  <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color }} />
+                  <h3 style={{ fontFamily: '"Playfair Display", serif', fontSize: '13px', fontWeight: 600, lineHeight: 1.3, color: '#1E2A3A' }}>
                     {article.title}
                   </h3>
                 </div>
 
                 {article.description && (
-                  <p className="font-merriweather text-xs text-slate-600 mb-3 line-clamp-3">
+                  <p style={{ fontFamily: '"DM Sans", sans-serif', fontSize: '11px', color: '#64748B', lineHeight: 1.5, marginBottom: '8px' }}
+                     className="line-clamp-3">
                     {article.description}
                   </p>
                 )}
 
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
                   {article.scale && (
                     <Badge
                       variant="secondary"
-                      className="text-xs"
+                      className="text-[10px]"
                       style={{
-                        backgroundColor: `${color}20`,
-                        color: heatLevel > 50 ? '#991B1B' : '#374151',
-                        borderColor: color
+                        fontFamily: '"DM Sans", sans-serif',
+                        backgroundColor: `${color}15`,
+                        color: '#1E2A3A',
+                        border: `1px solid ${color}30`,
                       }}
                     >
                       {article.scale}
                     </Badge>
                   )}
                   {article.category && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-[10px]" style={{ fontFamily: '"DM Sans", sans-serif' }}>
                       {article.category}
                     </Badge>
                   )}
                   {article.location && (
-                    <Badge variant="outline" className="text-xs">
-                      <MapPin className="w-3 h-3 mr-1" />
+                    <Badge variant="outline" className="text-[10px]" style={{ fontFamily: '"DM Sans", sans-serif' }}>
+                      <MapPin className="w-2.5 h-2.5 mr-0.5" />
                       {article.location}
                     </Badge>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-500">
+                <div className="flex items-center justify-between" style={{ fontSize: '10px', color: '#94A3B8', fontFamily: '"DM Sans", sans-serif' }}>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    <span>
-                      {new Date(article.publishedAt).toLocaleDateString()}
-                    </span>
+                    <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
                   </div>
                   <a
                     href={article.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                    className="flex items-center gap-1"
+                    style={{ color: '#D97706', fontWeight: 500 }}
                   >
                     Read more
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
 
-                {/* Source */}
-                <div className="mt-2 pt-2 border-t border-slate-200">
-                  <span className="text-xs text-slate-500">
-                    Source: <span className="font-medium">{article.source.name}</span>
+                <div className="mt-2 pt-1.5" style={{ borderTop: '1px solid #F5EFDF' }}>
+                  <span style={{ fontSize: '10px', color: '#94A3B8', fontFamily: '"DM Sans", sans-serif' }}>
+                    Source: <span style={{ fontWeight: 500 }}>{article.source.name}</span>
                   </span>
                 </div>
               </div>

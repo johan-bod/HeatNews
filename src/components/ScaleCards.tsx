@@ -1,5 +1,4 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Globe2, Building2, Map as MapIcon, Flame, TrendingUp } from 'lucide-react';
 import type { NewsArticle } from '@/types/news';
@@ -7,112 +6,97 @@ import type { NewsArticle } from '@/types/news';
 interface ScaleCardsProps {
   articles: NewsArticle[];
   isLoading?: boolean;
-  onCardClick?: (scale: string) => void;
+  selectedScale?: string;
+  onScaleSelect?: (scale: string) => void;
 }
 
-export function ScaleCards({ articles, isLoading = false, onCardClick }: ScaleCardsProps) {
-  // Group articles by scale
-  const localArticles = articles.filter(a => a.scale === 'local');
-  const regionalArticles = articles.filter(a => a.scale === 'regional');
-  const nationalArticles = articles.filter(a => a.scale === 'national');
-  const internationalArticles = articles.filter(a => a.scale === 'international');
+const SCALES = [
+  {
+    id: 'local',
+    title: 'Hyperlocal',
+    subtitle: 'France',
+    icon: MapPin,
+    accent: 'amber-600',
+    bgAccent: 'bg-amber-50',
+    borderAccent: 'border-amber-300/40 hover:border-amber-400',
+    selectedBorder: 'border-amber-500 ring-2 ring-amber-400/20',
+    iconColor: 'text-amber-600',
+    badgeColor: 'bg-amber-600',
+    description: 'French cities & communes',
+  },
+  {
+    id: 'regional',
+    title: 'Regional',
+    subtitle: 'French Regions',
+    icon: Building2,
+    accent: 'sky-600',
+    bgAccent: 'bg-sky-50',
+    borderAccent: 'border-sky-300/40 hover:border-sky-400',
+    selectedBorder: 'border-sky-500 ring-2 ring-sky-400/20',
+    iconColor: 'text-sky-600',
+    badgeColor: 'bg-sky-600',
+    description: 'Bretagne, Provence, Normandie',
+  },
+  {
+    id: 'national',
+    title: 'National',
+    subtitle: 'Europe',
+    icon: MapIcon,
+    accent: 'violet-600',
+    bgAccent: 'bg-violet-50',
+    borderAccent: 'border-violet-300/40 hover:border-violet-400',
+    selectedBorder: 'border-violet-500 ring-2 ring-violet-400/20',
+    iconColor: 'text-violet-600',
+    badgeColor: 'bg-violet-600',
+    description: 'European country coverage',
+  },
+  {
+    id: 'international',
+    title: 'International',
+    subtitle: 'Global',
+    icon: Globe2,
+    accent: 'rose-600',
+    bgAccent: 'bg-rose-50',
+    borderAccent: 'border-rose-300/40 hover:border-rose-400',
+    selectedBorder: 'border-rose-500 ring-2 ring-rose-400/20',
+    iconColor: 'text-rose-600',
+    badgeColor: 'bg-rose-600',
+    description: 'Worldwide breaking news',
+  },
+] as const;
 
-  // Calculate average heat for each scale
-  const calculateAvgHeat = (scaleArticles: NewsArticle[]) => {
-    if (scaleArticles.length === 0) return 0;
-    const total = scaleArticles.reduce((sum, a) => sum + (a.heatLevel || 0), 0);
-    return Math.round(total / scaleArticles.length);
-  };
+function calculateAvgHeat(scaleArticles: NewsArticle[]) {
+  if (scaleArticles.length === 0) return 0;
+  const total = scaleArticles.reduce((sum, a) => sum + (a.heatLevel || 0), 0);
+  return Math.round(total / scaleArticles.length);
+}
 
-  const scales = [
-    {
-      id: 'local',
-      title: 'Hyperlocal',
-      subtitle: 'France',
-      icon: MapPin,
-      color: 'from-emerald-500 to-teal-600',
-      borderColor: 'border-emerald-500/30 hover:border-emerald-500',
-      iconColor: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
-      articles: localArticles,
-      description: 'News from French cities',
-      emoji: '🇫🇷',
-    },
-    {
-      id: 'regional',
-      title: 'Regional',
-      subtitle: 'French Regions',
-      icon: Building2,
-      color: 'from-blue-500 to-indigo-600',
-      borderColor: 'border-blue-500/30 hover:border-blue-500',
-      iconColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      articles: regionalArticles,
-      description: 'Bretagne, Provence, Normandie',
-      emoji: '🏛️',
-    },
-    {
-      id: 'national',
-      title: 'National',
-      subtitle: 'Europe',
-      icon: MapIcon,
-      color: 'from-purple-500 to-pink-600',
-      borderColor: 'border-purple-500/30 hover:border-purple-500',
-      iconColor: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      articles: nationalArticles,
-      description: 'European countries coverage',
-      emoji: '🇪🇺',
-    },
-    {
-      id: 'international',
-      title: 'International',
-      subtitle: 'Global',
-      icon: Globe2,
-      color: 'from-red-500 to-orange-600',
-      borderColor: 'border-red-500/30 hover:border-red-500',
-      iconColor: 'text-red-600',
-      bgColor: 'bg-red-50',
-      articles: internationalArticles,
-      description: 'Worldwide breaking news',
-      emoji: '🌍',
-    },
-  ];
-
-  const handleCardClick = (scaleId: string) => {
-    // Scroll to map section
-    const mapSection = document.getElementById('news-map-section');
-    if (mapSection) {
-      mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    // Call optional callback
-    if (onCardClick) {
-      onCardClick(scaleId);
-    }
+export function ScaleCards({ articles, isLoading = false, selectedScale = 'all', onScaleSelect }: ScaleCardsProps) {
+  const articlesByScale: Record<string, NewsArticle[]> = {
+    local: articles.filter(a => a.scale === 'local'),
+    regional: articles.filter(a => a.scale === 'regional'),
+    national: articles.filter(a => a.scale === 'national'),
+    international: articles.filter(a => a.scale === 'international'),
   };
 
   if (isLoading) {
     return (
-      <section className="py-20 px-6 relative">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-slate-800 mb-6">
-              News by
-              <span className="bg-gradient-to-r from-red-600 to-blue-600 bg-clip-text text-transparent"> Scale</span>
+      <section className="py-16 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-10">
+            <h2 className="font-display text-3xl font-bold text-navy-800">
+              News by Scale
             </h2>
-            <p className="font-merriweather text-xl text-slate-600 max-w-2xl mx-auto">
-              Loading news from around the world...
-            </p>
+            <p className="font-body text-navy-700/50 mt-2">Loading coverage data...</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="animate-pulse">
-                <Card className="h-full">
-                  <CardContent className="p-6">
-                    <div className="h-32 bg-slate-200 rounded-lg mb-4"></div>
-                    <div className="h-4 bg-slate-200 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-200 rounded w-2/3"></div>
+                <Card className="h-full border-amber-200/20">
+                  <CardContent className="p-5">
+                    <div className="h-8 bg-amber-100/50 rounded mb-3" />
+                    <div className="h-4 bg-amber-100/30 rounded mb-2" />
+                    <div className="h-4 bg-amber-100/30 rounded w-2/3" />
                   </CardContent>
                 </Card>
               </div>
@@ -124,99 +108,84 @@ export function ScaleCards({ articles, isLoading = false, onCardClick }: ScaleCa
   }
 
   return (
-    <section className="py-20 px-6 relative bg-gradient-to-b from-white to-slate-50">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="font-montserrat text-4xl md:text-5xl font-bold text-slate-800 mb-6">
-            News by
-            <span className="bg-gradient-to-r from-red-600 to-blue-600 bg-clip-text text-transparent"> Scale</span>
+    <section className="py-16 px-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-10">
+          <h2 className="font-display text-3xl font-bold text-navy-800">
+            News by <span className="text-amber-600 italic">Scale</span>
           </h2>
-          <p className="font-merriweather text-xl text-slate-600 max-w-2xl mx-auto">
-            From your neighborhood to the globe. Explore {articles.length} articles mapped in real-time.
+          <p className="font-body text-sm text-navy-700/50 mt-2">
+            Click a card to filter. Click again to show all.
           </p>
         </div>
 
-        {/* Scale Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {scales.map((scale) => {
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {SCALES.map((scale, index) => {
             const Icon = scale.icon;
-            const avgHeat = calculateAvgHeat(scale.articles);
-            const totalCoverage = scale.articles.reduce((sum, a) => sum + (a.coverage || 1), 0);
+            const scaleArticles = articlesByScale[scale.id] || [];
+            const avgHeat = calculateAvgHeat(scaleArticles);
+            const totalCoverage = scaleArticles.reduce((sum, a) => sum + (a.coverage || 1), 0);
+            const isSelected = selectedScale === scale.id;
 
             return (
               <Card
                 key={scale.id}
-                onClick={() => handleCardClick(scale.id)}
+                onClick={() => onScaleSelect?.(scale.id)}
                 className={`
-                  cursor-pointer transition-all duration-300 transform hover:scale-105
-                  border-2 ${scale.borderColor} hover:shadow-2xl
-                  bg-white/80 backdrop-blur-sm
-                  group
+                  cursor-pointer transition-all duration-300 group
+                  border bg-ivory-50/80 hover:bg-white
+                  heat-glow animate-fade-up
+                  ${isSelected ? scale.selectedBorder + ' bg-white shadow-md' : scale.borderAccent}
                 `}
+                style={{ animationDelay: `${index * 0.08}s` }}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className={`p-3 rounded-xl ${scale.bgColor} group-hover:scale-110 transition-transform`}>
-                      <Icon className={`w-6 h-6 ${scale.iconColor}`} />
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-2 rounded-lg ${scale.bgAccent}`}>
+                      <Icon className={`w-4 h-4 ${scale.iconColor}`} />
                     </div>
-                    <span className="text-3xl">{scale.emoji}</span>
+                    {isSelected && (
+                      <Badge className="bg-amber-600 text-white text-[10px] font-body">Active</Badge>
+                    )}
                   </div>
-                  <CardTitle className="text-lg font-montserrat font-bold text-slate-800 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-red-600 group-hover:to-blue-600 group-hover:bg-clip-text transition-all">
+
+                  <h3 className="font-display text-lg font-bold text-navy-800 mb-0.5">
                     {scale.title}
-                  </CardTitle>
-                  <p className="text-sm text-slate-500 font-lato">{scale.subtitle}</p>
-                </CardHeader>
+                  </h3>
+                  <p className="font-body text-xs text-navy-700/40 mb-4">{scale.subtitle}</p>
 
-                <CardContent className="space-y-3">
-                  {/* Article count */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600 font-lato">Articles:</span>
-                    <Badge
-                      variant="secondary"
-                      className={`bg-gradient-to-r ${scale.color} text-white font-semibold`}
-                    >
-                      {scale.articles.length}
-                    </Badge>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-body text-xs text-navy-700/50">Articles</span>
+                      <span className="font-body text-sm font-semibold text-navy-800">
+                        {scaleArticles.length}
+                      </span>
+                    </div>
+
+                    {avgHeat > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-body text-xs text-navy-700/50 flex items-center gap-1">
+                          <Flame className="w-3 h-3 text-amber-500" />
+                          Heat
+                        </span>
+                        <span className="font-body text-sm font-semibold text-amber-600">{avgHeat}%</span>
+                      </div>
+                    )}
+
+                    {totalCoverage > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="font-body text-xs text-navy-700/50 flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3" />
+                          Sources
+                        </span>
+                        <span className="font-body text-sm font-semibold text-navy-700">{totalCoverage}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Average heat */}
-                  {avgHeat > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600 font-lato flex items-center gap-1">
-                        <Flame className="w-3 h-3" />
-                        Avg Heat:
-                      </span>
-                      <span className="text-sm font-semibold text-slate-700">
-                        {avgHeat}%
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Total coverage */}
-                  {totalCoverage > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600 font-lato flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        Coverage:
-                      </span>
-                      <span className="text-sm font-semibold text-slate-700">
-                        {totalCoverage} sources
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Description */}
-                  <p className="text-xs text-slate-500 font-merriweather pt-2 border-t border-slate-200">
+                  <p className="font-body text-[11px] text-navy-700/35 mt-4 pt-3 border-t border-amber-200/20">
                     {scale.description}
                   </p>
-
-                  {/* Click hint */}
-                  <div className="pt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-xs text-slate-400 font-lato">
-                      Click to view on map →
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
             );
@@ -224,23 +193,23 @@ export function ScaleCards({ articles, isLoading = false, onCardClick }: ScaleCa
         </div>
 
         {/* Summary stats */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-6 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full px-8 py-4 shadow-lg">
+        <div className="mt-10 flex justify-center">
+          <div className="inline-flex items-center gap-6 bg-ivory-50 border border-amber-200/30 rounded-full px-7 py-3">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-blue-600">{articles.length}</span>
-              <span className="text-sm text-slate-600">Total Articles</span>
+              <span className="font-display text-xl font-bold text-amber-600">{articles.length}</span>
+              <span className="font-body text-xs text-navy-700/50">Articles</span>
             </div>
-            <div className="w-px h-8 bg-slate-300"></div>
+            <div className="w-px h-6 bg-amber-200/30" />
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-green-600">
+              <span className="font-display text-xl font-bold text-amber-600">
                 {articles.filter(a => a.coordinates).length}
               </span>
-              <span className="text-sm text-slate-600">Geolocated</span>
+              <span className="font-body text-xs text-navy-700/50">Mapped</span>
             </div>
-            <div className="w-px h-8 bg-slate-300"></div>
-            <div className="flex items-center gap-2">
-              <Flame className="w-5 h-5 text-red-500" />
-              <span className="text-sm text-slate-600">Live Heat Mapping</span>
+            <div className="w-px h-6 bg-amber-200/30" />
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-4 h-4 text-amber-500" />
+              <span className="font-body text-xs text-navy-700/50">Live</span>
             </div>
           </div>
         </div>

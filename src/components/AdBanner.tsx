@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 interface AdBannerProps {
   /**
@@ -28,7 +28,7 @@ interface AdBannerProps {
 
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle: Record<string, unknown>[];
   }
 }
 

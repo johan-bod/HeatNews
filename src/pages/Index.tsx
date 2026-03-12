@@ -1,28 +1,64 @@
-
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
 import { ScaleCards } from '../components/ScaleCards';
-import AuthSection from '../components/AuthSection';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
 import { NewsFilters, type NewsFiltersType } from '../components/NewsFilters';
 import { NewsSearch, type SearchParams } from '../components/NewsSearch';
-import { AdBanner } from '../components/AdBanner';
 import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh } from '@/services/cachedNews';
 import { searchAndFilterNews } from '@/services/newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
 import type { NewsArticle } from '@/types/news';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Type for article scale (without 'all')
 type ArticleScale = 'local' | 'regional' | 'national' | 'international';
+type ScaleFilter = 'all' | ArticleScale;
+
+const API_KEY = import.meta.env.VITE_NEWSDATA_API_KEY;
+
+function processFilteredArticles(
+  articles: NewsArticle[],
+  scale: ScaleFilter
+): NewsArticle[] {
+  let processed = geocodeArticles(articles);
+  const scaleValue: ArticleScale = scale === 'all' ? 'international' : scale;
+
+  if (scale !== 'all') {
+    processed = processed.map(a => ({ ...a, scale: scaleValue }));
+  }
+
+  const clusters = analyzeArticleHeat(processed, scaleValue);
+  const clusterMap = new Map<string, typeof clusters[0]>();
+  clusters.forEach(cluster => {
+    cluster.articles.forEach(a => clusterMap.set(a.id, cluster));
+  });
+
+  return processed.map(article => {
+    const cluster = clusterMap.get(article.id);
+    return {
+      ...article,
+      color: cluster ? getArticleColor(article, clusters) : '#94A3B8',
+      heatLevel: cluster?.heatLevel || 0,
+      coverage: cluster?.coverage || 1,
+    };
+  });
+}
+
+function combineArticles(config: Awaited<ReturnType<typeof getCachedNews>>): NewsArticle[] {
+  return [
+    ...config.localNews,
+    ...config.regionalNews,
+    ...config.nationalNews,
+    ...config.international,
+  ];
+}
 
 const Index = () => {
-  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [allArticles, setAllArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -30,62 +66,19 @@ const Index = () => {
   const [currentFilters, setCurrentFilters] = useState<NewsFiltersType | null>(null);
   const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedScale, setSelectedScale] = useState<ScaleFilter>('all');
 
-  // Shared function to process articles with geocoding and heat mapping
-  const processArticles = useCallback((
-    articles: NewsArticle[],
-    scale: 'all' | 'local' | 'regional' | 'national' | 'international'
-  ): NewsArticle[] => {
-    // Geocode articles
-    let processed = geocodeArticles(articles);
+  const articles = useMemo(() => {
+    if (selectedScale === 'all') return allArticles;
+    return allArticles.filter(a => a.scale === selectedScale);
+  }, [allArticles, selectedScale]);
 
-    // Apply scale if specified
-    const scaleValue = scale === 'all' ? 'international' : scale;
-    if (scale !== 'all') {
-      processed = processed.map(a => ({ ...a, scale: scaleValue as ArticleScale }));
-    }
-
-    // Analyze heat and create clusters
-    const clusters = analyzeArticleHeat(processed, scaleValue as ArticleScale);
-
-    // Build lookup map for O(1) performance instead of O(n) find operations
-    const articleClusterMap = new Map<string, typeof clusters[0]>();
-    clusters.forEach(cluster => {
-      cluster.articles.forEach(a => {
-        articleClusterMap.set(a.id, cluster);
-      });
-    });
-
-    // Map articles with heat data
-    return processed.map(article => {
-      const cluster = articleClusterMap.get(article.id);
-      return {
-        ...article,
-        color: cluster ? getArticleColor(article, clusters) : '#6B7280',
-        heatLevel: cluster?.heatLevel || 0,
-        coverage: cluster?.coverage || 1,
-      };
-    });
-  }, []);
-
-  // Load cached news (memoized to prevent unnecessary re-creations)
   const loadNews = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      // This will use cache if available, only fetch if cache is expired
       const newsConfig = await getCachedNews();
-
-      // Combine all 4 scales: Local → Regional → National → International
-      const allArticles = [
-        ...newsConfig.localNews,
-        ...newsConfig.regionalNews,
-        ...newsConfig.nationalNews,
-        ...newsConfig.international,
-      ];
-
-      setArticles(allArticles);
+      setAllArticles(combineArticles(newsConfig));
       setLastUpdated(new Date(newsConfig.lastUpdated));
     } catch (err) {
       console.error('Failed to load news:', err);
@@ -95,47 +88,26 @@ const Index = () => {
     }
   }, []);
 
-  // Initialize background refresh on mount (only once)
   useEffect(() => {
     const cleanup = initializeBackgroundRefresh();
-
-    // Listen for background refresh completion
-    const handleCacheRefresh = () => {
-      console.log('🔔 Cache was refreshed in background, reloading data...');
-      loadNews();
-    };
-
+    const handleCacheRefresh = () => loadNews();
     window.addEventListener('cacheRefreshed', handleCacheRefresh);
-
     return () => {
-      cleanup(); // Clean up interval
+      cleanup();
       window.removeEventListener('cacheRefreshed', handleCacheRefresh);
     };
   }, [loadNews]);
 
-  // Load cached news on mount
   useEffect(() => {
     loadNews();
   }, [loadNews]);
 
-  // Manual refresh handler (memoized)
   const handleRefresh = useCallback(async () => {
     try {
       setIsRefreshing(true);
       setError(null);
-
-      // Force refresh the cache
       const newsConfig = await refreshNewsCache();
-
-      // Combine all 4 scales: Local → Regional → National → International
-      const allArticles = [
-        ...newsConfig.localNews,
-        ...newsConfig.regionalNews,
-        ...newsConfig.nationalNews,
-        ...newsConfig.international,
-      ];
-
-      setArticles(allArticles);
+      setAllArticles(combineArticles(newsConfig));
       setLastUpdated(new Date(newsConfig.lastUpdated));
     } catch (err) {
       console.error('Failed to refresh news:', err);
@@ -145,14 +117,13 @@ const Index = () => {
     }
   }, []);
 
-  // Handle filter changes (memoized with shared processing)
   const handleFilterChange = useCallback(async (filters: NewsFiltersType) => {
     try {
       setIsSearching(true);
       setError(null);
       setCurrentFilters(filters);
+      setSelectedScale(filters.scale);
 
-      // Fetch filtered news
       const filteredArticles = await searchAndFilterNews({
         countries: filters.countries,
         languages: filters.languages,
@@ -162,10 +133,7 @@ const Index = () => {
         size: 10,
       });
 
-      // Process with geocoding and heat mapping
-      const processed = processArticles(filteredArticles, filters.scale);
-
-      setArticles(processed);
+      setAllArticles(processFilteredArticles(filteredArticles, filters.scale));
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to filter news:', err);
@@ -173,26 +141,22 @@ const Index = () => {
     } finally {
       setIsSearching(false);
     }
-  }, [processArticles]);
+  }, []);
 
-  // Handle search (memoized with shared processing)
   const handleSearch = useCallback(async (search: SearchParams) => {
     try {
       setIsSearching(true);
       setError(null);
       setCurrentSearch(search);
+      setSelectedScale(search.scale);
 
-      // Fetch searched news
       const searchedArticles = await searchAndFilterNews({
         query: search.query,
         scale: search.scale,
         size: 10,
       });
 
-      // Process with geocoding and heat mapping
-      const processed = processArticles(searchedArticles, search.scale);
-
-      setArticles(processed);
+      setAllArticles(processFilteredArticles(searchedArticles, search.scale));
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to search news:', err);
@@ -200,41 +164,72 @@ const Index = () => {
     } finally {
       setIsSearching(false);
     }
-  }, [processArticles]);
+  }, []);
 
-  // Clear filters and search (memoized)
   const handleClearFilters = useCallback(() => {
     setCurrentFilters(null);
     setCurrentSearch(null);
-    loadNews(); // Reload cached news
+    setSelectedScale('all');
+    loadNews();
   }, [loadNews]);
 
+  const handleScaleSelect = useCallback((scale: string) => {
+    setSelectedScale(prev => prev === scale ? 'all' : scale as ScaleFilter);
+  }, []);
+
+  // Full-page loading screen on initial load
+  if (isLoading && allArticles.length === 0) {
+    return (
+      <div className="min-h-screen bg-background noise-bg relative flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <div className="relative">
+            <Flame className="w-10 h-10 text-amber-500 animate-pulse-warm" />
+            <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full" />
+          </div>
+          <p className="font-body text-sm text-navy-700/40">Fetching today's stories...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-200 via-slate-300 to-slate-400">
+    <div className="min-h-screen bg-background noise-bg relative">
       <Navbar />
       <Hero />
 
-      {/* Filters and Search Section */}
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* API key warning */}
+      {!API_KEY && (
+        <div className="max-w-5xl mx-auto px-6 pt-8">
+          <div className="bg-amber-50 border border-amber-300/50 rounded-lg p-5 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-display font-semibold text-amber-800 text-sm mb-1">API Key Required</h3>
+              <p className="font-body text-xs text-amber-700/80">
+                Add your NewsData.io API key to <code className="bg-amber-100 px-1 py-0.5 rounded text-[11px]">.env</code> as{' '}
+                <code className="bg-amber-100 px-1 py-0.5 rounded text-[11px]">VITE_NEWSDATA_API_KEY=your_key</code> and restart.
+                Free key at{' '}
+                <a href="https://newsdata.io/register" target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                  newsdata.io
+                </a>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
         <NewsSearch
           onSearch={handleSearch}
           onClear={handleClearFilters}
           isSearching={isSearching}
           currentSearch={currentSearch || undefined}
         />
-
         <NewsFilters
           onFilterChange={handleFilterChange}
           onClear={handleClearFilters}
           currentFilters={currentFilters || undefined}
-        />
-
-        {/* Non-intrusive ad placement - horizontal banner */}
-        <AdBanner
-          adSlot={import.meta.env.VITE_ADSENSE_SLOT_HORIZONTAL || '1234567890'}
-          format="horizontal"
-          responsive={true}
-          className="my-8"
         />
       </div>
 
@@ -243,53 +238,41 @@ const Index = () => {
         <Button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="bg-white/90 backdrop-blur-sm text-slate-700 hover:bg-white hover:text-blue-600 shadow-lg border border-slate-300"
+          className="bg-ivory-50/95 backdrop-blur-sm text-navy-700 hover:bg-white hover:text-amber-600 shadow-lg border border-amber-200/40 font-body text-sm"
           size="lg"
         >
-          <RefreshCw
-            className={`w-5 h-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`}
-          />
-          {isRefreshing ? 'Refreshing...' : 'Refresh News'}
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
-
         {lastUpdated && !isLoading && (
-          <div className="mt-2 text-xs text-slate-600 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-md border border-slate-200">
-            Last updated: {lastUpdated.toLocaleTimeString()}
+          <div className="mt-1.5 font-body text-[10px] text-navy-700/35 bg-ivory-50/90 backdrop-blur-sm px-3 py-1 rounded-md border border-amber-200/20 text-center">
+            Updated {lastUpdated.toLocaleTimeString()}
           </div>
         )}
       </div>
 
-      <NewsDemo articles={articles} isLoading={isLoading} />
-      <ScaleCards articles={articles} isLoading={isLoading} />
+      <ScaleCards
+        articles={allArticles}
+        isLoading={isLoading}
+        selectedScale={selectedScale}
+        onScaleSelect={handleScaleSelect}
+      />
+      <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} />
       <MapSection articles={articles} />
-      <AuthSection />
       <Footer />
 
       {/* Error toast */}
       {error && (
-        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
-          <p className="font-lato text-sm">
+        <div className="fixed bottom-4 right-4 bg-red-600 text-white px-5 py-3 rounded-lg shadow-lg z-50 max-w-sm">
+          <p className="font-body text-sm">
             <strong>Failed to load news.</strong>
             <br />
-            {error.message}
+            <span className="text-red-100 text-xs">{error.message}</span>
             <br />
-            <button
-              onClick={handleRefresh}
-              className="underline mt-2 hover:text-red-100"
-            >
+            <button onClick={handleRefresh} className="underline mt-1.5 text-xs hover:text-red-100">
               Try again
             </button>
           </p>
-        </div>
-      )}
-
-      {/* Cache info */}
-      {!isLoading && articles.length > 0 && (
-        <div className="fixed top-4 right-4 z-40 bg-green-500/90 text-white px-4 py-2 rounded-lg shadow-lg text-xs font-lato">
-          ✓ Using cached data (no API calls)
-          <div className="text-[10px] mt-1 opacity-80">
-            Auto-refreshes every 4 hours in background
-          </div>
         </div>
       )}
     </div>

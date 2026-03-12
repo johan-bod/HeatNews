@@ -1,5 +1,3 @@
-// Type definitions for news articles and API responses
-
 export interface NewsArticle {
   id: string;
   title: string;
@@ -19,14 +17,12 @@ export interface NewsArticle {
   };
   thumbnail?: string;
   tags?: string[];
-  // Heat mapping for topic popularity
-  heatLevel?: number; // 0-100
-  color?: string; // Hex/RGB color for visualization
-  coverage?: number; // Number of sources covering this topic
+  heatLevel?: number;
+  color?: string;
+  coverage?: number;
   scale?: 'local' | 'regional' | 'national' | 'international';
 }
 
-// NewsData.io API Types
 export interface NewsDataArticle {
   article_id: string;
   title: string;
@@ -58,41 +54,3 @@ export interface NewsDataResponse {
   results: NewsDataArticle[];
   nextPage?: string;
 }
-
-// Legacy Guardian API Types (keeping for reference, can be removed later)
-export interface GuardianArticle {
-  id: string;
-  type: string;
-  sectionId: string;
-  sectionName: string;
-  webPublicationDate: string;
-  webTitle: string;
-  webUrl: string;
-  apiUrl: string;
-  fields?: {
-    headline?: string;
-    trailText?: string;
-    bodyText?: string;
-    thumbnail?: string;
-  };
-  tags?: Array<{
-    id: string;
-    type: string;
-    webTitle: string;
-  }>;
-}
-
-export interface GuardianResponse {
-  response: {
-    status: string;
-    userTier: string;
-    total: number;
-    startIndex: number;
-    pageSize: number;
-    currentPage: number;
-    pages: number;
-    results: GuardianArticle[];
-  };
-}
-
-export type NewsScope = 'hyper-local' | 'regional' | 'global';

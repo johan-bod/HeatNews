@@ -1,14 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
 export interface SearchParams {
@@ -24,11 +17,11 @@ interface NewsSearchProps {
 }
 
 const SCALES = [
-  { id: 'all', name: 'All Scales', icon: '🌐', description: 'Search across all news scales' },
-  { id: 'local', name: 'Local Only', icon: '📍', description: 'City and community news' },
-  { id: 'regional', name: 'Regional Only', icon: '🗺️', description: 'State and regional news' },
-  { id: 'national', name: 'National Only', icon: '🏴', description: 'Country-level news' },
-  { id: 'international', name: 'International Only', icon: '🌍', description: 'Global news' },
+  { id: 'all', name: 'All', description: 'All scales' },
+  { id: 'local', name: 'Local', description: 'City news' },
+  { id: 'regional', name: 'Regional', description: 'Regional news' },
+  { id: 'national', name: 'National', description: 'Country news' },
+  { id: 'international', name: 'Global', description: 'World news' },
 ];
 
 const SUGGESTED_SEARCHES = [
@@ -53,10 +46,9 @@ export function NewsSearch({
 
   const handleSearch = () => {
     if (!query.trim()) return;
-
     onSearch({
       query: query.trim(),
-      scale: scale as any,
+      scale: scale as SearchParams['scale'],
     });
   };
 
@@ -66,10 +58,8 @@ export function NewsSearch({
     onClear();
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
   };
 
   const handleSuggestedSearch = (suggestion: string) => {
@@ -79,36 +69,33 @@ export function NewsSearch({
   const isSearchActive = currentSearch && currentSearch.query;
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm border border-slate-300 rounded-lg shadow-md p-6">
-      {/* Header */}
-      <div className="mb-4">
-        <h3 className="font-montserrat font-semibold text-slate-800 text-lg mb-1">
-          Search News
-        </h3>
-        <p className="text-sm text-slate-600">
-          Search for specific topics across different scales
-        </p>
-      </div>
+    <div className="bg-ivory-50/80 border border-amber-200/30 rounded-lg p-5">
+      <h3 className="font-display text-lg font-bold text-navy-800 mb-1">
+        Search News
+      </h3>
+      <p className="font-body text-xs text-navy-700/40 mb-4">
+        Search topics across different geographic scales
+      </p>
 
       {/* Search Input */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex gap-2 mb-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-700/30" />
           <Input
             type="text"
-            placeholder="Search for topics... (e.g., climate change, elections, technology)"
+            placeholder="Search topics... (climate, elections, tech)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="pl-10 pr-10"
+            onKeyDown={handleKeyDown}
+            className="pl-10 pr-9 bg-white border-amber-200/40 focus:border-amber-400 focus:ring-amber-400/20 font-body text-sm placeholder:text-navy-700/25"
             disabled={isSearching}
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-700/30 hover:text-navy-700/60"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -116,107 +103,74 @@ export function NewsSearch({
         <Button
           onClick={handleSearch}
           disabled={!query.trim() || isSearching}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8"
+          className="bg-amber-600 hover:bg-amber-700 text-white font-body text-sm px-6"
         >
           {isSearching ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Searching...
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              Searching
             </>
           ) : (
-            <>
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </>
+            'Search'
           )}
         </Button>
 
         {isSearchActive && (
-          <Button
-            onClick={handleClear}
-            variant="outline"
-            className="hover:bg-slate-100"
-          >
-            <X className="w-4 h-4 mr-2" />
+          <Button onClick={handleClear} variant="outline" className="border-amber-200/40 hover:bg-amber-50 font-body text-sm">
             Clear
           </Button>
         )}
       </div>
 
       {/* Scale Filter */}
-      <div className="mb-4">
-        <label className="text-sm font-medium text-slate-700 mb-2 block">
-          Filter by Scale
-        </label>
-        <div className="grid grid-cols-5 gap-2">
-          {SCALES.map((scaleOption) => (
-            <button
-              key={scaleOption.id}
-              onClick={() => setScale(scaleOption.id)}
-              className={`p-3 rounded-lg border-2 transition-all text-left ${
-                scale === scaleOption.id
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-              }`}
-              title={scaleOption.description}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{scaleOption.icon}</span>
-                <span className="text-xs font-semibold text-slate-700">
-                  {scaleOption.name}
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 leading-tight">
-                {scaleOption.description}
-              </p>
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-1.5 mb-4">
+        {SCALES.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setScale(s.id)}
+            className={`px-3 py-1.5 rounded-md font-body text-xs transition-all ${
+              scale === s.id
+                ? 'bg-amber-600 text-white'
+                : 'bg-white border border-amber-200/40 text-navy-700/50 hover:border-amber-300 hover:text-navy-700/70'
+            }`}
+            title={s.description}
+          >
+            {s.name}
+          </button>
+        ))}
       </div>
 
       {/* Suggested Searches */}
       {!isSearchActive && (
-        <div>
-          <label className="text-sm font-medium text-slate-700 mb-2 block">
-            Popular Searches
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTED_SEARCHES.map((suggestion) => (
-              <Badge
-                key={suggestion}
-                variant="outline"
-                className="cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                onClick={() => handleSuggestedSearch(suggestion)}
-              >
-                {suggestion}
-              </Badge>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-1.5">
+          {SUGGESTED_SEARCHES.map((suggestion) => (
+            <Badge
+              key={suggestion}
+              variant="outline"
+              className="cursor-pointer border-amber-200/30 text-navy-700/40 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors font-body text-[11px]"
+              onClick={() => handleSuggestedSearch(suggestion)}
+            >
+              {suggestion}
+            </Badge>
+          ))}
         </div>
       )}
 
-      {/* Active Search Info */}
+      {/* Active Search */}
       {isSearchActive && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mt-3 p-3 bg-amber-50/80 border border-amber-200/30 rounded-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-blue-900">
-                Active Search
-              </p>
-              <p className="text-xs text-blue-700 mt-1">
-                Query: <span className="font-semibold">"{currentSearch.query}"</span>
+              <p className="font-body text-xs font-medium text-amber-800">Active Search</p>
+              <p className="font-body text-[11px] text-amber-700/70 mt-0.5">
+                "{currentSearch.query}"
                 {currentSearch.scale !== 'all' && (
-                  <> • Scale: <span className="font-semibold capitalize">{currentSearch.scale}</span></>
+                  <> &middot; <span className="capitalize">{currentSearch.scale}</span></>
                 )}
               </p>
             </div>
-            <Button
-              onClick={handleClear}
-              size="sm"
-              variant="ghost"
-              className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
-            >
-              <X className="w-4 h-4" />
+            <Button onClick={handleClear} size="sm" variant="ghost" className="text-amber-700 hover:text-amber-900 hover:bg-amber-100 h-7 w-7 p-0">
+              <X className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>

@@ -1,88 +1,55 @@
-
-import React from 'react';
-import { Globe, MapPin, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Flame, ArrowDown } from 'lucide-react';
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Subtle overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 via-transparent to-blue-900/10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(220,38,38,0.05),transparent_50%)]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.05),transparent_50%)]"></div>
-      </div>
-
-      {/* Floating particles effect */}
+    <section className="relative pt-14 overflow-hidden noise-bg">
+      {/* Warm radial glow */}
       <div className="absolute inset-0">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-red-600/20 rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
-            }}
-          />
-        ))}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-amber-400/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </div>
 
-      <div className="relative z-10 text-center px-6 max-w-6xl mx-auto">
-        {/* Logo/Brand area */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="relative">
-            <Globe className="w-16 h-16 text-red-600 animate-spin" style={{ animationDuration: '20s' }} />
-            <div className="absolute inset-0 rounded-full bg-red-600/10 blur-xl"></div>
-          </div>
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
+        {/* Flame icon */}
+        <div className="relative mb-8 animate-fade-up">
+          <Flame className="w-10 h-10 text-amber-500 animate-pulse-warm" />
+          <div className="absolute inset-0 bg-amber-500/15 blur-xl rounded-full" />
         </div>
 
-        {/* Main heading - Montserrat for headlines */}
-        <h1 className="font-montserrat text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 bg-clip-text text-transparent leading-tight">
+        {/* Main heading */}
+        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-navy-900 mb-6 leading-[0.95] tracking-tight animate-fade-up" style={{ animationDelay: '0.1s' }}>
           News, Mapped.
           <br />
-          <span className="text-4xl md:text-6xl text-red-600">Everywhere.</span>
+          <span className="text-amber-600 italic">Everywhere.</span>
         </h1>
 
-        {/* Subtitle - Merriweather for articles */}
-        <p className="font-merriweather text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-          Experience news like never before. From your neighborhood to the globe, 
-          discover stories that matter to you, exactly where they happen.
+        {/* Subtitle */}
+        <p className="font-body text-lg md:text-xl text-navy-700/70 mb-12 max-w-xl mx-auto leading-relaxed animate-fade-up" style={{ animationDelay: '0.2s' }}>
+          From your neighborhood to the globe, discover stories
+          where they happen. Visualized by heat.
         </p>
 
-        {/* CTA Buttons - Lato for clickable items */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-          <Button 
-            size="lg" 
-            className="font-lato bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-700 hover:to-blue-700 text-white px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-red-500/25 transition-all duration-300 transform hover:scale-105"
-          >
-            <Zap className="w-5 h-5 mr-2" />
-            Try Demo
-          </Button>
-          <Button 
-            variant="outline" 
-            size="lg"
-            className="font-lato border-red-600/50 text-red-600 hover:bg-red-600/10 px-8 py-4 text-lg rounded-full backdrop-blur-sm transition-all duration-300"
-          >
-            <MapPin className="w-5 h-5 mr-2" />
-            Learn More
-          </Button>
+        {/* Stats row */}
+        <div className="flex items-center gap-8 md:gap-12 animate-fade-up" style={{ animationDelay: '0.3s' }}>
+          <div className="text-center">
+            <div className="font-display text-2xl md:text-3xl font-bold text-amber-600">4</div>
+            <div className="font-body text-xs text-navy-700/50 uppercase tracking-widest mt-1">Scales</div>
+          </div>
+          <div className="w-px h-10 bg-amber-300/40" />
+          <div className="text-center">
+            <div className="font-display text-2xl md:text-3xl font-bold text-amber-600">Live</div>
+            <div className="font-body text-xs text-navy-700/50 uppercase tracking-widest mt-1">Updates</div>
+          </div>
+          <div className="w-px h-10 bg-amber-300/40" />
+          <div className="text-center">
+            <div className="font-display text-2xl md:text-3xl font-bold text-amber-600">110+</div>
+            <div className="font-body text-xs text-navy-700/50 uppercase tracking-widest mt-1">Locations</div>
+          </div>
         </div>
 
-        {/* Stats - Montserrat for impact */}
-        <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-          <div className="text-center">
-            <div className="font-montserrat text-3xl font-bold text-red-600 mb-2">Global</div>
-            <div className="font-lato text-slate-500">Coverage</div>
-          </div>
-          <div className="text-center">
-            <div className="font-montserrat text-3xl font-bold text-blue-600 mb-2">Real-time</div>
-            <div className="font-lato text-slate-500">Updates</div>
-          </div>
-          <div className="text-center">
-            <div className="font-montserrat text-3xl font-bold text-red-500 mb-2">Hyper-local</div>
-            <div className="font-lato text-slate-500">Focus</div>
-          </div>
+        {/* Scroll indicator */}
+        <div className="mt-16 animate-bounce">
+          <ArrowDown className="w-5 h-5 text-amber-400/60" />
         </div>
       </div>
     </section>

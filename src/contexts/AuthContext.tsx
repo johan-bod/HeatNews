@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import {
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -46,12 +46,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
 
       if (user) {
-        console.log('✅ User authenticated:', user.email);
-        if (adminEmails.includes(user.email || '')) {
-          console.log('👑 Admin access granted');
-        }
-      } else {
-        console.log('❌ No user authenticated');
+        console.log('User authenticated:', user.email);
       }
     });
 
@@ -65,9 +60,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       console.log('✅ Sign in successful:', result.user.email);
-    } catch (error: any) {
-      console.error('❌ Sign in error:', error);
-      throw new Error(error.message || 'Failed to sign in with Google');
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -78,9 +73,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await firebaseSignOut(auth);
       console.log('✅ Logout successful');
-    } catch (error: any) {
-      console.error('❌ Logout error:', error);
-      throw new Error(error.message || 'Failed to logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
     }
   };
 

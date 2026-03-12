@@ -1,111 +1,91 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Shield,
-  RefreshCw,
-  Trash2,
-  BarChart3,
-  Database,
-  Clock,
-  TrendingUp,
-  Zap,
-} from 'lucide-react';
+import { Shield, RefreshCw, Trash2, BarChart3, Database, Clock, TrendingUp, Zap } from 'lucide-react';
 import { refreshNewsCache } from '@/services/cachedNews';
-import { getCacheData, clearExpiredCache, setCacheData } from '@/utils/cache';
+import { getCacheData, clearExpiredCache } from '@/utils/cache';
+import { toast } from 'sonner';
 
 export default function Admin() {
   const { user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [cacheStats, setCacheStats] = useState<any>(null);
+  const [cacheStats, setCacheStats] = useState<Record<string, unknown> | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  // Load cache statistics
   useEffect(() => {
     loadCacheStats();
   }, []);
 
   const loadCacheStats = () => {
-    try {
-      const stats = {
-        localCache: getCacheData('local_news'),
-        regionalCache: getCacheData('regional_news'),
-        nationalCache: getCacheData('national_news'),
-        internationalCache: getCacheData('international_news'),
-      };
+    const stats = {
+      localCache: getCacheData('local_news'),
+      regionalCache: getCacheData('regional_news'),
+      nationalCache: getCacheData('national_news'),
+      internationalCache: getCacheData('international_news'),
+    };
+    setCacheStats(stats);
 
-      setCacheStats(stats);
-
-      // Get last refresh time from any cache
-      const lastRefreshTimestamp = getCacheData<number>('last_background_refresh');
-      if (lastRefreshTimestamp) {
-        setLastRefresh(new Date(lastRefreshTimestamp));
-      }
-    } catch (error) {
-      console.error('Failed to load cache stats:', error);
+    const lastRefreshTimestamp = getCacheData<number>('last_background_refresh');
+    if (lastRefreshTimestamp) {
+      setLastRefresh(new Date(lastRefreshTimestamp));
     }
   };
 
   const handleRefreshCache = async () => {
     try {
       setIsRefreshing(true);
-      console.log('🔄 Admin-triggered cache refresh...');
       await refreshNewsCache();
       loadCacheStats();
-      alert('✅ Cache refreshed successfully!');
-    } catch (error: any) {
+      toast.success('Cache refreshed successfully');
+    } catch (error) {
       console.error('Failed to refresh cache:', error);
-      alert('❌ Failed to refresh cache: ' + error.message);
+      toast.error('Failed to refresh cache');
     } finally {
       setIsRefreshing(false);
     }
   };
 
   const handleClearCache = () => {
-    if (confirm('Are you sure you want to clear all cache? This will trigger a fresh API fetch.')) {
-      try {
-        // Clear all cache keys (with news_cache_ prefix)
-        localStorage.removeItem('news_cache_local_news');
-        localStorage.removeItem('news_cache_regional_news');
-        localStorage.removeItem('news_cache_national_news');
-        localStorage.removeItem('news_cache_international_news');
-        localStorage.removeItem('news_cache_last_background_refresh');
-        clearExpiredCache();
-        loadCacheStats();
-        alert('✅ All cache cleared successfully!');
-      } catch (error: any) {
-        console.error('Failed to clear cache:', error);
-        alert('❌ Failed to clear cache: ' + error.message);
-      }
-    }
+    if (!confirm('Are you sure you want to clear all cache? This will trigger a fresh API fetch.')) return;
+
+    localStorage.removeItem('news_cache_local_news');
+    localStorage.removeItem('news_cache_regional_news');
+    localStorage.removeItem('news_cache_national_news');
+    localStorage.removeItem('news_cache_international_news');
+    localStorage.removeItem('news_cache_last_background_refresh');
+    clearExpiredCache();
+    loadCacheStats();
+    toast.success('All cache cleared');
   };
 
-  const calculateCacheSize = (cache: any) => {
-    if (!cache?.articles) return '0 KB';
+  const calculateCacheSize = (cache: unknown) => {
+    if (!cache || typeof cache !== 'object') return '0 KB';
     const size = JSON.stringify(cache).length;
     return size > 1024 ? `${(size / 1024).toFixed(1)} KB` : `${size} B`;
   };
 
   const getTimeUntilRefresh = () => {
     if (!lastRefresh) return 'Unknown';
-    const now = new Date();
     const fourHoursLater = new Date(lastRefresh.getTime() + 4 * 60 * 60 * 1000);
-    const diff = fourHoursLater.getTime() - now.getTime();
-
+    const diff = fourHoursLater.getTime() - Date.now();
     if (diff <= 0) return 'Refresh pending';
-
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
     return `${hours}h ${minutes}m`;
   };
+
+  const cacheRegions = [
+    { key: 'localCache', label: 'Hyperlocal', flag: '🇫🇷', detail: 'French cities' },
+    { key: 'regionalCache', label: 'Regional', flag: '🏛️', detail: 'French regions' },
+    { key: 'nationalCache', label: 'National', flag: '🇪🇺', detail: 'European countries' },
+    { key: 'internationalCache', label: 'International', flag: '🌍', detail: 'Worldwide news' },
+  ] as const;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="w-8 h-8 text-amber-500" />
@@ -124,17 +104,11 @@ export default function Admin() {
               <Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {cacheStats ? (
-                  <Badge variant="default" className="bg-green-600">
-                    Active
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">Empty</Badge>
-                )}
-              </div>
+              <Badge variant={cacheStats ? 'default' : 'secondary'} className={cacheStats ? 'bg-green-600' : ''}>
+                {cacheStats ? 'Active' : 'Empty'}
+              </Badge>
               <p className="text-xs text-muted-foreground mt-1">
-                {cacheStats?.localCache ? '4 regions cached' : 'No cached data'}
+                {cacheStats ? '4 regions cached' : 'No cached data'}
               </p>
             </CardContent>
           </Card>
@@ -146,9 +120,7 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{getTimeUntilRefresh()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Auto-refresh every 4 hours
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Auto-refresh every 4 hours</p>
             </CardContent>
           </Card>
 
@@ -159,18 +131,9 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {cacheStats
-                  ? `~${(
-                      parseFloat(calculateCacheSize(cacheStats.localCache)) +
-                      parseFloat(calculateCacheSize(cacheStats.regionalCache)) +
-                      parseFloat(calculateCacheSize(cacheStats.nationalCache)) +
-                      parseFloat(calculateCacheSize(cacheStats.internationalCache))
-                    ).toFixed(1)} KB`
-                  : '0 KB'}
+                {cacheStats ? calculateCacheSize(cacheStats) : '0 KB'}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total storage used
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Total storage used</p>
             </CardContent>
           </Card>
         </div>
@@ -182,105 +145,34 @@ export default function Admin() {
               <Database className="w-5 h-5" />
               Cache Management
             </CardTitle>
-            <CardDescription>
-              Manage the 4-hour background caching system for news articles
-            </CardDescription>
+            <CardDescription>Manage the 4-hour background caching system</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Hyperlocal - French Cities */}
-              <div className="border border-slate-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">🇫🇷 Hyperlocal</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {cacheStats?.localCache?.articles?.length || 0} articles
-                  </Badge>
-                </div>
-                <p className="text-xs text-slate-500 mb-2">
-                  Size: {calculateCacheSize(cacheStats?.localCache)}
-                </p>
-                <p className="text-xs text-slate-400 mb-2">French cities</p>
-                {cacheStats?.localCache?.lastUpdated && (
-                  <p className="text-xs text-slate-500">
-                    Updated:{' '}
-                    {new Date(cacheStats.localCache.lastUpdated).toLocaleString()}
-                  </p>
-                )}
-              </div>
-
-              {/* Regional - French Regions */}
-              <div className="border border-slate-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">🏛️ Regional</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {cacheStats?.regionalCache?.articles?.length || 0} articles
-                  </Badge>
-                </div>
-                <p className="text-xs text-slate-500 mb-2">
-                  Size: {calculateCacheSize(cacheStats?.regionalCache)}
-                </p>
-                <p className="text-xs text-slate-400 mb-2">French regions</p>
-                {cacheStats?.regionalCache?.lastUpdated && (
-                  <p className="text-xs text-slate-500">
-                    Updated: {new Date(cacheStats.regionalCache.lastUpdated).toLocaleString()}
-                  </p>
-                )}
-              </div>
-
-              {/* National - European Countries */}
-              <div className="border border-slate-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">🇪🇺 National</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {cacheStats?.nationalCache?.articles?.length || 0} articles
-                  </Badge>
-                </div>
-                <p className="text-xs text-slate-500 mb-2">
-                  Size: {calculateCacheSize(cacheStats?.nationalCache)}
-                </p>
-                <p className="text-xs text-slate-400 mb-2">European countries</p>
-                {cacheStats?.nationalCache?.lastUpdated && (
-                  <p className="text-xs text-slate-500">
-                    Updated: {new Date(cacheStats.nationalCache.lastUpdated).toLocaleString()}
-                  </p>
-                )}
-              </div>
-
-              {/* International - Worldwide */}
-              <div className="border border-slate-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm">🌍 International</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {cacheStats?.internationalCache?.articles?.length || 0} articles
-                  </Badge>
-                </div>
-                <p className="text-xs text-slate-500 mb-2">
-                  Size: {calculateCacheSize(cacheStats?.internationalCache)}
-                </p>
-                <p className="text-xs text-slate-400 mb-2">Worldwide news</p>
-                {cacheStats?.internationalCache?.lastUpdated && (
-                  <p className="text-xs text-slate-500">
-                    Updated:{' '}
-                    {new Date(cacheStats.internationalCache.lastUpdated).toLocaleString()}
-                  </p>
-                )}
-              </div>
+              {cacheRegions.map(region => {
+                const cache = cacheStats?.[region.key] as Record<string, unknown> | undefined;
+                const articles = cache?.articles as unknown[] | undefined;
+                return (
+                  <div key={region.key} className="border border-slate-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-sm">{region.flag} {region.label}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {articles?.length || 0} articles
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-2">Size: {calculateCacheSize(cache)}</p>
+                    <p className="text-xs text-slate-400">{region.detail}</p>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex gap-3 pt-4 border-t border-slate-200">
-              <Button
-                onClick={handleRefreshCache}
-                disabled={isRefreshing}
-                className="flex items-center gap-2"
-              >
+              <Button onClick={handleRefreshCache} disabled={isRefreshing} className="flex items-center gap-2">
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 {isRefreshing ? 'Refreshing...' : 'Force Refresh Cache'}
               </Button>
-              <Button
-                onClick={handleClearCache}
-                variant="destructive"
-                className="flex items-center gap-2"
-              >
+              <Button onClick={handleClearCache} variant="destructive" className="flex items-center gap-2">
                 <Trash2 className="w-4 h-4" />
                 Clear All Cache
               </Button>
@@ -288,47 +180,32 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        {/* Analytics */}
+        {/* API Usage */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
-              API Usage Analytics
+              API Usage
             </CardTitle>
-            <CardDescription>Monitor NewsData.io API consumption</CardDescription>
+            <CardDescription>NewsData.io API consumption</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-blue-500" />
-                    <h3 className="font-semibold text-sm">Estimated Daily Usage</h3>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-600">~24 requests</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    6 auto-refreshes per day × 4 regions
-                  </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border border-slate-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-blue-500" />
+                  <h3 className="font-semibold text-sm">Estimated Daily Usage</h3>
                 </div>
-
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-green-500" />
-                    <h3 className="font-semibold text-sm">Free Tier Limit</h3>
-                  </div>
-                  <p className="text-2xl font-bold text-green-600">200 / day</p>
-                  <p className="text-xs text-slate-500 mt-1">88% reduction from 200</p>
-                </div>
+                <p className="text-2xl font-bold text-blue-600">~24 requests</p>
+                <p className="text-xs text-slate-500 mt-1">6 auto-refreshes/day x 4 regions</p>
               </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-sm text-blue-800 mb-2">💡 Cache Strategy</h4>
-                <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• 4-hour TTL (Time To Live) per cache region</li>
-                  <li>• Background refresh checks every 5 minutes</li>
-                  <li>• Non-blocking updates (users see cached data while refreshing)</li>
-                  <li>• Persistent storage across page reloads (localStorage)</li>
-                </ul>
+              <div className="border border-slate-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  <h3 className="font-semibold text-sm">Free Tier Limit</h3>
+                </div>
+                <p className="text-2xl font-bold text-green-600">200 / day</p>
+                <p className="text-xs text-slate-500 mt-1">88% headroom remaining</p>
               </div>
             </div>
           </CardContent>
