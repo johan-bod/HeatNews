@@ -102,9 +102,10 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
 
         {/* Inline topic filter */}
         {!isLoading && availableTopics.length > 0 && (
-          <div className="mb-6 flex flex-wrap gap-2">
+          <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Topic filter">
             <button
               onClick={clearTopics}
+              aria-pressed={activeTopics.length === 0}
               className={`px-3 py-1 rounded-full font-body text-xs border transition-colors ${
                 activeTopics.length === 0
                   ? 'bg-amber-500 text-white border-amber-500'
@@ -117,6 +118,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
               <button
                 key={topic}
                 onClick={() => toggleTopic(topic)}
+                aria-pressed={activeTopics.includes(topic)}
                 className={`px-3 py-1 rounded-full font-body text-xs border capitalize transition-colors ${
                   activeTopics.includes(topic)
                     ? 'bg-amber-500 text-white border-amber-500'
@@ -137,7 +139,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
         )}
 
         {!isLoading && (
-          <div className="space-y-3">
+          <div className="space-y-3" role="list">
             {sortedArticles.length === 0 ? (
               <Card className="bg-ivory-50 border-amber-200/30">
                 <CardContent className="p-12 text-center">
@@ -152,11 +154,13 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
               </Card>
             ) : (
               sortedArticles.slice(0, visibleCount).map((article, index) => (
+                <article key={article.id} role="listitem" aria-label={article.title}>
                 <Card
-                  key={article.id}
                   className="bg-ivory-50/80 border-amber-200/20 hover:border-amber-300/50 transition-all duration-300 hover:bg-white cursor-pointer group heat-glow animate-fade-up"
                   style={{ animationDelay: `${index * 0.05}s` }}
                   onClick={() => window.open(article.url, '_blank')}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open(article.url, '_blank'); } }}
                 >
                   <CardContent className="p-5">
                     <div className="flex items-start gap-4">
@@ -221,6 +225,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
                     </div>
                   </CardContent>
                 </Card>
+                </article>
               ))
             )}
           </div>
@@ -234,6 +239,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
             {visibleCount < sortedArticles.length && (
               <button
                 onClick={() => setVisibleCount(prev => prev + 20)}
+                aria-label="Load 20 more articles"
                 className="font-body text-sm text-amber-600 hover:text-amber-500 transition-colors border border-amber-200/40 px-6 py-2 rounded-lg hover:bg-amber-50"
               >
                 Load more

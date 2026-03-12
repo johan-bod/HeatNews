@@ -37,6 +37,7 @@ const Hero = () => {
         {/* Scroll CTA */}
         <button
           onClick={scrollToGlobe}
+          aria-label="Scroll to globe"
           className="inline-flex items-center gap-2 font-body text-xs text-amber-400/60 hover:text-amber-400 transition-colors animate-fade-up"
           style={{ animationDelay: '0.3s' }}
         >

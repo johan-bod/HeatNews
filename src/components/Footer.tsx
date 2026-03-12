@@ -2,7 +2,7 @@ import { Flame, Mail, Github } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="border-t border-amber-200/30 bg-ivory-50/80">
+    <footer role="contentinfo" className="border-t border-amber-200/30 bg-ivory-50/80">
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row justify-between items-start gap-8">
           {/* Brand */}

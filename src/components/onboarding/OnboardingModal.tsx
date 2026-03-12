@@ -32,7 +32,13 @@ export default function OnboardingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Onboarding"
+      onKeyDown={(e) => { if (e.key === 'Escape') onSkip(); }}
+    >
       <div className="w-full max-w-lg mx-4 bg-navy-800 border border-ivory-200/10 rounded-2xl shadow-2xl overflow-hidden">
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 pt-6">
@@ -65,12 +71,14 @@ export default function OnboardingModal({
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => setStep('topics')}
+                  aria-label="Personalize my feed — go to topics step"
                   className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-navy-900 font-body font-semibold text-sm px-6 py-3 rounded-lg transition-colors"
                 >
                   Personalize my feed <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={onSkip}
+                  aria-label="Skip onboarding for now"
                   className="font-body text-xs text-ivory-200/40 hover:text-ivory-200/60 transition-colors"
                 >
                   Skip for now
@@ -92,12 +100,14 @@ export default function OnboardingModal({
               <div className="flex items-center justify-between mt-6">
                 <button
                   onClick={() => setStep('welcome')}
+                  aria-label="Back to welcome step"
                   className="flex items-center gap-1 font-body text-xs text-ivory-200/40 hover:text-ivory-200/60 transition-colors"
                 >
                   <ArrowLeft className="w-3 h-3" /> Back
                 </button>
                 <button
                   onClick={() => setStep('locations')}
+                  aria-label="Next — go to locations step"
                   className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-navy-900 font-body font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors"
                 >
                   Next <ArrowRight className="w-4 h-4" />
@@ -119,6 +129,7 @@ export default function OnboardingModal({
               <div className="flex items-center justify-between mt-6">
                 <button
                   onClick={() => setStep('topics')}
+                  aria-label="Back to topics step"
                   className="flex items-center gap-1 font-body text-xs text-ivory-200/40 hover:text-ivory-200/60 transition-colors"
                 >
                   <ArrowLeft className="w-3 h-3" /> Back
@@ -126,6 +137,7 @@ export default function OnboardingModal({
                 <button
                   onClick={handleFinish}
                   disabled={topics.length === 0 && locations.length === 0}
+                  aria-label="Finish onboarding"
                   className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-ivory-200/10 disabled:text-ivory-200/30 text-navy-900 font-body font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors"
                 >
                   <Check className="w-4 h-4" /> Done

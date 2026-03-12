@@ -107,7 +107,7 @@ export function LoginButton() {
 
   // User is not logged in - show sign in button
   return (
-    <Button onClick={handleSignIn} variant="outline" size="sm" className="flex items-center gap-2">
+    <Button onClick={handleSignIn} variant="outline" size="sm" aria-label="Sign in with Google" className="flex items-center gap-2">
       <LogIn className="w-4 h-4" />
       Sign in with Google
     </Button>

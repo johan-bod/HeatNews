@@ -112,6 +112,7 @@ export default function SoftGate({ onDismiss }: SoftGateProps) {
             type="email"
             value={email}
             readOnly
+            aria-label="Email address"
             className="w-full bg-white border border-amber-200/30 rounded-lg px-3 py-2 font-body text-sm text-navy-800"
           />
         </div>
@@ -126,6 +127,8 @@ export default function SoftGate({ onDismiss }: SoftGateProps) {
               <button
                 key={intention}
                 onClick={() => toggle(intention)}
+                aria-label={intention}
+                aria-pressed={selected.includes(intention)}
                 className={`
                   w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-colors font-body text-sm
                   ${selected.includes(intention)

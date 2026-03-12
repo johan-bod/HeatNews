@@ -295,9 +295,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background noise-bg relative">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-amber-500 focus:text-navy-900 focus:px-4 focus:py-2 focus:rounded-lg font-body text-sm">Skip to content</a>
       <Navbar onOpenPreferences={preferences.onboardingComplete ? handleOpenPreferences : undefined} />
       <Hero />
 
+      <main id="main-content">
       {/* API key warning */}
       {!API_KEY && (
         <div className="max-w-5xl mx-auto px-6 pt-8">
@@ -374,6 +376,7 @@ const Index = () => {
         <SoftGate onDismiss={() => setShowSoftGate(false)} />
       )}
 
+      </main>
       <Footer />
 
       {/* Error toast */}
