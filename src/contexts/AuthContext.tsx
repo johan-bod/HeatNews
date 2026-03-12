@@ -5,7 +5,7 @@ import {
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { auth, googleProvider, isConfigured } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -17,13 +17,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Admin user emails (can be configured via environment variable)
 const getAdminEmails = (): string[] => {
   const envAdmins = import.meta.env.VITE_ADMIN_EMAILS;
   if (envAdmins) {
     return envAdmins.split(',').map((email: string) => email.trim());
   }
-  // Default admin emails (should be set in .env)
   return [];
 };
 
@@ -33,33 +31,33 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isConfigured);
 
-  // Check if current user is admin
   const adminEmails = getAdminEmails();
   const isAdmin = user ? adminEmails.includes(user.email || '') : false;
 
   useEffect(() => {
-    // Listen for authentication state changes
+    if (!isConfigured || !auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
-
-      if (user) {
-        console.log('User authenticated:', user.email);
-      }
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
-  // Sign in with Google
   const signInWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+      console.warn('Firebase not configured. Set VITE_FIREBASE_* env vars.');
+      return;
+    }
     try {
       setLoading(true);
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log('✅ Sign in successful:', result.user.email);
+      await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -68,33 +66,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Logout
   const logout = async () => {
+    if (!auth) return;
     try {
       await firebaseSignOut(auth);
-      console.log('✅ Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
     }
   };
 
-  const value = {
-    user,
-    loading,
-    signInWithGoogle,
-    logout,
-    isAdmin,
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

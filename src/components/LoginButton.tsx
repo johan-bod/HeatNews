@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { isConfigured } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, Shield, User, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -15,6 +16,8 @@ import {
 export function LoginButton() {
   const { user, signInWithGoogle, logout, isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+
+  if (!isConfigured) return null;
 
   const handleSignIn = async () => {
     try {
