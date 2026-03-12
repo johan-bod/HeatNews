@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import * as THREE from 'three';
 import Globe from 'globe.gl';
 import { feature } from 'topojson-client';
-import type { Topology } from 'topojson-specification';
+import type { Topology, GeometryObject } from 'topojson-specification';
 import type { NewsArticle } from '@/types/news';
 import type { PreferenceLocation } from '@/types/preferences';
 import RegionJumpPills from './RegionJumpPills';
@@ -115,7 +115,7 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
     fetch('https://unpkg.com/world-atlas@2/countries-110m.json')
       .then(res => res.json())
       .then((topology: Topology) => {
-        const countries = feature(topology, topology.objects.countries as any);
+        const countries = feature(topology, topology.objects.countries as GeometryObject);
         globe
           .polygonsData(countries.features)
           .polygonCapColor(() => 'rgba(30, 42, 58, 0.6)')

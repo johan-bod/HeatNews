@@ -125,7 +125,7 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
   const resetFilters = () => {
     const df: NewsFiltersType = { countries: [], languages: [], categories: [], scale: 'all' };
     setLocalFilters(df);
-    onClear ? onClear() : onFilterChange(df);
+    if (onClear) { onClear(); } else { onFilterChange(df); }
   };
 
   const activeFiltersCount =
