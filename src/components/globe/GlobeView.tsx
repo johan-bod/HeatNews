@@ -1,9 +1,11 @@
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import * as THREE from 'three';
 import Globe from 'globe.gl';
 import { feature } from 'topojson-client';
 import type { Topology } from 'topojson-specification';
 import type { NewsArticle } from '@/types/news';
+import type { PreferenceLocation } from '@/types/preferences';
+import RegionJumpPills from './RegionJumpPills';
 import { filterArticlesByAltitude, getMaxMarkers } from '@/utils/globeUtils';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
 import { useGlobeAutoRotation } from './GlobeControls';
@@ -13,12 +15,13 @@ import GlobeTooltip from './GlobeTooltip';
 interface GlobeViewProps {
   articles: NewsArticle[];
   onFlyToReady?: (flyTo: (lat: number, lng: number) => void) => void;
+  preferenceLocations?: PreferenceLocation[];
 }
 
 // Spec: 300ms transition for marker fade in/out
 const MARKER_TRANSITION_MS = 300;
 
-export default function GlobeView({ articles, onFlyToReady }: GlobeViewProps) {
+export default function GlobeView({ articles, onFlyToReady, preferenceLocations = [] }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
@@ -27,6 +30,7 @@ export default function GlobeView({ articles, onFlyToReady }: GlobeViewProps) {
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [altitude, setAltitude] = useState(2.5); // Globe.gl altitude units
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+  const [activeRegionIndex, setActiveRegionIndex] = useState(0);
   const isMobile = screenWidth < 768;
 
   const { onUserInteraction, getRotationAngle } = useGlobeAutoRotation({
@@ -188,6 +192,26 @@ export default function GlobeView({ articles, onFlyToReady }: GlobeViewProps) {
     });
   }, [onFlyToReady, onUserInteraction]);
 
+  // Auto-focus on primary preference location on mount
+  const primaryLocKey = preferenceLocations.length > 0
+    ? `${preferenceLocations[0].lat},${preferenceLocations[0].lng}`
+    : '';
+
+  useEffect(() => {
+    if (!globeRef.current || !primaryLocKey) return;
+    const primary = preferenceLocations[0];
+    // Delay to let globe initialize
+    const timer = setTimeout(() => {
+      if (globeRef.current) {
+        globeRef.current.pointOfView(
+          { lat: primary.lat, lng: primary.lng, altitude: 1.2 },
+          1500
+        );
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [primaryLocKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Update markers when data changes (Globe.gl handles 300ms transition)
   useEffect(() => {
     if (!globeRef.current) return;
@@ -237,6 +261,14 @@ export default function GlobeView({ articles, onFlyToReady }: GlobeViewProps) {
     return () => cancelAnimationFrame(animationId);
   }, [isMobile, getRotationAngle]);
 
+  const handleRegionJump = useCallback((loc: PreferenceLocation, index: number) => {
+    if (globeRef.current) {
+      globeRef.current.pointOfView({ lat: loc.lat, lng: loc.lng, altitude: 1.2 }, 1000);
+      setActiveRegionIndex(index);
+      onUserInteraction();
+    }
+  }, [onUserInteraction]);
+
   return (
     <div className="relative w-full" style={{ height: isMobile ? '400px' : '600px' }}>
       <div
@@ -255,6 +287,15 @@ export default function GlobeView({ articles, onFlyToReady }: GlobeViewProps) {
           <span className="ml-2 text-amber-400/60">{visibleArticles.length} stories</span>
         </div>
       </div>
+
+      {/* Region jump pills (signed-in users with multiple locations) */}
+      {preferenceLocations.length > 1 && (
+        <RegionJumpPills
+          locations={preferenceLocations}
+          activeIndex={activeRegionIndex}
+          onJump={handleRegionJump}
+        />
+      )}
 
       {/* Article popup */}
       {selectedArticle && (
