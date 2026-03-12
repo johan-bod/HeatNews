@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { MapPin, Globe, ExternalLink, Calendar, Flame } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,45 @@ function getHeatColor(level: number): string {
 }
 
 const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticleLocate }: NewsDemoProps) => {
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [activeTopics, setActiveTopics] = useState<string[]>([]);
+
+  const sortedArticles = useMemo(() => {
+    let filtered = [...articles];
+
+    // Apply topic filter (OR logic — show articles matching ANY active topic)
+    if (activeTopics.length > 0) {
+      filtered = filtered.filter(a =>
+        a.primaryTopic && activeTopics.includes(a.primaryTopic)
+      );
+    }
+
+    // Sort by heat score (highest first)
+    return filtered.sort((a, b) => (b.heatLevel || 0) - (a.heatLevel || 0));
+  }, [articles, activeTopics]);
+
+  const availableTopics = useMemo(() => {
+    const topics = new Set<string>();
+    articles.forEach(a => {
+      if (a.primaryTopic) topics.add(a.primaryTopic);
+    });
+    return [...topics].sort();
+  }, [articles]);
+
+  const toggleTopic = (topic: string) => {
+    setActiveTopics(prev =>
+      prev.includes(topic)
+        ? prev.filter(t => t !== topic)
+        : [...prev, topic]
+    );
+    setVisibleCount(20); // Reset pagination when filter changes
+  };
+
+  const clearTopics = () => {
+    setActiveTopics([]);
+    setVisibleCount(20);
+  };
+
   return (
     <section className="py-16 px-6">
       <div className="max-w-3xl mx-auto">
@@ -60,6 +100,35 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
           </div>
         )}
 
+        {/* Inline topic filter */}
+        {!isLoading && availableTopics.length > 0 && (
+          <div className="mb-6 flex flex-wrap gap-2">
+            <button
+              onClick={clearTopics}
+              className={`px-3 py-1 rounded-full font-body text-xs border transition-colors ${
+                activeTopics.length === 0
+                  ? 'bg-amber-500 text-white border-amber-500'
+                  : 'bg-ivory-50 text-navy-700/50 border-amber-200/30 hover:border-amber-300/50'
+              }`}
+            >
+              All
+            </button>
+            {availableTopics.map(topic => (
+              <button
+                key={topic}
+                onClick={() => toggleTopic(topic)}
+                className={`px-3 py-1 rounded-full font-body text-xs border capitalize transition-colors ${
+                  activeTopics.includes(topic)
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-ivory-50 text-navy-700/50 border-amber-200/30 hover:border-amber-300/50'
+                }`}
+              >
+                {topic}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isLoading && (
           <div className="text-center py-16">
             <Flame className="w-8 h-8 text-amber-400 mx-auto animate-pulse-warm" />
@@ -69,7 +138,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
 
         {!isLoading && (
           <div className="space-y-3">
-            {articles.length === 0 ? (
+            {sortedArticles.length === 0 ? (
               <Card className="bg-ivory-50 border-amber-200/30">
                 <CardContent className="p-12 text-center">
                   <Globe className="w-12 h-12 text-amber-300/50 mx-auto mb-4" />
@@ -82,7 +151,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
                 </CardContent>
               </Card>
             ) : (
-              articles.slice(0, 10).map((article, index) => (
+              sortedArticles.slice(0, visibleCount).map((article, index) => (
                 <Card
                   key={article.id}
                   className="bg-ivory-50/80 border-amber-200/20 hover:border-amber-300/50 transition-all duration-300 hover:bg-white cursor-pointer group heat-glow animate-fade-up"
@@ -157,11 +226,19 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
           </div>
         )}
 
-        {!isLoading && articles.length > 0 && (
-          <div className="mt-8 text-center">
+        {!isLoading && sortedArticles.length > 0 && (
+          <div className="mt-8 text-center space-y-3">
             <p className="font-body text-xs text-navy-700/35">
-              Showing {Math.min(10, articles.length)} of {articles.length} articles
+              Showing {Math.min(visibleCount, sortedArticles.length)} of {sortedArticles.length} articles
             </p>
+            {visibleCount < sortedArticles.length && (
+              <button
+                onClick={() => setVisibleCount(prev => prev + 20)}
+                className="font-body text-sm text-amber-600 hover:text-amber-500 transition-colors border border-amber-200/40 px-6 py-2 rounded-lg hover:bg-amber-50"
+              >
+                Load more
+              </button>
+            )}
           </div>
         )}
       </div>
