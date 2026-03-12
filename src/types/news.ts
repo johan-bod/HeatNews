@@ -21,6 +21,9 @@ export interface NewsArticle {
   color?: string;
   coverage?: number;
   scale?: 'local' | 'regional' | 'national' | 'international';
+  primaryTopic?: string;
+  secondaryTopics?: string[];
+  language?: string;
 }
 
 export interface NewsDataArticle {
