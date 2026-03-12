@@ -78,6 +78,7 @@ const Index = () => {
   const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedScale, setSelectedScale] = useState<ScaleFilter>('all');
+  const [globeFlyTo, setGlobeFlyTo] = useState<((lat: number, lng: number) => void) | null>(null);
 
   const articles = useMemo(() => {
     if (selectedScale === 'all') return allArticles;
@@ -177,6 +178,18 @@ const Index = () => {
     }
   }, []);
 
+  const handleArticleLocate = useCallback((lat: number, lng: number) => {
+    // Scroll to globe first, then fly
+    const globeEl = document.getElementById('globe-section');
+    if (globeEl) {
+      globeEl.scrollIntoView({ behavior: 'smooth' });
+    }
+    // Small delay to let scroll finish before flying
+    setTimeout(() => {
+      if (globeFlyTo) globeFlyTo(lat, lng);
+    }, 400);
+  }, [globeFlyTo]);
+
   const handleClearFilters = useCallback(() => {
     setCurrentFilters(null);
     setCurrentSearch(null);
@@ -226,7 +239,7 @@ const Index = () => {
       )}
 
       {/* Globe — full width, dark background */}
-      <MapSection articles={allArticles} />
+      <MapSection articles={allArticles} onFlyToReady={(fn) => setGlobeFlyTo(() => fn)} />
 
       {/* Search & Filters */}
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
@@ -261,7 +274,7 @@ const Index = () => {
         )}
       </div>
 
-      <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} />
+      <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} />
       <Footer />
 
       {/* Error toast */}

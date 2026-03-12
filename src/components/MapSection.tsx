@@ -8,6 +8,7 @@ const GlobeFallback = lazy(() => import('./globe/GlobeFallback'));
 
 interface MapSectionProps {
   articles: NewsArticle[];
+  onFlyToReady?: (flyTo: (lat: number, lng: number) => void) => void;
 }
 
 const GlobeLoading = () => (
@@ -19,7 +20,7 @@ const GlobeLoading = () => (
   </div>
 );
 
-export default function MapSection({ articles }: MapSectionProps) {
+export default function MapSection({ articles, onFlyToReady }: MapSectionProps) {
   const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function MapSection({ articles }: MapSectionProps) {
     <section id="globe-section" className="w-full bg-navy-900 py-0">
       <Suspense fallback={<GlobeLoading />}>
         {hasWebGL ? (
-          <GlobeView articles={articles} />
+          <GlobeView articles={articles} onFlyToReady={onFlyToReady} />
         ) : (
           <GlobeFallback articles={articles} />
         )}

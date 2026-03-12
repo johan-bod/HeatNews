@@ -12,12 +12,13 @@ import GlobeTooltip from './GlobeTooltip';
 
 interface GlobeViewProps {
   articles: NewsArticle[];
+  onFlyToReady?: (flyTo: (lat: number, lng: number) => void) => void;
 }
 
 // Spec: 300ms transition for marker fade in/out
 const MARKER_TRANSITION_MS = 300;
 
-export default function GlobeView({ articles }: GlobeViewProps) {
+export default function GlobeView({ articles, onFlyToReady }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
@@ -175,6 +176,17 @@ export default function GlobeView({ articles }: GlobeViewProps) {
       }
     };
   }, [onUserInteraction]);
+
+  // Expose flyTo for external callers (article feed)
+  useEffect(() => {
+    if (!globeRef.current || !onFlyToReady) return;
+    onFlyToReady((lat: number, lng: number) => {
+      if (globeRef.current) {
+        globeRef.current.pointOfView({ lat, lng, altitude: 0.4 }, 1000);
+        onUserInteraction();
+      }
+    });
+  }, [onFlyToReady, onUserInteraction]);
 
   // Update markers when data changes (Globe.gl handles 300ms transition)
   useEffect(() => {

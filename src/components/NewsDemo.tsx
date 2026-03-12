@@ -7,6 +7,7 @@ interface NewsDemoProps {
   articles: NewsArticle[];
   isLoading?: boolean;
   selectedScale?: string;
+  onArticleLocate?: (lat: number, lng: number) => void;
 }
 
 const SCALE_LABELS: Record<string, string> = {
@@ -35,7 +36,7 @@ function getHeatColor(level: number): string {
   return 'text-red-500';
 }
 
-const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all' }: NewsDemoProps) => {
+const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticleLocate }: NewsDemoProps) => {
   return (
     <section className="py-16 px-6">
       <div className="max-w-3xl mx-auto">
@@ -134,6 +135,15 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all' }: NewsDe
                             <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-700 font-body">
                               {article.category}
                             </Badge>
+                          )}
+
+                          {onArticleLocate && article.coordinates && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onArticleLocate(article.coordinates!.lat, article.coordinates!.lng); }}
+                              className="flex items-center gap-1 font-body text-xs text-amber-500/60 hover:text-amber-400 transition-colors"
+                            >
+                              <MapPin className="w-3 h-3" /> Locate on globe
+                            </button>
                           )}
                         </div>
                       </div>
