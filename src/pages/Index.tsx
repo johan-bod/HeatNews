@@ -6,7 +6,11 @@ import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
 import { NewsFilters, type NewsFiltersType } from '../components/NewsFilters';
 import { NewsSearch, type SearchParams } from '../components/NewsSearch';
-import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh } from '@/services/cachedNews';
+import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh, fetchPersonalizedNews, getCachedPersonalizedNews } from '@/services/cachedNews';
+import { getUserRemainingFetches, USER_DAILY_FETCHES, loadUsageFromFirestore } from '@/services/apiBudget';
+import RefreshIndicator from '@/components/RefreshIndicator';
+import SoftGate from '@/components/SoftGate';
+import { useAuth } from '@/contexts/AuthContext';
 import { searchAndFilterNews } from '@/services/newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
@@ -86,11 +90,25 @@ const Index = () => {
   const [globeFlyTo, setGlobeFlyTo] = useState<((lat: number, lng: number) => void) | null>(null);
   const { preferences, needsOnboarding, setTopics, setLocations, completeOnboarding, updatePreferences } = usePreferences();
   const [showPreferences, setShowPreferences] = useState(false);
+  const { user } = useAuth();
+  const [personalizedArticles, setPersonalizedArticles] = useState<NewsArticle[]>([]);
+  const [remainingFetches, setRemainingFetches] = useState(USER_DAILY_FETCHES);
+  const [showSoftGate, setShowSoftGate] = useState(false);
+  const [isPersonalizing, setIsPersonalizing] = useState(false);
 
   const articles = useMemo(() => {
-    if (selectedScale === 'all') return allArticles;
-    return allArticles.filter(a => a.scale === selectedScale);
-  }, [allArticles, selectedScale]);
+    // Merge shared pool + personalized, deduplicate by id
+    const merged = [...allArticles, ...personalizedArticles];
+    const seen = new Set<string>();
+    const deduped = merged.filter(a => {
+      if (seen.has(a.id)) return false;
+      seen.add(a.id);
+      return true;
+    });
+
+    if (selectedScale === 'all') return deduped;
+    return deduped.filter(a => a.scale === selectedScale);
+  }, [allArticles, personalizedArticles, selectedScale]);
 
   const loadNews = useCallback(async () => {
     try {
@@ -120,6 +138,20 @@ const Index = () => {
   useEffect(() => {
     loadNews();
   }, [loadNews]);
+
+  // Load personalized cache + sync usage on sign-in
+  useEffect(() => {
+    if (!user) {
+      setPersonalizedArticles([]);
+      setRemainingFetches(USER_DAILY_FETCHES);
+      return;
+    }
+    setPersonalizedArticles(getCachedPersonalizedNews());
+    setRemainingFetches(getUserRemainingFetches(user.uid));
+    loadUsageFromFirestore(user.uid).then(() => {
+      setRemainingFetches(getUserRemainingFetches(user.uid));
+    });
+  }, [user]);
 
   const handleRefresh = useCallback(async () => {
     try {
@@ -204,6 +236,28 @@ const Index = () => {
     loadNews();
   }, [loadNews]);
 
+  const handlePersonalizedRefresh = useCallback(async () => {
+    if (!user) return;
+    if (remainingFetches <= 0) {
+      setShowSoftGate(true);
+      return;
+    }
+    try {
+      setIsPersonalizing(true);
+      const newArticles = await fetchPersonalizedNews(user.uid, preferences);
+      setPersonalizedArticles(newArticles);
+      setRemainingFetches(getUserRemainingFetches(user.uid));
+    } catch (error) {
+      if ((error as Error).message.includes('limit reached')) {
+        setShowSoftGate(true);
+      } else {
+        setError(error as Error);
+      }
+    } finally {
+      setIsPersonalizing(false);
+    }
+  }, [user, remainingFetches, preferences]);
+
   const handleOnboardingComplete = useCallback(async (topics: Topic[], locations: PreferenceLocation[]) => {
     await updatePreferences({
       topics,
@@ -285,8 +339,8 @@ const Index = () => {
         />
       </div>
 
-      {/* Refresh button */}
-      <div className="fixed bottom-4 left-4 z-50">
+      {/* Refresh controls */}
+      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
         <Button
           onClick={handleRefresh}
           disabled={isRefreshing}
@@ -296,14 +350,27 @@ const Index = () => {
           <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
+        <RefreshIndicator
+          remaining={remainingFetches}
+          total={USER_DAILY_FETCHES}
+          onRefresh={handlePersonalizedRefresh}
+          isRefreshing={isPersonalizing}
+          isSignedIn={!!user}
+        />
         {lastUpdated && !isLoading && (
-          <div className="mt-1.5 font-body text-[10px] text-navy-700/35 bg-ivory-50/90 backdrop-blur-sm px-3 py-1 rounded-md border border-amber-200/20 text-center">
+          <div className="font-body text-[10px] text-navy-700/35 bg-ivory-50/90 backdrop-blur-sm px-3 py-1 rounded-md border border-amber-200/20 text-center">
             Updated {lastUpdated.toLocaleTimeString()}
           </div>
         )}
       </div>
 
       <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} />
+
+      {/* Soft gate */}
+      {showSoftGate && (
+        <SoftGate onDismiss={() => setShowSoftGate(false)} />
+      )}
+
       <Footer />
 
       {/* Error toast */}
