@@ -4,6 +4,7 @@ import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { NewsFilters, type NewsFiltersType } from '../components/NewsFilters';
 import { NewsSearch, type SearchParams } from '../components/NewsSearch';
 import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh, fetchPersonalizedNews, getCachedPersonalizedNews } from '@/services/cachedNews';
@@ -318,11 +319,13 @@ const Index = () => {
       )}
 
       {/* Globe — full width, dark background */}
-      <MapSection
-        articles={allArticles}
-        onFlyToReady={(fn) => setGlobeFlyTo(() => fn)}
-        preferenceLocations={preferences.locations}
-      />
+      <ErrorBoundary>
+        <MapSection
+          articles={allArticles}
+          onFlyToReady={(fn) => setGlobeFlyTo(() => fn)}
+          preferenceLocations={preferences.locations}
+        />
+      </ErrorBoundary>
 
       {/* Search & Filters */}
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
