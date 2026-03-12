@@ -4,6 +4,17 @@ import { geocodeArticles } from '@/utils/geocoding';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
 import { indexArticleTopics } from '@/utils/topicIndexer';
 import { setCacheData, getCacheData, getCacheMetadata } from '@/utils/cache';
+import { buildSharedPoolQueries } from './sharedPool';
+import {
+  incrementUsage,
+  canMakeRequest,
+  SHARED_POOL_BUDGET,
+  incrementUserFetch,
+  canUserFetch,
+  syncUsageToFirestore,
+} from './apiBudget';
+import { buildPersonalizedQueries } from './personalizedFetch';
+import type { UserPreferences } from '@/types/preferences';
 
 export interface CachedNewsConfig {
   localNews: NewsArticle[];
@@ -56,64 +67,56 @@ function processArticles(articles: NewsArticle[], scale: ArticleScale): NewsArti
   });
 }
 
-async function fetchFranceLocalNews(): Promise<NewsArticle[]> {
-  try {
-    const response = await fetchNewsDataArticles({
-      country: 'fr',
-      language: 'fr',
-      size: 10,
-      query: 'Paris OR Lyon OR Marseille OR Toulouse OR Nice OR Bordeaux OR Lille',
-    });
-    return processArticles(response.results.map(convertNewsDataArticle), 'local');
-  } catch (error) {
-    console.error('Failed to fetch France local news:', error);
-    return [];
-  }
-}
+/**
+ * Execute shared pool queries, respecting budget.
+ * Fetches in batches to avoid overwhelming the API.
+ */
+async function fetchSharedPool(): Promise<{
+  local: NewsArticle[];
+  regional: NewsArticle[];
+  national: NewsArticle[];
+  international: NewsArticle[];
+}> {
+  const result = {
+    local: [] as NewsArticle[],
+    regional: [] as NewsArticle[],
+    national: [] as NewsArticle[],
+    international: [] as NewsArticle[],
+  };
 
-async function fetchFranceRegionalNews(): Promise<NewsArticle[]> {
-  try {
-    const response = await fetchNewsDataArticles({
-      country: 'fr',
-      language: 'fr',
-      size: 10,
-      query: 'Bretagne OR Provence OR Normandie OR "Auvergne-Rhône-Alpes" OR "Nouvelle-Aquitaine" OR Occitanie',
-    });
-    return processArticles(response.results.map(convertNewsDataArticle), 'regional');
-  } catch (error) {
-    console.error('Failed to fetch France regional news:', error);
-    return [];
+  if (!canMakeRequest(SHARED_POOL_BUDGET)) {
+    console.warn('API budget insufficient for shared pool refresh');
+    return result;
   }
-}
 
-async function fetchEuropeNationalNews(): Promise<NewsArticle[]> {
-  try {
-    const response = await fetchNewsDataArticles({
-      country: ['fr', 'de', 'gb', 'it', 'es', 'nl', 'be', 'ch'],
-      language: 'en',
-      size: 10,
-      category: ['top', 'politics', 'business'],
-    });
-    return processArticles(response.results.map(convertNewsDataArticle), 'national');
-  } catch (error) {
-    console.error('Failed to fetch Europe national news:', error);
-    return [];
-  }
-}
+  const queries = buildSharedPoolQueries();
 
-async function fetchInternationalNews(): Promise<NewsArticle[]> {
-  try {
-    const response = await fetchNewsDataArticles({
-      country: ['us', 'gb', 'de', 'fr', 'es', 'it', 'br', 'ca', 'au', 'za'],
-      language: 'en',
-      size: 10,
-      category: ['top', 'world'],
-    });
-    return processArticles(response.results.map(convertNewsDataArticle), 'international');
-  } catch (error) {
-    console.error('Failed to fetch international news:', error);
-    return [];
+  // Execute in small batches (5 concurrent) to avoid rate limits
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < queries.length; i += BATCH_SIZE) {
+    const batch = queries.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map(async (q) => {
+        try {
+          const response = await fetchNewsDataArticles(q.params);
+          incrementUsage(1);
+          return { scale: q.scale, articles: response.results.map(convertNewsDataArticle) };
+        } catch (error) {
+          console.warn(`Shared pool query failed (${q.group}):`, error);
+          return { scale: q.scale, articles: [] };
+        }
+      })
+    );
+
+    for (const r of batchResults) {
+      if (r.status === 'fulfilled') {
+        const { scale, articles } = r.value;
+        result[scale].push(...processArticles(articles, scale));
+      }
+    }
   }
+
+  return result;
 }
 
 function shouldRefreshCache(): boolean {
@@ -151,12 +154,7 @@ export async function getCachedNews(
 }
 
 async function fetchAndCacheNews(): Promise<CachedNewsConfig> {
-  const [localNews, regionalNews, nationalNews, international] = await Promise.all([
-    fetchFranceLocalNews(),
-    fetchFranceRegionalNews(),
-    fetchEuropeNationalNews(),
-    fetchInternationalNews(),
-  ]);
+  const pool = await fetchSharedPool();
 
   const now = Date.now();
   const cacheOpts = (region: string, scale: ArticleScale) => ({
@@ -165,13 +163,19 @@ async function fetchAndCacheNews(): Promise<CachedNewsConfig> {
     ttl: CACHE_TTL,
   });
 
-  setCacheData(CACHE_KEY_LOCAL, localNews, cacheOpts('France - Cities', 'local'));
-  setCacheData(CACHE_KEY_REGIONAL, regionalNews, cacheOpts('France - Regions', 'regional'));
-  setCacheData(CACHE_KEY_NATIONAL, nationalNews, cacheOpts('Europe - Countries', 'national'));
-  setCacheData(CACHE_KEY_INTERNATIONAL, international, cacheOpts('World', 'international'));
+  setCacheData(CACHE_KEY_LOCAL, pool.local, cacheOpts('France - Cities', 'local'));
+  setCacheData(CACHE_KEY_REGIONAL, pool.regional, cacheOpts('France - Regions', 'regional'));
+  setCacheData(CACHE_KEY_NATIONAL, pool.national, cacheOpts('Europe - Countries', 'national'));
+  setCacheData(CACHE_KEY_INTERNATIONAL, pool.international, cacheOpts('World', 'international'));
   setCacheData(CACHE_KEY_LAST_REFRESH, now, cacheOpts('System', 'international'));
 
-  return { localNews, regionalNews, nationalNews, international, lastUpdated: now };
+  return {
+    localNews: pool.local,
+    regionalNews: pool.regional,
+    nationalNews: pool.national,
+    international: pool.international,
+    lastUpdated: now,
+  };
 }
 
 async function refreshCacheInBackground(): Promise<void> {
@@ -185,6 +189,57 @@ async function refreshCacheInBackground(): Promise<void> {
 
 export async function refreshNewsCache(): Promise<CachedNewsConfig> {
   return getCachedNews(true);
+}
+
+const CACHE_KEY_PERSONALIZED = 'personalized_news';
+
+/**
+ * Execute a personalized fetch for a signed-in user.
+ * Uses their preference topics + locations to build targeted queries.
+ * Results are cached separately and merged with shared pool.
+ */
+export async function fetchPersonalizedNews(
+  uid: string,
+  preferences: UserPreferences
+): Promise<NewsArticle[]> {
+  if (!canUserFetch(uid)) {
+    throw new Error('Daily personalized fetch limit reached');
+  }
+
+  const queries = buildPersonalizedQueries(preferences);
+  if (queries.length === 0) return [];
+
+  const articles: NewsArticle[] = [];
+
+  for (const params of queries) {
+    try {
+      const response = await fetchNewsDataArticles(params);
+      incrementUsage(1);
+      articles.push(...response.results.map(convertNewsDataArticle));
+    } catch (error) {
+      console.warn('Personalized fetch query failed:', error);
+    }
+  }
+
+  incrementUserFetch(uid);
+  syncUsageToFirestore(uid); // fire-and-forget
+
+  // Process and cache
+  const processed = processArticles(articles, 'international');
+  setCacheData(CACHE_KEY_PERSONALIZED, processed, {
+    region: 'Personalized',
+    scale: 'international',
+    ttl: CACHE_TTL,
+  });
+
+  return processed;
+}
+
+/**
+ * Get cached personalized articles (if any).
+ */
+export function getCachedPersonalizedNews(): NewsArticle[] {
+  return getCacheData<NewsArticle[]>(CACHE_KEY_PERSONALIZED) || [];
 }
 
 let refreshIntervalId: ReturnType<typeof setInterval> | null = null;
