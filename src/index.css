@@ -85,3 +85,16 @@ html {
 .animate-fade-up {
   animation: fade-up 0.5s ease-out both;
 }
+
+/* Globe section dark transition — applied via id #globe-section */
+#globe-section {
+  background: linear-gradient(
+    to bottom,
+    #0F1722 0%,
+    #050d18 50%,
+    #0F1722 100%
+  );
+}
+
+/* Note: very-hot marker pulse (81-100 heat) is handled via WebGL
+   altitude oscillation in GlobeView's animation loop, not CSS. */
