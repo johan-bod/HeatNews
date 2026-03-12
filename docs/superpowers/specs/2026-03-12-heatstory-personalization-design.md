@@ -25,7 +25,48 @@ Transform HeatStory from a flat news feed with a 2D map into a globe-centric per
 - Email capture (pre-filled from Google account)
 - Intention checklist (not freeform): "More refreshes per day", "Custom alerts", "Team/organization use", "API access", "Other"
 - Tone: "We're building something new. Help us grow."
-- Stored in Firebase (or localStorage fallback)
+- Stored in Firestore (see Firebase Services section)
+
+## Firebase Services (in scope)
+
+Firebase is used as a lightweight backend-as-a-service. No custom backend server.
+
+- **Firebase Auth** - Google sign-in only
+- **Cloud Firestore** - stores user preferences and waitlist signups (syncs across devices)
+  - `users/{uid}/preferences` - topics, locations, onboarding complete flag
+  - `users/{uid}/usage` - daily fetch count, last fetch date
+  - `waitlist/{uid}` - email, intentions checklist, timestamp
+- **Why Firestore:** user preferences must sync across devices. localStorage is used as a read cache (Firestore is the source of truth). If Firestore is unavailable, app degrades to localStorage-only (preferences are device-local, no waitlist capture).
+
+## Heat Calculation
+
+"Heat" measures how much media attention a story or location receives.
+
+### Story clustering
+Articles are grouped into story clusters using client-side fuzzy matching:
+1. Normalize titles: lowercase, strip punctuation, remove stopwords
+2. Extract significant terms (3+ character words)
+3. Compare each new article against existing clusters using Jaccard similarity on term sets
+4. **Threshold: 0.25** - articles with ≥25% term overlap join the same cluster
+5. Unmatched articles start a new single-article cluster
+
+### Heat score per cluster
+```
+heatScore = min(100, (uniqueSources * 20) + (articleCount * 5) + recencyBonus)
+```
+- `uniqueSources`: number of distinct media outlets covering the story (most important signal)
+- `articleCount`: total articles in the cluster
+- `recencyBonus`: +10 if any article is <2 hours old, +5 if <6 hours
+
+### Heat score per location
+A location's heat is the maximum heat score of any cluster pinned to that location. Multiple clusters at the same location → the hottest one determines marker size/color.
+
+### Visual mapping
+- 0-20: small grey dot (cold)
+- 21-40: small amber dot (warming)
+- 41-60: medium orange dot (warm)
+- 61-80: large orange-red dot (hot)
+- 81-100: large red glowing dot with pulse animation (very hot)
 
 ## The Globe
 
@@ -45,6 +86,24 @@ Transform HeatStory from a flat news feed with a 2D map into a globe-centric per
 - Scroll/pinch to zoom, click-drag to spin
 - Click heat marker → popup with article title, source, media reach badge, topic tags, link
 - Signed-in users: globe auto-focuses on preference areas on load
+
+### Zoom-level thresholds
+- **Altitude > 8000km** (whole globe): show only international-scale clusters. Nearby markers merge into aggregate heat blobs.
+- **3000-8000km** (continent): national-scale clusters appear. Aggregate blobs split into country-level markers.
+- **800-3000km** (country): regional clusters appear. Individual article pins start showing.
+- **< 800km** (city): all local/hyperlocal pins visible. Map tiles load for geographic detail.
+- Transition between levels is animated (markers fade in/out over 300ms).
+- Max visible markers at any zoom level: 200. Beyond that, lowest-heat markers are hidden.
+
+### Multi-region auto-focus (signed-in users)
+If a user has selected multiple distant regions (e.g., France + Japan + Brazil):
+- Globe auto-focuses on their **primary preference** (first location in their list)
+- Quick-jump buttons appear for other preference regions (small floating pills: "Japan", "Brazil")
+- Clicking a pill animates the globe to that region
+
+### Mobile performance
+- On screens < 768px: reduce max visible markers to 100, disable auto-rotation, use lower-resolution tiles
+- If WebGL is unavailable: fall back to a flat Leaflet map with the same data (graceful degradation)
 
 ### Scale behavior (zoom = scale)
 - Zoomed out (whole globe) → international heat
@@ -85,6 +144,17 @@ interface GeoReach {
 - Article from Ouest-France mentioning "Nantes" → pins precisely to Nantes coordinates
 - General article with no specific city → distributes as lighter markers across outlet's reach footprint
 
+## Location Extraction from Articles
+
+Articles are geolocated using the existing approach (expanded):
+
+1. **Check article tags/keywords** (from API) against the geocoding database (longest match first)
+2. **Check article title + description** against the geocoding database via string matching
+3. **Match media outlet's `reach`** as fallback: if no location found in text, use the outlet's primary coverage area
+4. **Ambiguity handling:** locations are matched against the geocoding database which includes country context. "Paris" matches "paris" → France coordinates. There is no "Paris, Texas" in the database. If ambiguity arises in future expansion, prefer the location in the article's source country.
+
+The geocoding database is the single source of truth for coordinates. If a location name isn't in the database, it cannot be pinned. This keeps the system simple and predictable.
+
 ## Topic Indexation System
 
 ### Zero-cost, client-side approach
@@ -106,7 +176,9 @@ interface GeoReach {
 ```
 topicScore = (keywordHits * 2) + (sourceTopicMatch * 1.5) + (apiCategoryMatch * 1)
 ```
-Top-scoring topic = primary. All above threshold = secondary tags.
+- Top-scoring topic = primary. All topics scoring ≥ 3.0 = secondary tags.
+- Threshold of 3.0 chosen so that a single keyword hit alone (score 2.0) isn't enough — needs at least one confirming signal.
+- Threshold should be tuned during development by spot-checking ~50 articles for accuracy.
 
 ### Topic taxonomy (~25 topics)
 politics, economy, technology, climate, sports, health, education, culture, crime, energy, transport, housing, agriculture, defense, immigration, science, entertainment, finance, labor, environment, diplomacy, religion, social, media, legal
@@ -126,13 +198,24 @@ keywords/common.ts  → ~200 universal terms (brands, acronyms, names)
 ## API Budget Strategy
 
 ### Shared pool (serves everyone)
-- ~40 requests/day for broad coverage across all 4 scales
-- Updated once/day (or twice if budget allows)
-- This data populates the demo globe AND is the base layer for signed-in users
+~40 requests/day, refreshed once daily (early morning UTC). Specific query distribution:
+
+| Scale | Requests | Query strategy |
+|-------|----------|---------------|
+| Local (France) | 8 | 2 queries × 4 French city groups (Paris/Lyon/Marseille, Toulouse/Nice/Bordeaux, Lille/Strasbourg/Nantes, Rennes/Montpellier/Grenoble) |
+| Regional (France) | 6 | 2 queries × 3 region groups (Bretagne/Normandie/PdlL, Provence/Occitanie/ARA, IDF/HdF/GrandEst) |
+| National (Europe) | 12 | 2 queries × 6 country groups (FR+DE, GB+IE, ES+PT, IT+CH, NL+BE, PL+SE+NO+DK) |
+| International | 14 | 2 queries × 7 region groups (US+CA, LatAm, Middle East, East Asia, South Asia, Africa, Oceania) |
+| **Total** | **40** | **400 articles** |
+
+Each query fetches 10 articles. "2 queries" per group means one for top/general news and one for a rotating category (politics one day, tech the next).
 
 ### Personalized fetches (signed-in users)
 - 2 free fetches per user per day
-- Each fetch uses 1-3 API requests depending on preference complexity
+- Fetch request count per personalized refresh:
+  - 1-2 topics + 1 location = 1 API request
+  - 3+ topics OR 2+ locations = 2 API requests
+  - 3+ topics AND 2+ locations = 3 API requests (maximum)
 - Results merge with shared pool on the globe
 
 ### Budget math
@@ -140,7 +223,14 @@ keywords/common.ts  → ~200 universal terms (brands, acronyms, names)
 - ~40 for shared pool
 - ~160 remaining for users
 - At ~2 requests per personalized fetch → supports ~80 personalized fetches/day → ~40 free users/day
-- Scales with paid tier (higher API plan) later
+
+### Degradation strategy (budget exhausted)
+- When < 20 API requests remain for the day: disable personalized fetches, show message "Daily limit reached. Your personalized feed will refresh tomorrow."
+- Users still see the shared pool data (globe remains functional)
+- Remaining requests are reserved for emergency shared pool refresh if needed
+
+### MVP acknowledgment
+400 shared pool articles/day is thin for a "global news platform." This is an MVP constraint. Goal: 5+ articles per major region per day. Scaling path: upgrade to NewsData.io paid tier ($99/mo for 30k requests = 300k articles/day).
 
 ## Expanded Geocoding Database
 
@@ -151,6 +241,35 @@ Current: ~110 locations. Target: ~500+ locations.
 - **Europe:** top 5-10 cities per country for DE, ES, IT, UK, NL, BE, CH, PT, AT, PL, SE, NO, DK, IE, GR
 - **Global:** top 20 cities per major country (US, CA, BR, AU, JP, CN, IN, KR, etc.)
 - **French regions:** all 13 metropolitan regions + 5 overseas
+
+## Data Storage & Expiration
+
+### localStorage budget
+- **Max 3MB** allocated for HeatStory data (well within the ~5-10MB browser limit)
+- Breakdown: ~2MB for article cache, ~500KB for preferences cache, ~500KB for metadata
+
+### Expiration policy
+- Shared pool articles: **24-hour TTL** (replaced on next daily refresh)
+- Personalized fetch results: **24-hour TTL**
+- On each app load: purge any data older than 48 hours
+- If localStorage is full: delete oldest data first (LRU eviction), log warning to console
+
+### Firestore as source of truth
+- User preferences: written to Firestore on save, cached in localStorage
+- On app load: read localStorage cache immediately (fast), then sync from Firestore in background (authoritative)
+- If Firestore is unavailable: localStorage cache serves the app. Changes queue locally and sync when Firestore reconnects.
+
+## Error Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| API is down | Show shared pool from localStorage cache. Banner: "News data temporarily unavailable. Showing cached articles." |
+| Daily API budget exhausted | Disable personalized fetches. Show cached data. Message: "Daily limit reached." |
+| localStorage full | LRU eviction of oldest articles. If still full, clear all article caches and re-fetch shared pool. |
+| Firebase Auth fails | Show error toast. User stays anonymous, can still use demo globe. |
+| Firestore unavailable | Degrade to localStorage-only. Preferences don't sync across devices until reconnection. |
+| Personalized fetch returns 0 results | Show message: "No articles found for these preferences. Try broadening your topics or locations." Keep shared pool visible. |
+| WebGL unavailable (old browser/device) | Fall back to flat Leaflet map with same data. |
 
 ## Page Structure
 
@@ -164,7 +283,12 @@ Current: ~110 locations. Target: ~500+ locations.
 ### Signed-in experience
 1. Navbar: user avatar + preferences gear icon
 2. **Personalized globe:** full-width, auto-focused on preference areas
-3. **Compact feed:** below globe. Tight article list sorted by heat. Shows: title, source badge (with reach indicator), topic tags, time ago. Click opens article. Inline topic filter.
+3. **Compact feed:** below globe, max-width container
+   - Sorted by heat score (highest first)
+   - Shows 20 articles initially, "Load more" button for next 20
+   - Each row: title, source badge (with reach indicator icon), topic tags as small pills, time ago
+   - Click opens article in new tab
+   - **Inline topic filter:** horizontal row of topic pills at top of feed. Click to toggle. Multiple active = OR filter. "All" pill to reset.
 4. **Refresh indicator:** "2/2 refreshes remaining" or soft gate message
 5. Footer
 
@@ -187,11 +311,12 @@ Each piece is an independent sub-project with its own plan → implementation cy
 1. **Media database + expanded geocoding** - data foundation, static TypeScript files
 2. **Topic indexation system** - keyword dictionaries + scoring engine
 3. **3D Globe** - Globe.gl integration replacing Leaflet, dark editorial style
-4. **User preferences + onboarding** - Firebase Auth flow, preference picker, localStorage storage
+4. **User preferences + onboarding** - Firebase Auth flow, Firestore storage, preference picker
 5. **API budget management + soft gate** - fetch limiting, shared pool strategy, waitlist UI
 
 ## Technical Constraints
 - NewsData.io free tier: 200 requests/day, 10 results per request
-- No backend server: localStorage + Firebase Auth only
+- Firebase: Auth (Google sign-in) + Cloud Firestore (user data)
 - Current stack: React 19, TypeScript, Vite 7, Tailwind CSS 3, shadcn/ui
 - Globe.gl to be added as new dependency
+- Target: ~500+ geocoding locations, ~80-100 media outlets, ~25 topic categories
