@@ -82,6 +82,7 @@ export function convertNewsDataArticle(article: NewsDataArticle): NewsArticle {
     url: article.link,
     publishedAt: article.pubDate,
     category: article.category?.[0],
+    language: article.language,
     source: {
       name: article.source_id,
       url: article.source_url,

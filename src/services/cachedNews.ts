@@ -2,6 +2,7 @@ import type { NewsArticle } from '@/types/news';
 import { fetchNewsDataArticles, convertNewsDataArticle } from './newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
+import { indexArticleTopics } from '@/utils/topicIndexer';
 import { setCacheData, getCacheData, getCacheMetadata } from '@/utils/cache';
 
 export interface CachedNewsConfig {
@@ -27,7 +28,15 @@ const BACKGROUND_REFRESH_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
  */
 function processArticles(articles: NewsArticle[], scale: ArticleScale): NewsArticle[] {
   let processed = geocodeArticles(articles);
-  processed = processed.map(a => ({ ...a, scale }));
+  processed = processed.map(a => {
+    const topics = indexArticleTopics(a, a.language || 'en');
+    return {
+      ...a,
+      scale,
+      primaryTopic: topics.primary || undefined,
+      secondaryTopics: topics.secondary.length > 0 ? topics.secondary : undefined,
+    };
+  });
 
   const clusters = analyzeArticleHeat(processed, scale);
 
