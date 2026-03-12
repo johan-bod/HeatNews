@@ -8,6 +8,7 @@ import { filterArticlesByAltitude, getMaxMarkers } from '@/utils/globeUtils';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
 import { useGlobeAutoRotation } from './GlobeControls';
 import GlobePopup from './GlobePopup';
+import GlobeTooltip from './GlobeTooltip';
 
 interface GlobeViewProps {
   articles: NewsArticle[];
@@ -21,6 +22,8 @@ export default function GlobeView({ articles }: GlobeViewProps) {
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [hoveredMarker, setHoveredMarker] = useState<GlobeMarkerData | null>(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [altitude, setAltitude] = useState(2.5); // Globe.gl altitude units
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const isMobile = screenWidth < 768;
@@ -82,6 +85,16 @@ export default function GlobeView({ articles }: GlobeViewProps) {
       })
       .onGlobeClick(() => {
         setSelectedArticle(null);
+      })
+      .onPointHover((point: object | null) => {
+        if (point) {
+          const marker = point as GlobeMarkerData;
+          setHoveredMarker(marker);
+          const coords = globe.getScreenCoords(marker.lat, marker.lng);
+          setHoverPosition(coords ? { x: coords.x, y: coords.y } : { x: 0, y: 0 });
+        } else {
+          setHoveredMarker(null);
+        }
       });
 
     // Dark editorial style: custom globe material
@@ -203,6 +216,15 @@ export default function GlobeView({ articles }: GlobeViewProps) {
           article={selectedArticle}
           position={popupPosition}
           onClose={() => setSelectedArticle(null)}
+        />
+      )}
+
+      {/* Hover tooltip */}
+      {hoveredMarker && !selectedArticle && (
+        <GlobeTooltip
+          title={hoveredMarker.article.title}
+          source={hoveredMarker.article.source.name}
+          position={hoverPosition}
         />
       )}
     </div>
