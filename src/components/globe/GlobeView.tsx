@@ -126,6 +126,28 @@ export default function GlobeView({ articles }: GlobeViewProps) {
     // Set initial point of view (Europe centered)
     globe.pointOfView({ lat: 46, lng: 2, altitude: 2.5 }, 0);
 
+    // Hex-bin heatmap glow layer — ambient warmth under markers
+    globe
+      .hexBinPointsData(articles.filter(a => a.coordinates).map(a => ({
+        lat: a.coordinates!.lat,
+        lng: a.coordinates!.lng,
+        heatLevel: a.heatLevel || 0,
+      })))
+      .hexBinPointLat('lat')
+      .hexBinPointLng('lng')
+      .hexBinPointWeight((d: object) => (d as { heatLevel: number }).heatLevel)
+      .hexBinResolution(3) // coarse bins for ambient effect
+      .hexAltitude(0.003) // just above globe surface
+      .hexTopColor((d: object) => {
+        const pts = d as { points: { heatLevel: number }[] };
+        const avgHeat = pts.points.reduce((s, p) => s + p.heatLevel, 0) / pts.points.length;
+        const alpha = Math.min(0.35, avgHeat / 200);
+        return `rgba(245, 158, 11, ${alpha})`; // amber glow
+      })
+      .hexSideColor(() => 'rgba(245, 158, 11, 0.02)')
+      .hexBinMerge(true)
+      .hexTransitionDuration(MARKER_TRANSITION_MS);
+
     // Track zoom changes
     globe.controls().addEventListener('change', () => {
       const pov = globe.pointOfView();
@@ -159,6 +181,18 @@ export default function GlobeView({ articles }: GlobeViewProps) {
     if (!globeRef.current) return;
     globeRef.current.pointsData(markers);
   }, [markers]);
+
+  // Update hex-bin heatmap when articles change
+  useEffect(() => {
+    if (!globeRef.current) return;
+    globeRef.current.hexBinPointsData(
+      articles.filter(a => a.coordinates).map(a => ({
+        lat: a.coordinates!.lat,
+        lng: a.coordinates!.lng,
+        heatLevel: a.heatLevel || 0,
+      }))
+    );
+  }, [articles]);
 
   // Auto-rotation + very-hot marker pulse animation loop
   useEffect(() => {
