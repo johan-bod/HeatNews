@@ -55,7 +55,7 @@ function useInvestigateData() {
   }, [state, searchParams]);
 }
 
-function groupByTier(items: ClusterArticleItem[]): { tier: CredibilityTier; items: ClusterArticleItem[] }[] {
+export function groupByTier(items: ClusterArticleItem[]): { tier: CredibilityTier; items: ClusterArticleItem[] }[] {
   const groups: { tier: CredibilityTier; items: ClusterArticleItem[] }[] = [];
   let currentTier: CredibilityTier | null = null;
 
