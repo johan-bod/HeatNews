@@ -3,8 +3,8 @@ import { fetchNewsDataArticles, convertNewsDataArticle } from './newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
 import { indexArticleTopics } from '@/utils/topicIndexer';
-import { setCacheData, getCacheData, getCacheMetadata } from '@/utils/cache';
-import { buildSharedPoolQueries } from './sharedPool';
+import { setCacheData, getCacheData, getCacheMetadata, getRotationIndex, setRotationIndex } from '@/utils/cache';
+import { buildRefreshQueries, toSearchParams } from './sharedPool';
 import {
   incrementUsage,
   canMakeRequest,
@@ -89,7 +89,8 @@ async function fetchSharedPool(): Promise<{
     return result;
   }
 
-  const queries = buildSharedPoolQueries();
+  const rotationIndex = getRotationIndex();
+  const { queries, nextIndex } = buildRefreshQueries(rotationIndex);
 
   // Execute in small batches (5 concurrent) to avoid rate limits
   const BATCH_SIZE = 5;
@@ -98,11 +99,12 @@ async function fetchSharedPool(): Promise<{
     const batchResults = await Promise.allSettled(
       batch.map(async (q) => {
         try {
-          const response = await fetchNewsDataArticles(q.params);
+          const params = toSearchParams(q);
+          const response = await fetchNewsDataArticles(params);
           incrementUsage(1);
           return { scale: q.scale, articles: response.results.map(convertNewsDataArticle).filter((a): a is NewsArticle => a !== null) };
         } catch (error) {
-          console.warn(`Shared pool query failed (${q.group}):`, error);
+          console.warn(`Shared pool query failed (${q.id}):`, error);
           return { scale: q.scale, articles: [] };
         }
       })
@@ -115,6 +117,8 @@ async function fetchSharedPool(): Promise<{
       }
     }
   }
+
+  setRotationIndex(nextIndex);
 
   return result;
 }
