@@ -440,7 +440,7 @@ const Index = () => {
         )}
       </div>
 
-      <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} />
+      <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} clusters={clusters} />
       <HowItWorks />
 
       {/* Soft gate */}
