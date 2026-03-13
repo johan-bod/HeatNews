@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { getTierLabel, getTierColor, getBreakdownLabel } from '@/components/globe/credibilityHelpers';
+import { getTierLabel, getTierColor, getBreakdownLabel, buildSourceBreakdown } from '@/components/globe/credibilityHelpers';
 
 describe('credibilityHelpers', () => {
   describe('getTierLabel', () => {
@@ -35,5 +35,29 @@ describe('credibilityHelpers', () => {
     it('returns plural for wire services', () => {
       expect(getBreakdownLabel('reference', 2)).toBe('wire services');
     });
+  });
+});
+
+describe('buildSourceBreakdown', () => {
+  it('counts sources by tier', () => {
+    const sourceDomains = new Map<string, string | undefined>([
+      ['AFP', 'afp.com'],
+      ['Reuters', 'reuters.com'],
+      ['Le Monde', 'lemonde.fr'],
+      ['Ouest-France', 'ouest-france.fr'],
+    ]);
+    const result = buildSourceBreakdown(sourceDomains);
+    expect(result.total).toBe(4);
+    expect(typeof result.summary).toBe('string');
+    expect(result.summary.length).toBeGreaterThan(0);
+  });
+
+  it('returns empty for single source', () => {
+    const sourceDomains = new Map<string, string | undefined>([
+      ['AFP', 'afp.com'],
+    ]);
+    const result = buildSourceBreakdown(sourceDomains);
+    expect(result.total).toBe(1);
+    expect(result.summary).toBe('');
   });
 });

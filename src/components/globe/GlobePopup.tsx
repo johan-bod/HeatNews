@@ -2,7 +2,7 @@ import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { ExternalLink, Flame } from 'lucide-react';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
-import { getTierLabel, getTierColor } from './credibilityHelpers';
+import { getTierLabel, getTierColor, buildSourceBreakdown } from './credibilityHelpers';
 
 interface GlobePopupProps {
   article: NewsArticle;
@@ -14,6 +14,8 @@ interface GlobePopupProps {
 export default function GlobePopup({ article, position, onClose, clusters }: GlobePopupProps) {
   const heatLevel = article.heatLevel || 0;
   const { tier } = resolveCredibilityByDomain(extractDomain(article.source.url));
+  const cluster = clusters.find(c => c.articles.some(a => a.id === article.id));
+  const breakdown = cluster ? buildSourceBreakdown(cluster.sourceDomains) : null;
 
   return (
     <>
@@ -50,9 +52,9 @@ export default function GlobePopup({ article, position, onClose, clusters }: Glo
           <span className={`font-body text-[10px] ${getTierColor(tier)}`}>
             {getTierLabel(tier)}
           </span>
-          {article.coverage && article.coverage > 1 && (
-            <span className="font-body text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
-              {article.coverage} sources
+          {breakdown && breakdown.total > 1 && (
+            <span className="font-body text-[10px] text-ivory-200/40">
+              Covered by {breakdown.total} sources: {breakdown.summary}
             </span>
           )}
         </div>
