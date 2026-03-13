@@ -20,7 +20,7 @@ Added to the app's route configuration, pointing to a new `InvestigatePage` comp
 
 ### Entry point
 
-A new "Investigate this story" button in `GlobePopup`, appearing **only when** the popup's cluster has 2+ articles. Styled as an amber text link consistent with the existing "See on globe →" CTA. Clicking it navigates:
+A new "Investigate this story" button in `GlobePopup`, appearing **only when** `cluster.articles.length >= 2` (i.e., at least one other article exists besides the current one). Styled as an amber text link consistent with the existing "See on globe →" CTA. Clicking it navigates:
 
 ```typescript
 navigate(`/investigate?article=${article.id}`, { state: { cluster, article } })
@@ -90,7 +90,7 @@ A compact text-only summary section at the bottom:
 
 - Section header: "Geographic Spread" styled as `text-sm font-semibold text-ivory-200/60`
 - Summary text: `"This story is covered from N distinct locations"` using `countDistinctLocations` from `arcBuilder.ts`
-- List of articles that have coordinates, showing source name + rounded lat/lng (e.g., "48.9, 2.4") — plain numbers, no cardinal direction formatting in V1
+- Simple `<ul>` list of articles that have coordinates, one per line, showing source name + rounded lat/lng (e.g., "Reuters — 48.9, 2.4"). Ordered by cluster array order. Duplicate locations listed separately (no deduplication here — this is a source list, not a location list).
 - If no articles have coordinates: `"No geographic data available for this cluster"`
 
 ---
