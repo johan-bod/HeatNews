@@ -5,6 +5,7 @@ import { feature } from 'topojson-client';
 import type { Topology, GeometryObject } from 'topojson-specification';
 import type { NewsArticle } from '@/types/news';
 import type { PreferenceLocation } from '@/types/preferences';
+import type { StoryCluster } from '@/utils/topicClustering';
 import RegionJumpPills from './RegionJumpPills';
 import { filterArticlesByAltitude, getMaxMarkers, computeResultsCentroid, computeFlyToAltitude } from '@/utils/globeUtils';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
@@ -24,6 +25,7 @@ import { MEDIA_OUTLETS } from '@/data/media-outlets';
 
 interface GlobeViewProps {
   articles: NewsArticle[];
+  clusters: StoryCluster[];
   onFlyToReady?: (
     flyTo: (lat: number, lng: number, alt?: number) => void,
     flyToResults?: (articles: NewsArticle[]) => void
@@ -54,6 +56,7 @@ function hexToRgba(hex: string, alpha: number): string {
 
 export default function GlobeView({
   articles,
+  clusters,
   onFlyToReady,
   preferenceLocations = [],
   searchResultIds,
@@ -485,6 +488,7 @@ export default function GlobeView({
           article={selectedArticle}
           position={popupPosition}
           onClose={() => setSelectedArticle(null)}
+          clusters={clusters}
         />
       )}
 

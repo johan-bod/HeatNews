@@ -116,6 +116,11 @@ const Index = () => {
     return deduped.filter(a => a.scale === selectedScale);
   }, [allArticles, personalizedArticles, selectedScale]);
 
+  const clusters = useMemo(() => {
+    if (allArticles.length === 0) return [];
+    return analyzeArticleHeat(allArticles, 'international');
+  }, [allArticles]);
+
   const loadNews = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -392,6 +397,7 @@ const Index = () => {
       <ErrorBoundary>
         <MapSection
           articles={allArticles}
+          clusters={clusters}
           onFlyToReady={(fn, fnResults) => {
             setGlobeFlyTo(() => fn);
             if (fnResults) setGlobeFlyToResults(() => fnResults);

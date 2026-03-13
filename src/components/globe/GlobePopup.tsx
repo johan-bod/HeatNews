@@ -1,13 +1,15 @@
 import type { NewsArticle } from '@/types/news';
+import type { StoryCluster } from '@/utils/topicClustering';
 import { ExternalLink, Flame } from 'lucide-react';
 
 interface GlobePopupProps {
   article: NewsArticle;
   position: { x: number; y: number };
   onClose: () => void;
+  clusters: StoryCluster[];
 }
 
-export default function GlobePopup({ article, position, onClose }: GlobePopupProps) {
+export default function GlobePopup({ article, position, onClose, clusters: _clusters }: GlobePopupProps) {
   const heatLevel = article.heatLevel || 0;
 
   return (

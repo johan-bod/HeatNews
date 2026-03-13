@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
 import type { NewsArticle } from '@/types/news';
 import type { PreferenceLocation } from '@/types/preferences';
+import type { StoryCluster } from '@/utils/topicClustering';
 import { isWebGLAvailable } from '@/utils/globeUtils';
 import { Flame } from 'lucide-react';
 
@@ -9,6 +10,7 @@ const GlobeFallback = lazy(() => import('./globe/GlobeFallback'));
 
 interface MapSectionProps {
   articles: NewsArticle[];
+  clusters: StoryCluster[];
   onFlyToReady?: (flyTo: (lat: number, lng: number, alt?: number) => void, flyToResults?: (articles: NewsArticle[]) => void) => void;
   preferenceLocations?: PreferenceLocation[];
   searchResultIds?: Set<string> | null;
@@ -23,7 +25,7 @@ const GlobeLoading = () => (
   </div>
 );
 
-export default function MapSection({ articles, onFlyToReady, preferenceLocations, searchResultIds }: MapSectionProps) {
+export default function MapSection({ articles, clusters, onFlyToReady, preferenceLocations, searchResultIds }: MapSectionProps) {
   const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function MapSection({ articles, onFlyToReady, preferenceLocations
     <section id="globe-section" className="w-full bg-navy-900 py-0">
       <Suspense fallback={<GlobeLoading />}>
         {hasWebGL ? (
-          <GlobeView articles={articles} onFlyToReady={onFlyToReady} preferenceLocations={preferenceLocations} searchResultIds={searchResultIds} />
+          <GlobeView articles={articles} clusters={clusters} onFlyToReady={onFlyToReady} preferenceLocations={preferenceLocations} searchResultIds={searchResultIds} />
         ) : (
           <GlobeFallback articles={articles} />
         )}
