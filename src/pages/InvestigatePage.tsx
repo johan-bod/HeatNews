@@ -185,10 +185,12 @@ export default function InvestigatePage() {
             <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
               Coverage Analysis
             </h2>
-            <div className="flex items-center gap-2 text-sm text-amber-400/80">
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{coverageGap.gapLabel}</span>
-            </div>
+            {coverageGap.hasGap && (
+              <div className="flex items-center gap-2 text-sm text-amber-400/80">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{coverageGap.gapLabel}</span>
+              </div>
+            )}
             {coverageGap.imbalanceNote && (
               <p className="text-sm text-ivory-200/40 mt-2">
                 {coverageGap.imbalanceNote}

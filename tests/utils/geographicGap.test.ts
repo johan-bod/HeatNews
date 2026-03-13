@@ -131,6 +131,7 @@ describe('analyzeGeographicGap', () => {
     );
     const result = analyzeGeographicGap(cluster);
     expect(result.hasGeoGap).toBe(true);
+    expect(result.countryGapLabel).toBe('Only covered by French media');
     expect(result.regionalBreakdown).toHaveLength(1);
     const fr = result.regionalBreakdown[0];
     expect(fr.country).toBe('fr');
