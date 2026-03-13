@@ -12,6 +12,7 @@ import type { CredibilityTier } from '@/data/media-types';
 import { formatTimeAgo } from '@/utils/formatTime';
 import { getCacheData } from '@/utils/cache';
 import { analyzeCoverageGap } from '@/utils/coverageGap';
+import { analyzeGeographicGap } from '@/utils/geographicGap';
 
 interface InvestigateState {
   cluster: StoryCluster;
@@ -98,6 +99,7 @@ export default function InvestigatePage() {
   const tierGroups = groupByTier(allItems);
   const articlesWithCoords = cluster.articles.filter(a => a.coordinates);
   const coverageGap = analyzeCoverageGap(cluster);
+  const geoGap = analyzeGeographicGap(cluster);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
@@ -178,7 +180,7 @@ export default function InvestigatePage() {
         </div>
 
         {/* Coverage Analysis */}
-        {coverageGap.hasGap && (
+        {(coverageGap.hasGap || geoGap.hasGeoGap) && (
           <div className="mb-10">
             <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
               Coverage Analysis
@@ -191,6 +193,31 @@ export default function InvestigatePage() {
               <p className="text-sm text-ivory-200/40 mt-2">
                 {coverageGap.imbalanceNote}
               </p>
+            )}
+            {/* Geographic gap */}
+            {geoGap.hasGeoGap && (
+              <div className="mt-3">
+                {geoGap.countryGapLabel && (
+                  <div className="flex items-center gap-2 text-sm text-amber-400/80">
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{geoGap.countryGapLabel}</span>
+                  </div>
+                )}
+                {geoGap.regionalBreakdown.map((rg) => (
+                  <div key={rg.country} className="mt-2">
+                    {rg.coveredRegions.length > 0 && (
+                      <p className="text-sm text-ivory-200/40">
+                        Covered in {rg.coveredRegions.join(', ')}
+                      </p>
+                    )}
+                    {rg.missingRegions.length > 0 && (
+                      <p className="text-sm text-amber-400/60">
+                        Not covered in {rg.missingRegions.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
