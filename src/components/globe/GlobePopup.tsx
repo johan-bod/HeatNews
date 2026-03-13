@@ -2,10 +2,11 @@ import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { buildClusterArcs, countDistinctLocations } from '@/utils/arcBuilder';
 import type { ArcData } from '@/utils/arcBuilder';
-import { ExternalLink, Flame, MapPin } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Flame, MapPin } from 'lucide-react';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
 import { getTierLabel, getTierColor, buildSourceBreakdown, getClusterArticles } from './credibilityHelpers';
 import { useNavigate } from 'react-router-dom';
+import { analyzeCoverageGap } from '@/utils/coverageGap';
 
 interface GlobePopupProps {
   article: NewsArticle;
@@ -29,6 +30,7 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
   const showGeoTeaser = distinctLocations >= 2;
   const navigate = useNavigate();
   const showInvestigate = cluster && cluster.articles.length >= 2;
+  const coverageGap = cluster ? analyzeCoverageGap(cluster) : null;
 
   function hasDifferentLocation(clusterArticle: NewsArticle): boolean {
     if (!article.coordinates || !clusterArticle.coordinates) return false;
@@ -80,6 +82,16 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
             </span>
           )}
         </div>
+
+        {/* Coverage gap indicator */}
+        {coverageGap?.hasGap && (
+          <div className="flex items-center gap-1 mb-2">
+            <AlertTriangle className="w-2.5 h-2.5 text-amber-400/70 flex-shrink-0" />
+            <span className="font-body text-[10px] text-amber-400/70">
+              {coverageGap.gapLabel}
+            </span>
+          </div>
+        )}
 
         {/* Topic tags */}
         {article.primaryTopic && (
