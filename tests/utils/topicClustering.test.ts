@@ -90,3 +90,33 @@ describe('heatLevelToColor', () => {
     expect(heatLevelToColor(95)).toBe('#DC2626');
   });
 });
+
+describe('clusterArticles with credibility weighting', () => {
+  it('cluster with reference sources gets higher heat than niche sources', () => {
+    const refArticles = [
+      makeArticle('1', 'Global summit on climate change begins today', 'reuters', 1, 'https://reuters.com'),
+      makeArticle('2', 'Climate change summit begins with key agreements', 'apnews', 1, 'https://apnews.com'),
+      makeArticle('3', 'Today climate change global summit kicks off', 'afp', 1, 'https://afp.com'),
+    ];
+    const nicheArticles = [
+      makeArticle('4', 'Global summit on climate change begins today', 'blog1', 1, 'https://random-blog-1.com'),
+      makeArticle('5', 'Climate change summit begins with key agreements', 'blog2', 1, 'https://random-blog-2.com'),
+      makeArticle('6', 'Today climate change global summit kicks off', 'blog3', 1, 'https://random-blog-3.com'),
+    ];
+
+    const refClusters = clusterArticles(refArticles);
+    const nicheClusters = clusterArticles(nicheArticles);
+
+    expect(refClusters[0].heatLevel).toBeGreaterThan(nicheClusters[0].heatLevel);
+  });
+
+  it('hyperlocal convergence boosts heat when 3+ sources', () => {
+    // newestArticleHoursAgo=4 → recencyBonus=5
+    const heat3hyperlocal = calculateClusterHeat(1.5, 3, 4, 3); // 3 hyperlocal = 9 bonus
+    const heat2hyperlocal = calculateClusterHeat(1.0, 2, 4, 2); // 2 hyperlocal = 0 bonus
+    // heat3: min(100, 30 + 15 + 5 + 9) = 59
+    // heat2: min(100, 20 + 10 + 5 + 0) = 35
+    expect(heat3hyperlocal).toBe(59);
+    expect(heat2hyperlocal).toBe(35);
+  });
+});
