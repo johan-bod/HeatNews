@@ -1,6 +1,7 @@
 import type { NewsArticle } from '@/types/news';
 import { fetchNewsDataArticles, convertNewsDataArticle } from './newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
+import { inferArticleOrigins } from '@/utils/geoInference';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
 import { indexArticleTopics } from '@/utils/topicIndexer';
 import { setCacheData, getCacheData, getCacheMetadata, getRotationIndex, setRotationIndex } from '@/utils/cache';
@@ -39,6 +40,7 @@ const BACKGROUND_REFRESH_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
  */
 function processArticles(articles: NewsArticle[], scale: ArticleScale): NewsArticle[] {
   let processed = geocodeArticles(articles);
+  processed = inferArticleOrigins(processed);
   processed = processed.map(a => {
     const topics = indexArticleTopics(a, a.language || 'en');
     return {
