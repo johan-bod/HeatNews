@@ -24,6 +24,7 @@ export interface NewsArticle {
   primaryTopic?: string;
   secondaryTopics?: string[];
   language?: string;
+  country?: string;
 }
 
 export interface NewsDataArticle {

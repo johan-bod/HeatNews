@@ -1,4 +1,5 @@
 import type { NewsDataResponse, NewsDataArticle, NewsArticle } from '@/types/news';
+import { MEDIA_OUTLETS } from '@/data/media-outlets';
 
 const API_KEY = import.meta.env.VITE_NEWSDATA_API_KEY;
 const BASE_URL = 'https://newsdata.io/api/1';
@@ -74,6 +75,10 @@ export async function fetchNewsDataArticles(
 }
 
 export function convertNewsDataArticle(article: NewsDataArticle): NewsArticle {
+  // Resolve country: prefer media-outlets lookup, fall back to API response
+  const outlet = MEDIA_OUTLETS.find(o => o.domain && article.source_url?.includes(o.domain));
+  const resolvedCountry = outlet?.country || article.country?.[0]?.toLowerCase();
+
   return {
     id: article.article_id,
     title: article.title,
@@ -83,6 +88,7 @@ export function convertNewsDataArticle(article: NewsDataArticle): NewsArticle {
     publishedAt: article.pubDate,
     category: article.category?.[0],
     language: article.language,
+    country: resolvedCountry,
     source: {
       name: article.source_id,
       url: article.source_url,
