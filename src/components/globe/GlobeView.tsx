@@ -7,7 +7,8 @@ import type { NewsArticle } from '@/types/news';
 import type { PreferenceLocation } from '@/types/preferences';
 import type { StoryCluster } from '@/utils/topicClustering';
 import type { ArcData } from '@/utils/arcBuilder';
-import { playDiscoverSound } from '@/utils/soundManager';
+import { playDiscoverSound, isSoundEnabled, setSoundEnabled } from '@/utils/soundManager';
+import { Volume2, VolumeX } from 'lucide-react';
 import RegionJumpPills from './RegionJumpPills';
 import { filterArticlesByAltitude, getMaxMarkers, computeResultsCentroid, computeFlyToAltitude } from '@/utils/globeUtils';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
@@ -73,6 +74,7 @@ export default function GlobeView({
   const [altitude, setAltitude] = useState(2.5);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [activeRegionIndex, setActiveRegionIndex] = useState(0);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
   const isMobile = screenWidth < 768;
 
   const autoRotation = useGlobeAutoRotation({
@@ -502,6 +504,19 @@ export default function GlobeView({
           {altitudeKm > 800 && altitudeKm <= 3000 && 'Regional view'}
           {altitudeKm <= 800 && 'Local view'}
           <span className="ml-2 text-amber-400/60">{visibleArticles.length} stories</span>
+          {!isMobile && (
+            <button
+              onClick={() => {
+                const next = !soundOn;
+                setSoundOn(next);
+                setSoundEnabled(next);
+              }}
+              className="ml-2 text-ivory-200/30 hover:text-ivory-200/60 transition-colors"
+              title={soundOn ? 'Mute discovery sound' : 'Enable discovery sound'}
+            >
+              {soundOn ? <Volume2 className="w-3 h-3 inline" /> : <VolumeX className="w-3 h-3 inline" />}
+            </button>
+          )}
         </div>
       </div>
 
