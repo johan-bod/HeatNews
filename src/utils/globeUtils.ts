@@ -94,3 +94,40 @@ export function isWebGLAvailable(): boolean {
 export function getMaxMarkers(screenWidth: number): number {
   return screenWidth < 768 ? 100 : 200;
 }
+
+export function computeResultsCentroid(
+  articles: NewsArticle[]
+): { lat: number; lng: number } | null {
+  const withCoords = articles.filter(a => a.coordinates);
+  if (withCoords.length === 0) return null;
+
+  let totalWeight = 0;
+  let weightedLat = 0;
+  let weightedLng = 0;
+
+  for (const a of withCoords) {
+    const weight = Math.max(1, a.heatLevel || 1);
+    weightedLat += a.coordinates!.lat * weight;
+    weightedLng += a.coordinates!.lng * weight;
+    totalWeight += weight;
+  }
+
+  return {
+    lat: weightedLat / totalWeight,
+    lng: weightedLng / totalWeight,
+  };
+}
+
+export function computeFlyToAltitude(articles: NewsArticle[]): number {
+  const withCoords = articles.filter(a => a.coordinates);
+  if (withCoords.length <= 1) return 0.3;
+
+  const lats = withCoords.map(a => a.coordinates!.lat);
+  const lngs = withCoords.map(a => a.coordinates!.lng);
+
+  const latSpread = Math.max(...lats) - Math.min(...lats);
+  const lngSpread = Math.max(...lngs) - Math.min(...lngs);
+  const maxSpread = Math.max(latSpread, lngSpread);
+
+  return Math.max(0.3, Math.min(2.5, maxSpread / 40));
+}

@@ -6,6 +6,8 @@ import {
   filterArticlesByAltitude,
   isWebGLAvailable,
   getMaxMarkers,
+  computeResultsCentroid,
+  computeFlyToAltitude,
 } from '@/utils/globeUtils';
 import type { NewsArticle } from '@/types/news';
 
@@ -123,5 +125,74 @@ describe('getMaxMarkers', () => {
 
   it('returns 100 for mobile', () => {
     expect(getMaxMarkers(600)).toBe(100);
+  });
+});
+
+function makeArticleWithCoords(lat: number, lng: number, heatLevel = 50): NewsArticle {
+  return {
+    id: `${lat}-${lng}`,
+    title: 'Test',
+    url: 'https://example.com',
+    publishedAt: new Date().toISOString(),
+    source: { name: 'test' },
+    coordinates: { lat, lng },
+    heatLevel,
+  };
+}
+
+describe('computeResultsCentroid', () => {
+  it('returns null for empty array', () => {
+    expect(computeResultsCentroid([])).toBeNull();
+  });
+
+  it('returns null if no articles have coordinates', () => {
+    const articles = [{
+      id: '1', title: 'T', url: '', publishedAt: '', source: { name: 's' },
+    }] as NewsArticle[];
+    expect(computeResultsCentroid(articles)).toBeNull();
+  });
+
+  it('returns the single article position for one article', () => {
+    const result = computeResultsCentroid([makeArticleWithCoords(48.86, 2.35)]);
+    expect(result!.lat).toBeCloseTo(48.86, 1);
+    expect(result!.lng).toBeCloseTo(2.35, 1);
+  });
+
+  it('computes heat-weighted centroid', () => {
+    const articles = [
+      makeArticleWithCoords(0, 0, 10),
+      makeArticleWithCoords(50, 10, 90),
+    ];
+    const result = computeResultsCentroid(articles);
+    expect(result!.lat).toBeGreaterThan(25);
+    expect(result!.lng).toBeGreaterThan(5);
+  });
+});
+
+describe('computeFlyToAltitude', () => {
+  it('returns 0.3 for tightly clustered results', () => {
+    const articles = [
+      makeArticleWithCoords(48.86, 2.35),
+      makeArticleWithCoords(48.87, 2.36),
+    ];
+    expect(computeFlyToAltitude(articles)).toBeCloseTo(0.3, 1);
+  });
+
+  it('returns higher altitude for widely spread results', () => {
+    const articles = [
+      makeArticleWithCoords(0, 0),
+      makeArticleWithCoords(50, 50),
+    ];
+    const alt = computeFlyToAltitude(articles);
+    expect(alt).toBeGreaterThan(1);
+    expect(alt).toBeLessThanOrEqual(2.5);
+  });
+
+  it('caps at 2.5', () => {
+    const articles = [
+      makeArticleWithCoords(-50, -170),
+      makeArticleWithCoords(60, 170),
+    ];
+    expect(computeFlyToAltitude(articles)).toBe(2.5);
   });
 });
