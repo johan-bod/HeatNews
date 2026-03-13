@@ -1,7 +1,7 @@
 // src/pages/InvestigatePage.tsx
 import { useMemo } from 'react';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
+import { AlertTriangle, MapPin } from 'lucide-react';
 import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { analyzeArticleHeat, heatLevelToColor } from '@/utils/topicClustering';
@@ -11,6 +11,7 @@ import type { ClusterArticleItem } from '@/components/globe/credibilityHelpers';
 import type { CredibilityTier } from '@/data/media-types';
 import { formatTimeAgo } from '@/utils/formatTime';
 import { getCacheData } from '@/utils/cache';
+import { analyzeCoverageGap } from '@/utils/coverageGap';
 
 interface InvestigateState {
   cluster: StoryCluster;
@@ -96,6 +97,7 @@ export default function InvestigatePage() {
   const allItems = getAllClusterArticles(cluster.articles);
   const tierGroups = groupByTier(allItems);
   const articlesWithCoords = cluster.articles.filter(a => a.coordinates);
+  const coverageGap = analyzeCoverageGap(cluster);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
@@ -174,6 +176,24 @@ export default function InvestigatePage() {
             </div>
           ))}
         </div>
+
+        {/* Coverage Analysis */}
+        {coverageGap.hasGap && (
+          <div className="mb-10">
+            <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
+              Coverage Analysis
+            </h2>
+            <div className="flex items-center gap-2 text-sm text-amber-400/80">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{coverageGap.gapLabel}</span>
+            </div>
+            {coverageGap.imbalanceNote && (
+              <p className="text-sm text-ivory-200/40 mt-2">
+                {coverageGap.imbalanceNote}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Geographic Spread */}
         <div className="mb-8">
