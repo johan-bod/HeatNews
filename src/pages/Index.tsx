@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
@@ -90,7 +90,10 @@ const Index = () => {
   const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedScale, setSelectedScale] = useState<ScaleFilter>('all');
-  const [globeFlyTo, setGlobeFlyTo] = useState<((lat: number, lng: number) => void) | null>(null);
+  const [globeFlyTo, setGlobeFlyTo] = useState<((lat: number, lng: number, alt?: number) => void) | null>(null);
+  const [globeFlyToResults, setGlobeFlyToResults] = useState<((articles: NewsArticle[]) => void) | null>(null);
+  const baseArticlesRef = useRef<NewsArticle[]>([]);
+  const [searchResultIds, setSearchResultIds] = useState<Set<string> | null>(null);
   const { preferences, needsOnboarding, setTopics, setLocations, completeOnboarding, updatePreferences } = usePreferences();
   const [showPreferences, setShowPreferences] = useState(false);
   const { user } = useAuth();
@@ -118,7 +121,9 @@ const Index = () => {
       setIsLoading(true);
       setError(null);
       const newsConfig = await getCachedNews();
-      setAllArticles(combineArticles(newsConfig));
+      const combined = combineArticles(newsConfig);
+      baseArticlesRef.current = combined;
+      setAllArticles(combined);
       setLastUpdated(new Date(newsConfig.lastUpdated));
     } catch (err) {
       console.error('Failed to load news:', err);
@@ -161,7 +166,9 @@ const Index = () => {
       setIsRefreshing(true);
       setError(null);
       const newsConfig = await refreshNewsCache();
-      setAllArticles(combineArticles(newsConfig));
+      const combined = combineArticles(newsConfig);
+      baseArticlesRef.current = combined;
+      setAllArticles(combined);
       setLastUpdated(new Date(newsConfig.lastUpdated));
     } catch (err) {
       console.error('Failed to refresh news:', err);
@@ -187,15 +194,35 @@ const Index = () => {
         size: 10,
       });
 
-      setAllArticles(processFilteredArticles(filteredArticles, filters.scale));
+      const processed = processFilteredArticles(filteredArticles, filters.scale);
+
+      if (processed.length === 0) {
+        setError(new Error('No articles found for these filters'));
+        setSearchResultIds(null);
+        return;
+      }
+
+      const resultIds = new Set(processed.map(a => a.id));
+      setSearchResultIds(resultIds);
+
+      // Merge new results into base articles
+      const merged = [...baseArticlesRef.current];
+      for (const article of processed) {
+        if (!merged.find(a => a.id === article.id)) {
+          merged.push(article);
+        }
+      }
+      setAllArticles(merged);
       setLastUpdated(new Date());
+
+      if (globeFlyToResults) globeFlyToResults(processed);
     } catch (err) {
       console.error('Failed to filter news:', err);
       setError(err as Error);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [globeFlyToResults]);
 
   const handleSearch = useCallback(async (search: SearchParams) => {
     try {
@@ -210,15 +237,35 @@ const Index = () => {
         size: 10,
       });
 
-      setAllArticles(processFilteredArticles(searchedArticles, search.scale));
+      const processed = processFilteredArticles(searchedArticles, search.scale);
+
+      if (processed.length === 0) {
+        setError(new Error(`No articles found for "${search.query}"`));
+        setSearchResultIds(null);
+        return;
+      }
+
+      const resultIds = new Set(processed.map(a => a.id));
+      setSearchResultIds(resultIds);
+
+      // Merge new results into base articles
+      const merged = [...baseArticlesRef.current];
+      for (const article of processed) {
+        if (!merged.find(a => a.id === article.id)) {
+          merged.push(article);
+        }
+      }
+      setAllArticles(merged);
       setLastUpdated(new Date());
+
+      if (globeFlyToResults) globeFlyToResults(processed);
     } catch (err) {
       console.error('Failed to search news:', err);
       setError(err as Error);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [globeFlyToResults]);
 
   const handleArticleLocate = useCallback((lat: number, lng: number) => {
     // Scroll to globe first, then fly
@@ -236,8 +283,10 @@ const Index = () => {
     setCurrentFilters(null);
     setCurrentSearch(null);
     setSelectedScale('all');
-    loadNews();
-  }, [loadNews]);
+    setSearchResultIds(null);
+    setAllArticles(baseArticlesRef.current);
+    if (globeFlyTo) globeFlyTo(46, 2, 2.5);
+  }, [globeFlyTo]);
 
   const handlePersonalizedRefresh = useCallback(async () => {
     if (!user) return;
@@ -322,12 +371,33 @@ const Index = () => {
         </div>
       )}
 
+      {/* Search & Filters — dark band above globe */}
+      <div className="w-full bg-navy-900 border-b border-ivory-200/5">
+        <div className="max-w-4xl mx-auto px-6 py-4 space-y-3">
+          <NewsSearch
+            onSearch={handleSearch}
+            onClear={handleClearFilters}
+            isSearching={isSearching}
+            currentSearch={currentSearch || undefined}
+          />
+          <NewsFilters
+            onFilterChange={handleFilterChange}
+            onClear={handleClearFilters}
+            currentFilters={currentFilters || undefined}
+          />
+        </div>
+      </div>
+
       {/* Globe — full width, dark background */}
       <ErrorBoundary>
         <MapSection
           articles={allArticles}
-          onFlyToReady={(fn) => setGlobeFlyTo(() => fn)}
+          onFlyToReady={(fn, fnResults) => {
+            setGlobeFlyTo(() => fn);
+            if (fnResults) setGlobeFlyToResults(() => fnResults);
+          }}
           preferenceLocations={preferences.locations}
+          searchResultIds={searchResultIds}
         />
       </ErrorBoundary>
       <GlobeLegend />
@@ -337,21 +407,6 @@ const Index = () => {
         hasCompletedOnboarding={preferences.onboardingComplete}
         onOpenPreferences={handleOpenPreferences}
       />
-
-      {/* Search & Filters */}
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
-        <NewsSearch
-          onSearch={handleSearch}
-          onClear={handleClearFilters}
-          isSearching={isSearching}
-          currentSearch={currentSearch || undefined}
-        />
-        <NewsFilters
-          onFilterChange={handleFilterChange}
-          onClear={handleClearFilters}
-          currentFilters={currentFilters || undefined}
-        />
-      </div>
 
       {/* Refresh controls */}
       <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
