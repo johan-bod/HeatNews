@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } fro
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
+import HowItWorks from '../components/HowItWorks';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -440,6 +441,7 @@ const Index = () => {
       </div>
 
       <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} />
+      <HowItWorks />
 
       {/* Soft gate */}
       {showSoftGate && (
