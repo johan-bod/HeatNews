@@ -174,3 +174,25 @@ export function getCacheAge(key: string): number | null {
 export function isCacheValid(key: string): boolean {
   return getCacheData(key) !== null;
 }
+
+/**
+ * Rotation index for shared pool query cycling.
+ * Stored directly in localStorage (not via cache wrapper — no TTL needed).
+ */
+const ROTATION_INDEX_KEY = 'heatstory_rotation_index';
+
+export function getRotationIndex(): number {
+  try {
+    return parseInt(localStorage.getItem(ROTATION_INDEX_KEY) || '0', 10);
+  } catch {
+    return 0;
+  }
+}
+
+export function setRotationIndex(index: number): void {
+  try {
+    localStorage.setItem(ROTATION_INDEX_KEY, String(index));
+  } catch {
+    console.warn('Failed to save rotation index');
+  }
+}
