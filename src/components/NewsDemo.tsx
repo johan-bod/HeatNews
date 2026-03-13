@@ -3,6 +3,8 @@ import { MapPin, Globe, ExternalLink, Calendar, Flame } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { NewsArticle } from '@/types/news';
+import type { StoryCluster } from '@/utils/topicClustering';
+import { useNavigate } from 'react-router-dom';
 import { formatTimeAgo } from '@/utils/formatTime';
 
 interface NewsDemoProps {
@@ -10,6 +12,7 @@ interface NewsDemoProps {
   isLoading?: boolean;
   selectedScale?: string;
   onArticleLocate?: (lat: number, lng: number) => void;
+  clusters?: StoryCluster[];
 }
 
 const SCALE_LABELS: Record<string, string> = {
@@ -28,7 +31,8 @@ function getHeatColor(level: number): string {
   return 'text-red-500';
 }
 
-const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticleLocate }: NewsDemoProps) => {
+const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticleLocate, clusters }: NewsDemoProps) => {
+  const navigate = useNavigate();
   const [visibleCount, setVisibleCount] = useState(20);
   const [activeTopics, setActiveTopics] = useState<string[]>([]);
 
@@ -210,6 +214,24 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
                             </button>
                           )}
                         </div>
+
+                        {(() => {
+                          const cluster = clusters?.find(c => c.articles.some(a => a.id === article.id));
+                          const showInvestigate = cluster && cluster.articles.length >= 2;
+                          return showInvestigate ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/investigate?article=${article.id}`, {
+                                  state: { cluster, article },
+                                });
+                              }}
+                              className="text-xs text-amber-400 hover:text-amber-300 transition-colors mt-2"
+                            >
+                              Investigate this story →
+                            </button>
+                          ) : null;
+                        })()}
                       </div>
 
                       <ExternalLink className="w-4 h-4 text-navy-700/20 group-hover:text-amber-500 transition-colors flex-shrink-0 mt-1" />
