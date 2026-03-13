@@ -8,11 +8,10 @@ import type { CredibilityTier } from './media-types';
  * Git history tracks every editorial decision.
  */
 export const CREDIBILITY_OVERRIDES: Record<string, CredibilityTier> = {
-  // Wire services not yet in the outlet registry — override to reference tier
+  // Wire services not yet in the outlet registry
   'efe.com': 'reference',
   'ansa.it': 'reference',
   'dpa.com': 'reference',
-  // Example editorial overrides — add domains as you review sources:
-  // 'cnews.fr': 'unreliable',
-  // 'valeursactuelles.com': 'niche',
+  // Test/example overrides
+  'fake-news-site.com': 'unreliable',
 };

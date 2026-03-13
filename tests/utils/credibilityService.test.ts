@@ -121,3 +121,35 @@ describe('resolveCredibility', () => {
     expect(result.weight).toBe(TIER_WEIGHTS[result.tier]);
   });
 });
+
+describe('credibility overrides', () => {
+  it('override filters unreliable domain', () => {
+    const result = resolveCredibilityByDomain('fake-news-site.com');
+    expect(result.tier).toBe('unreliable');
+    expect(result.weight).toBe(0.0);
+    expect(result.filtered).toBe(true);
+  });
+
+  it('override takes priority over outlet registry', () => {
+    // bfmtv.com is in the outlet registry as 'established'
+    const registryResult = resolveCredibilityByDomain('bfmtv.com');
+    expect(registryResult.tier).toBe('established');
+
+    // EFE is NOT in the outlet registry, but IS in overrides as 'reference'
+    const overrideResult = resolveCredibilityByDomain('efe.com');
+    expect(overrideResult.tier).toBe('reference');
+    expect(overrideResult.weight).toBe(1.0);
+  });
+
+  it('resolveCredibility filters article from overridden domain', () => {
+    const article: NewsArticle = {
+      id: '1',
+      title: 'Fake news article',
+      url: 'https://fake-news-site.com/article',
+      publishedAt: new Date().toISOString(),
+      source: { name: 'fakenews', url: 'https://fake-news-site.com' },
+    };
+    const result = resolveCredibility(article);
+    expect(result.filtered).toBe(true);
+  });
+});
