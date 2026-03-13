@@ -54,11 +54,29 @@ describe('resolveCredibilityByDomain', () => {
     expect(result.filtered).toBe(false);
   });
 
-  it('resolves known outlet from registry (niche until tiers assigned)', () => {
-    // lemonde.fr is in media-outlets.ts but has no credibilityTier yet
+  it('resolves known outlet from registry', () => {
     const result = resolveCredibilityByDomain('lemonde.fr');
-    expect(result).toBeDefined();
+    expect(result.tier).toBe('established');
+    expect(result.weight).toBe(0.9);
     expect(result.filtered).toBe(false);
+  });
+
+  it('resolves wire service as reference', () => {
+    const result = resolveCredibilityByDomain('reuters.com');
+    expect(result.tier).toBe('reference');
+    expect(result.weight).toBe(1.0);
+  });
+
+  it('resolves regional outlet as regional', () => {
+    const result = resolveCredibilityByDomain('ouest-france.fr');
+    expect(result.tier).toBe('regional');
+    expect(result.weight).toBe(0.85);
+  });
+
+  it('resolves hyperlocal outlet', () => {
+    const result = resolveCredibilityByDomain('lejsl.com');
+    expect(result.tier).toBe('hyperlocal');
+    expect(result.weight).toBe(0.5);
   });
 
   it('resolves override for wire service', () => {

@@ -12,6 +12,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'diplomacy', 'economy', 'culture'],
   },
   {
@@ -21,6 +22,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture', 'entertainment'],
   },
   {
@@ -30,6 +32,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'crime', 'social'],
   },
   {
@@ -39,6 +42,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'culture', 'social'],
   },
   {
@@ -48,6 +52,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['economy', 'finance', 'technology'],
   },
   {
@@ -57,6 +62,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['religion', 'social', 'diplomacy'],
   },
   {
@@ -66,6 +72,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture'],
   },
   {
@@ -75,6 +82,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'technology'],
   },
   {
@@ -84,6 +92,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'social', 'culture'],
   },
   {
@@ -93,6 +102,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['sports'],
   },
   {
@@ -102,6 +112,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'crime', 'social'],
   },
   {
@@ -111,6 +122,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'legal', 'social'],
   },
   {
@@ -120,6 +132,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'culture', 'social'],
   },
   {
@@ -129,6 +142,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'international',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['diplomacy', 'politics', 'culture'],
   },
   {
@@ -138,6 +152,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'international',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'diplomacy', 'defense'],
   },
   {
@@ -147,6 +162,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'international',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'diplomacy', 'culture'],
   },
   {
@@ -156,6 +172,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'crime'],
   },
   {
@@ -165,6 +182,7 @@ const nationalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Paris', lat: 48.86, lng: 2.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'social'],
   },
 ];
@@ -187,6 +205,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Le Mans', lat: 48.00, lng: 0.20 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -200,6 +219,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Bayonne', lat: 43.49, lng: -1.47 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -213,6 +233,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Dunkerque', lat: 51.03, lng: 2.38 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'crime'],
   },
   {
@@ -226,6 +247,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Monaco', lat: 43.74, lng: 7.42 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'culture'],
   },
   {
@@ -239,6 +261,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Mulhouse', lat: 47.75, lng: 7.34 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'culture'],
   },
   {
@@ -252,6 +275,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Albi', lat: 43.93, lng: 2.15 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -265,6 +289,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Lorient', lat: 47.75, lng: -3.37 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -278,6 +303,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Bourg-en-Bresse', lat: 46.21, lng: 5.23 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'economy'],
   },
   {
@@ -291,6 +317,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Moulins', lat: 46.57, lng: 3.33 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -304,6 +331,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Avignon', lat: 43.95, lng: 4.81 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'culture'],
   },
   {
@@ -317,6 +345,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Dieppe', lat: 49.92, lng: 1.08 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'economy'],
   },
   {
@@ -330,6 +359,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Épinal', lat: 48.17, lng: 6.45 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'economy'],
   },
   {
@@ -343,6 +373,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Annecy', lat: 45.90, lng: 6.13 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'sports'],
   },
   {
@@ -356,6 +387,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Béziers', lat: 43.34, lng: 3.22 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'culture'],
   },
   {
@@ -369,6 +401,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Châteauroux', lat: 46.81, lng: 1.69 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -381,6 +414,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Niort', lat: 46.32, lng: -0.46 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -393,6 +427,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Chalon-sur-Saône', lat: 46.78, lng: 4.86 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'hyperlocal',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -407,6 +442,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Toulouse', lat: 43.60, lng: 1.44 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'crime'],
   },
   {
@@ -420,6 +456,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Oloron-Sainte-Marie', lat: 43.19, lng: -0.61 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
   {
@@ -433,6 +470,7 @@ const regionalOutlets: MediaOutlet[] = [
       { name: 'Saumur', lat: 47.26, lng: -0.08 },
     ],
     audienceScale: 'small',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'social', 'agriculture'],
   },
 ];
@@ -449,6 +487,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'London', lat: 51.51, lng: -0.13 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'diplomacy', 'culture', 'science'],
   },
   {
@@ -458,6 +497,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'London', lat: 51.51, lng: -0.13 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'environment', 'culture', 'social'],
   },
   {
@@ -467,6 +507,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'London', lat: 51.51, lng: -0.13 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'defense'],
   },
   {
@@ -476,6 +517,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'international',
     reach: [{ name: 'London', lat: 51.51, lng: -0.13 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['finance', 'economy', 'technology'],
   },
   {
@@ -485,6 +527,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'London', lat: 51.51, lng: -0.13 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture'],
   },
   {
@@ -494,6 +537,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'London', lat: 51.51, lng: -0.13 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'crime', 'entertainment'],
   },
   {
@@ -506,6 +550,7 @@ const europeanOutlets: MediaOutlet[] = [
       { name: 'Berlin', lat: 52.52, lng: 13.41 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'technology', 'culture'],
   },
   {
@@ -515,6 +560,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Hamburg', lat: 53.55, lng: 9.99 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'culture', 'science', 'education'],
   },
   {
@@ -524,6 +570,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Munich', lat: 48.14, lng: 11.58 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture'],
   },
   {
@@ -533,6 +580,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Berlin', lat: 52.52, lng: 13.41 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'crime', 'entertainment', 'sports'],
   },
   {
@@ -542,6 +590,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Frankfurt', lat: 50.11, lng: 8.68 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'finance', 'culture'],
   },
   {
@@ -551,6 +600,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Madrid', lat: 40.42, lng: -3.70 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'culture', 'social', 'economy'],
   },
   {
@@ -560,6 +610,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Madrid', lat: 40.42, lng: -3.70 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'sports'],
   },
   {
@@ -569,6 +620,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'regional',
     reach: [{ name: 'Barcelona', lat: 41.39, lng: 2.17 }],
     audienceScale: 'medium',
+    credibilityTier: 'regional',
     primaryTopics: ['politics', 'culture', 'social'],
   },
   {
@@ -578,6 +630,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Madrid', lat: 40.42, lng: -3.70 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture'],
   },
   {
@@ -587,6 +640,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Rome', lat: 41.90, lng: 12.50 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture', 'social'],
   },
   {
@@ -596,6 +650,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Milan', lat: 45.46, lng: 9.19 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture'],
   },
   {
@@ -605,6 +660,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Turin', lat: 45.07, lng: 7.69 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture'],
   },
   {
@@ -617,6 +673,7 @@ const europeanOutlets: MediaOutlet[] = [
       { name: 'Amsterdam', lat: 52.37, lng: 4.90 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'social'],
   },
   {
@@ -626,6 +683,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Dublin', lat: 53.35, lng: -6.26 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'culture', 'social', 'sports'],
   },
   {
@@ -635,6 +693,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Brussels', lat: 50.85, lng: 4.35 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'social'],
   },
   {
@@ -644,6 +703,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Zurich', lat: 47.38, lng: 8.54 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'finance'],
   },
   {
@@ -653,6 +713,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Stockholm', lat: 59.33, lng: 18.07 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'social', 'culture'],
   },
   {
@@ -662,6 +723,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Oslo', lat: 59.91, lng: 10.75 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'social', 'culture', 'environment'],
   },
   {
@@ -671,6 +733,7 @@ const europeanOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Copenhagen', lat: 55.68, lng: 12.57 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'culture', 'social'],
   },
 ];
@@ -691,6 +754,7 @@ const globalOutlets: MediaOutlet[] = [
       { name: 'Singapore', lat: 1.35, lng: 103.82 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'reference',
     primaryTopics: ['politics', 'economy', 'finance', 'diplomacy'],
   },
   {
@@ -703,6 +767,7 @@ const globalOutlets: MediaOutlet[] = [
       { name: 'Washington DC', lat: 38.91, lng: -77.04 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'reference',
     primaryTopics: ['politics', 'diplomacy', 'crime'],
   },
   {
@@ -715,6 +780,7 @@ const globalOutlets: MediaOutlet[] = [
       { name: 'Washington DC', lat: 38.91, lng: -77.04 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'reference',
     primaryTopics: ['politics', 'diplomacy', 'economy'],
   },
   {
@@ -724,6 +790,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'international',
     reach: [{ name: 'New York', lat: 40.71, lng: -74.01 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture', 'science'],
   },
   {
@@ -733,6 +800,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Washington DC', lat: 38.91, lng: -77.04 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'diplomacy'],
   },
   {
@@ -745,6 +813,7 @@ const globalOutlets: MediaOutlet[] = [
       { name: 'New York', lat: 40.71, lng: -74.01 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'entertainment'],
   },
   {
@@ -754,6 +823,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Washington DC', lat: 38.91, lng: -77.04 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'culture', 'science', 'social'],
   },
   {
@@ -763,6 +833,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'international',
     reach: [{ name: 'Doha', lat: 25.29, lng: 51.53 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'diplomacy', 'defense', 'social'],
   },
   {
@@ -772,6 +843,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'international',
     reach: [{ name: 'Hong Kong', lat: 22.32, lng: 114.17 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'technology'],
   },
   {
@@ -781,6 +853,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Sydney', lat: -33.87, lng: 151.21 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'environment'],
   },
   {
@@ -790,6 +863,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Toronto', lat: 43.65, lng: -79.38 }],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'culture'],
   },
   {
@@ -802,6 +876,7 @@ const globalOutlets: MediaOutlet[] = [
       { name: 'New Delhi', lat: 28.61, lng: 77.21 },
     ],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'technology', 'sports'],
   },
   {
@@ -811,6 +886,7 @@ const globalOutlets: MediaOutlet[] = [
     type: 'national',
     reach: [{ name: 'Tokyo', lat: 35.68, lng: 139.69 }],
     audienceScale: 'large',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'technology', 'culture'],
   },
   {
@@ -823,6 +899,7 @@ const globalOutlets: MediaOutlet[] = [
       { name: 'Berlin', lat: 52.52, lng: 13.41 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'diplomacy', 'culture', 'environment'],
   },
   {
@@ -835,6 +912,7 @@ const globalOutlets: MediaOutlet[] = [
       { name: 'New Delhi', lat: 28.61, lng: 77.21 },
     ],
     audienceScale: 'medium',
+    credibilityTier: 'established',
     primaryTopics: ['politics', 'economy', 'science'],
   },
 ];
