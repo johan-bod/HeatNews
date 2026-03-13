@@ -24,5 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# GeoNames raw data
+# GeoNames raw data and generated gazetteers
 scripts/geonames-data/
+public/data/gazetteer-*.json

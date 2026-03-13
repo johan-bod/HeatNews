@@ -31,7 +31,7 @@ function normalize(name: string): string {
  *   feature_class \t feature_code \t country_code \t cc2 \t admin1 \t admin2 \t
  *   admin3 \t admin4 \t population \t elevation \t dem \t timezone \t modification_date
  */
-function parseGeoNamesTSV(filePath: string): GazetteerLookup {
+function parseGeoNamesTSV(filePath: string, maxAlternates = 5): GazetteerLookup {
   const content = readFileSync(filePath, 'utf-8');
   const lines = content.split('\n').filter(line => line.trim());
   const lookup: GazetteerLookup = {};
@@ -72,7 +72,7 @@ function parseGeoNamesTSV(filePath: string): GazetteerLookup {
 
     // Index by common alternate names (limit to avoid bloat)
     if (alternateNames) {
-      const alts = alternateNames.split(',').slice(0, 10);
+      const alts = alternateNames.split(',').slice(0, maxAlternates);
       for (const alt of alts) {
         const normalizedAlt = normalize(alt);
         if (
@@ -99,28 +99,27 @@ function parseGeoNamesTSV(filePath: string): GazetteerLookup {
 // --- Main ---
 
 const GEONAMES_DIR = join(import.meta.dirname, 'geonames-data');
-const SRC_DATA_DIR = join(import.meta.dirname, '..', 'src', 'data');
 const PUBLIC_DATA_DIR = join(import.meta.dirname, '..', 'public', 'data');
 
+mkdirSync(PUBLIC_DATA_DIR, { recursive: true });
+
 console.log('Building core gazetteer (cities15000)...');
-const coreLookup = parseGeoNamesTSV(join(GEONAMES_DIR, 'cities15000.txt'));
+const coreLookup = parseGeoNamesTSV(join(GEONAMES_DIR, 'cities15000.txt'), 5);
 const coreKeys = Object.keys(coreLookup);
 console.log(`  ${coreKeys.length} unique name keys`);
 
-mkdirSync(SRC_DATA_DIR, { recursive: true });
 writeFileSync(
-  join(SRC_DATA_DIR, 'gazetteer-core.json'),
+  join(PUBLIC_DATA_DIR, 'gazetteer-core.json'),
   JSON.stringify(coreLookup),
   'utf-8'
 );
-console.log('  → src/data/gazetteer-core.json');
+console.log('  → public/data/gazetteer-core.json');
 
 console.log('Building extended gazetteer (cities1000)...');
-const extendedLookup = parseGeoNamesTSV(join(GEONAMES_DIR, 'cities1000.txt'));
+const extendedLookup = parseGeoNamesTSV(join(GEONAMES_DIR, 'cities1000.txt'), 5);
 const extKeys = Object.keys(extendedLookup);
 console.log(`  ${extKeys.length} unique name keys`);
 
-mkdirSync(PUBLIC_DATA_DIR, { recursive: true });
 writeFileSync(
   join(PUBLIC_DATA_DIR, 'gazetteer-extended.json'),
   JSON.stringify(extendedLookup),
