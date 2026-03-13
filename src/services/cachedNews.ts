@@ -100,7 +100,7 @@ async function fetchSharedPool(): Promise<{
         try {
           const response = await fetchNewsDataArticles(q.params);
           incrementUsage(1);
-          return { scale: q.scale, articles: response.results.map(convertNewsDataArticle) };
+          return { scale: q.scale, articles: response.results.map(convertNewsDataArticle).filter((a): a is NewsArticle => a !== null) };
         } catch (error) {
           console.warn(`Shared pool query failed (${q.group}):`, error);
           return { scale: q.scale, articles: [] };
@@ -215,7 +215,7 @@ export async function fetchPersonalizedNews(
     try {
       const response = await fetchNewsDataArticles(params);
       incrementUsage(1);
-      articles.push(...response.results.map(convertNewsDataArticle));
+      articles.push(...response.results.map(convertNewsDataArticle).filter((a): a is NewsArticle => a !== null));
     } catch (error) {
       console.warn('Personalized fetch query failed:', error);
     }

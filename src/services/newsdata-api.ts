@@ -1,5 +1,6 @@
 import type { NewsDataResponse, NewsDataArticle, NewsArticle } from '@/types/news';
 import { MEDIA_OUTLETS } from '@/data/media-outlets';
+import { resolveCredibility } from '@/utils/credibilityService';
 
 const API_KEY = import.meta.env.VITE_NEWSDATA_API_KEY;
 const BASE_URL = 'https://newsdata.io/api/1';
@@ -74,12 +75,12 @@ export async function fetchNewsDataArticles(
   return data;
 }
 
-export function convertNewsDataArticle(article: NewsDataArticle): NewsArticle {
+export function convertNewsDataArticle(article: NewsDataArticle): NewsArticle | null {
   // Resolve country: prefer media-outlets lookup, fall back to API response
   const outlet = MEDIA_OUTLETS.find(o => o.domain && article.source_url?.includes(o.domain));
   const resolvedCountry = outlet?.country || article.country?.[0]?.toLowerCase();
 
-  return {
+  const converted: NewsArticle = {
     id: article.article_id,
     title: article.title,
     description: article.description,
@@ -96,6 +97,12 @@ export function convertNewsDataArticle(article: NewsDataArticle): NewsArticle {
     thumbnail: article.image_url,
     tags: article.keywords || [],
   };
+
+  // Filter unreliable sources at ingestion
+  const { filtered } = resolveCredibility(converted);
+  if (filtered) return null;
+
+  return converted;
 }
 
 export interface FilterAndSearchParams {
@@ -131,5 +138,7 @@ export async function searchAndFilterNews(
   }
 
   const response = await fetchNewsDataArticles(apiParams);
-  return response.results.map(convertNewsDataArticle);
+  return response.results
+    .map(convertNewsDataArticle)
+    .filter((a): a is NewsArticle => a !== null);
 }
