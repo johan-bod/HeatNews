@@ -4,6 +4,8 @@ export interface GeoReach {
   lng: number;
 }
 
+export type CredibilityTier = 'reference' | 'established' | 'regional' | 'hyperlocal' | 'niche' | 'unreliable';
+
 export interface MediaOutlet {
   name: string;
   country: string;
@@ -12,4 +14,5 @@ export interface MediaOutlet {
   reach: GeoReach[];
   audienceScale: 'small' | 'medium' | 'large';
   primaryTopics: string[];
+  credibilityTier?: CredibilityTier;
 }
