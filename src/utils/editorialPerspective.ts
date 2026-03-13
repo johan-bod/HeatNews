@@ -13,11 +13,11 @@ export interface PerspectiveInsight {
   label: string;
 }
 
-const NO_INSIGHTS: PerspectiveResult = {
+const NO_INSIGHTS: Readonly<PerspectiveResult> = Object.freeze({
   hasInsights: false,
-  uniqueAngles: [],
-  emphasisDifferences: [],
-};
+  uniqueAngles: Object.freeze([]) as PerspectiveInsight[],
+  emphasisDifferences: Object.freeze([]) as PerspectiveInsight[],
+});
 
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'to', 'for',

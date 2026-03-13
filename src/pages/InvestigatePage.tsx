@@ -100,9 +100,9 @@ export default function InvestigatePage() {
   const allItems = getAllClusterArticles(cluster.articles);
   const tierGroups = groupByTier(allItems);
   const articlesWithCoords = cluster.articles.filter(a => a.coordinates);
-  const coverageGap = analyzeCoverageGap(cluster);
-  const geoGap = analyzeGeographicGap(cluster);
-  const perspective = analyzeEditorialPerspective(cluster.articles);
+  const coverageGap = useMemo(() => analyzeCoverageGap(cluster), [cluster]);
+  const geoGap = useMemo(() => analyzeGeographicGap(cluster), [cluster]);
+  const perspective = useMemo(() => analyzeEditorialPerspective(cluster.articles), [cluster]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
@@ -297,7 +297,7 @@ export default function InvestigatePage() {
                       ? a.location
                       : a.country
                       ? getCountryName(a.country)
-                      : `${(Math.round(a.coordinates!.lat * 10) / 10).toFixed(1)}, ${(Math.round(a.coordinates!.lng * 10) / 10).toFixed(1)}`
+                      : `${a.coordinates!.lat.toFixed(1)}, ${a.coordinates!.lng.toFixed(1)}`
                     }
                   </li>
                 ))}
