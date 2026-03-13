@@ -1,5 +1,7 @@
 // src/utils/geoInference.ts
 import nlp from 'compromise';
+import type { NewsArticle } from '@/types/news';
+import { MEDIA_OUTLETS } from '@/data/media-outlets';
 
 // --- Types ---
 
@@ -181,4 +183,181 @@ export function lookupGazetteer(name: string, countryConstraint?: string): Gazet
   }
 
   return entries[0]; // Highest population (pre-sorted)
+}
+
+// --- Country centroids (fallback when no city-level match) ---
+
+const COUNTRY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+  fr: { lat: 46.2276, lng: 2.2137 },
+  gb: { lat: 55.3781, lng: -3.4360 },
+  us: { lat: 37.0902, lng: -95.7129 },
+  de: { lat: 51.1657, lng: 10.4515 },
+  es: { lat: 40.4637, lng: -3.7492 },
+  it: { lat: 41.8719, lng: 12.5674 },
+  br: { lat: -14.2350, lng: -51.9253 },
+  cn: { lat: 35.8617, lng: 104.1954 },
+  jp: { lat: 36.2048, lng: 138.2529 },
+  in: { lat: 20.5937, lng: 78.9629 },
+  ru: { lat: 61.5240, lng: 105.3188 },
+  au: { lat: -25.2744, lng: 133.7751 },
+  ca: { lat: 56.1304, lng: -106.3468 },
+  mx: { lat: 23.6345, lng: -102.5528 },
+  kr: { lat: 35.9078, lng: 127.7669 },
+  za: { lat: -30.5595, lng: 22.9375 },
+  ar: { lat: -38.4161, lng: -63.6167 },
+  nl: { lat: 52.1326, lng: 5.2913 },
+  be: { lat: 50.5039, lng: 4.4699 },
+  ch: { lat: 46.8182, lng: 8.2275 },
+  at: { lat: 47.5162, lng: 14.5501 },
+  se: { lat: 60.1282, lng: 18.6435 },
+  no: { lat: 60.4720, lng: 8.4689 },
+  dk: { lat: 56.2639, lng: 9.5018 },
+  fi: { lat: 61.9241, lng: 25.7482 },
+  pl: { lat: 51.9194, lng: 19.1451 },
+  pt: { lat: 39.3999, lng: -8.2245 },
+  ie: { lat: 53.1424, lng: -7.6921 },
+  il: { lat: 31.0461, lng: 34.8516 },
+  tr: { lat: 38.9637, lng: 35.2433 },
+  eg: { lat: 26.8206, lng: 30.8025 },
+  ng: { lat: 9.0820, lng: 8.6753 },
+  ke: { lat: -0.0236, lng: 37.9062 },
+  ua: { lat: 48.3794, lng: 31.1656 },
+  sa: { lat: 23.8859, lng: 45.0792 },
+  ae: { lat: 23.4241, lng: 53.8478 },
+  sg: { lat: 1.3521, lng: 103.8198 },
+  my: { lat: 4.2105, lng: 101.9758 },
+  th: { lat: 15.8700, lng: 100.9925 },
+  id: { lat: -0.7893, lng: 113.9213 },
+  ph: { lat: 12.8797, lng: 121.7740 },
+  vn: { lat: 14.0583, lng: 108.2772 },
+  co: { lat: 4.5709, lng: -74.2973 },
+  cl: { lat: -35.6751, lng: -71.5430 },
+  pe: { lat: -9.1900, lng: -75.0152 },
+  nz: { lat: -40.9006, lng: 174.8860 },
+  gr: { lat: 39.0742, lng: 21.8243 },
+  cz: { lat: 49.8175, lng: 15.4730 },
+  ro: { lat: 45.9432, lng: 24.9668 },
+  hu: { lat: 47.1625, lng: 19.5033 },
+  hr: { lat: 45.1000, lng: 15.2000 },
+};
+
+/**
+ * Resolve a single article's geographic origin through the 3-layer system.
+ */
+function resolveArticleOrigin(article: NewsArticle): NewsArticle {
+  if (article.coordinates) return article;
+
+  const countryConstraint = article.country || undefined;
+  const candidates = extractPlaceEntities(article.title, article.description);
+
+  // Priority 1-2: Dateline candidates
+  const datelineCandidates = candidates.filter(c => c.source === 'dateline');
+  for (const candidate of datelineCandidates) {
+    if (countryConstraint) {
+      const entry = lookupGazetteer(candidate.name, countryConstraint);
+      if (entry) {
+        return {
+          ...article,
+          coordinates: { lat: entry.lat, lng: entry.lng },
+          location: entry.name,
+          locationConfidence: 'exact',
+        };
+      }
+    }
+    // Try without country constraint (Priority 2)
+    const entryNoCountry = lookupGazetteer(candidate.name);
+    if (entryNoCountry) {
+      return {
+        ...article,
+        coordinates: { lat: entryNoCountry.lat, lng: entryNoCountry.lng },
+        location: entryNoCountry.name,
+        locationConfidence: countryConstraint ? 'exact' : 'inferred',
+      };
+    }
+  }
+
+  // Priority 3-4: NLP title candidates
+  const nlpTitleCandidates = candidates.filter(c => c.source === 'nlp' && c.fromTitle);
+  for (const candidate of nlpTitleCandidates) {
+    const entry = lookupGazetteer(candidate.name, countryConstraint);
+    if (entry) {
+      return {
+        ...article,
+        coordinates: { lat: entry.lat, lng: entry.lng },
+        location: entry.name,
+        locationConfidence: 'inferred',
+      };
+    }
+    if (countryConstraint) {
+      const entryNoCountry = lookupGazetteer(candidate.name);
+      if (entryNoCountry) {
+        return {
+          ...article,
+          coordinates: { lat: entryNoCountry.lat, lng: entryNoCountry.lng },
+          location: entryNoCountry.name,
+          locationConfidence: 'inferred',
+        };
+      }
+    }
+  }
+
+  // Priority 5-6: NLP description candidates
+  const nlpDescCandidates = candidates.filter(c => c.source === 'nlp' && !c.fromTitle);
+  for (const candidate of nlpDescCandidates) {
+    const entry = lookupGazetteer(candidate.name, countryConstraint);
+    if (entry) {
+      return {
+        ...article,
+        coordinates: { lat: entry.lat, lng: entry.lng },
+        location: entry.name,
+        locationConfidence: 'inferred',
+      };
+    }
+    if (countryConstraint) {
+      const entryNoCountry = lookupGazetteer(candidate.name);
+      if (entryNoCountry) {
+        return {
+          ...article,
+          coordinates: { lat: entryNoCountry.lat, lng: entryNoCountry.lng },
+          location: entryNoCountry.name,
+          locationConfidence: 'inferred',
+        };
+      }
+    }
+  }
+
+  // Priority 7: Outlet reach fallback
+  const outlet = MEDIA_OUTLETS.find(
+    o => o.domain && article.source.url?.includes(o.domain)
+  );
+  if (outlet && outlet.reach.length > 0) {
+    const primaryReach = outlet.reach[0];
+    return {
+      ...article,
+      coordinates: { lat: primaryReach.lat, lng: primaryReach.lng },
+      location: primaryReach.name,
+      locationConfidence: 'inferred',
+    };
+  }
+
+  // Priority 8: Country centroid
+  if (countryConstraint && COUNTRY_CENTROIDS[countryConstraint]) {
+    const centroid = COUNTRY_CENTROIDS[countryConstraint];
+    return {
+      ...article,
+      coordinates: { lat: centroid.lat, lng: centroid.lng },
+      locationConfidence: 'centroid',
+    };
+  }
+
+  // Priority 9: No match
+  return article;
+}
+
+/**
+ * Process articles missing coordinates through 3-layer inference.
+ * Articles with existing coordinates are passed through unchanged.
+ */
+export function inferArticleOrigins(articles: NewsArticle[]): NewsArticle[] {
+  return articles.map(resolveArticleOrigin);
 }

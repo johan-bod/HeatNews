@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { extractPlaceEntities, lookupGazetteer, setGazetteerForTesting } from '@/utils/geoInference';
+import { extractPlaceEntities, lookupGazetteer, setGazetteerForTesting, inferArticleOrigins } from '@/utils/geoInference';
 import type { GazetteerEntry } from '@/utils/geoInference';
+import type { NewsArticle } from '@/types/news';
 
 describe('extractPlaceEntities', () => {
   it('extracts dateline from title with em dash', () => {
@@ -147,5 +148,122 @@ describe('lookupGazetteer', () => {
     const result = lookupGazetteer('nice');
     expect(result).not.toBeNull();
     expect(result!.country).toBe('fr');
+  });
+});
+
+// Helper for inferArticleOrigins tests
+function makeInferArticle(
+  id: string,
+  title: string,
+  opts: {
+    description?: string;
+    country?: string;
+    sourceUrl?: string;
+    sourceName?: string;
+    coordinates?: { lat: number; lng: number };
+    locationConfidence?: 'exact' | 'inferred' | 'centroid';
+  } = {}
+): NewsArticle {
+  return {
+    id,
+    title,
+    description: opts.description,
+    url: `https://example.com/${id}`,
+    publishedAt: new Date().toISOString(),
+    source: {
+      name: opts.sourceName || 'test-source',
+      url: opts.sourceUrl || 'https://test.com',
+    },
+    country: opts.country,
+    coordinates: opts.coordinates,
+    locationConfidence: opts.locationConfidence,
+  };
+}
+
+describe('inferArticleOrigins', () => {
+  beforeAll(() => {
+    setGazetteerForTesting(TEST_GAZETTEER);
+  });
+
+  it('skips articles that already have coordinates', () => {
+    const articles = [
+      makeInferArticle('1', 'News from somewhere', {
+        coordinates: { lat: 48.86, lng: 2.35 },
+        locationConfidence: 'exact',
+      }),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toEqual({ lat: 48.86, lng: 2.35 });
+    expect(result[0].locationConfidence).toBe('exact');
+  });
+
+  it('infers location from dateline + country match (exact confidence)', () => {
+    const articles = [
+      makeInferArticle('1', 'PARIS — Protests continue in the capital', { country: 'fr' }),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toBeDefined();
+    expect(result[0].coordinates!.lat).toBeCloseTo(48.86, 0);
+    expect(result[0].locationConfidence).toBe('exact');
+  });
+
+  it('infers location from dateline without country (inferred confidence)', () => {
+    const articles = [
+      makeInferArticle('1', 'LONDON — Markets rally on trade deal'),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toBeDefined();
+    expect(result[0].coordinates!.lat).toBeCloseTo(51.51, 0);
+    expect(result[0].locationConfidence).toBe('inferred');
+  });
+
+  it('disambiguates by country constraint', () => {
+    const articles = [
+      makeInferArticle('1', 'PARIS — Storm causes damage', { country: 'us' }),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toBeDefined();
+    expect(result[0].coordinates!.lat).toBeCloseTo(33.66, 0);
+    expect(result[0].locationConfidence).toBe('exact');
+  });
+
+  it('infers from NLP extraction in title', () => {
+    const articles = [
+      makeInferArticle('1', 'Protests erupt in Lyon over economic reforms', { country: 'fr' }),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toBeDefined();
+    expect(result[0].coordinates!.lat).toBeCloseTo(45.76, 0);
+    expect(result[0].locationConfidence).toBe('inferred');
+  });
+
+  it('falls back to country centroid when no city match', () => {
+    const articles = [
+      makeInferArticle('1', 'Generic headline with no identifiable city', { country: 'fr' }),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toBeDefined();
+    expect(result[0].locationConfidence).toBe('centroid');
+  });
+
+  it('leaves coordinates undefined when no signals available', () => {
+    const articles = [
+      makeInferArticle('1', 'Completely generic headline'),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toBeUndefined();
+    expect(result[0].locationConfidence).toBeUndefined();
+  });
+
+  it('processes multiple articles independently', () => {
+    const articles = [
+      makeInferArticle('1', 'PARIS — French news', { country: 'fr' }),
+      makeInferArticle('2', 'Generic headline'),
+      makeInferArticle('3', 'LONDON — Storms hit the area', { country: 'gb' }),
+    ];
+    const result = inferArticleOrigins(articles);
+    expect(result[0].coordinates).toBeDefined();
+    expect(result[1].coordinates).toBeUndefined();
+    expect(result[2].coordinates).toBeDefined();
   });
 });
