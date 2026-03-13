@@ -11,6 +11,8 @@ import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh, fetchPers
 import { getUserRemainingFetches, USER_DAILY_FETCHES, loadUsageFromFirestore } from '@/services/apiBudget';
 import RefreshIndicator from '@/components/RefreshIndicator';
 import SoftGate from '@/components/SoftGate';
+import GlobeLegend from '@/components/GlobeLegend';
+import PersonalizeCTA from '@/components/PersonalizeCTA';
 import { useAuth } from '@/contexts/AuthContext';
 import { searchAndFilterNews } from '@/services/newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
@@ -328,6 +330,13 @@ const Index = () => {
           preferenceLocations={preferences.locations}
         />
       </ErrorBoundary>
+      <GlobeLegend />
+
+      {/* Personalize CTA — shown to anonymous or non-onboarded users */}
+      <PersonalizeCTA
+        hasCompletedOnboarding={preferences.onboardingComplete}
+        onOpenPreferences={handleOpenPreferences}
+      />
 
       {/* Search & Filters */}
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-4">
