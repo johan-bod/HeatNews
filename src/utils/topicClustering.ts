@@ -1,4 +1,5 @@
 import type { NewsArticle } from '@/types/news';
+import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
 
 // Stopwords for title normalization (English + French)
 const STOPWORDS = new Set([
@@ -13,6 +14,7 @@ export interface StoryCluster {
   articles: NewsArticle[];
   terms: Set<string>;
   uniqueSources: Set<string>;
+  sourceDomains: Map<string, string | undefined>; // source.name → domain
   heatLevel: number;
   coverage: number;
 }
@@ -59,6 +61,9 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
       if (jaccardSimilarity(terms, cluster.terms) >= CLUSTER_THRESHOLD) {
         cluster.articles.push(article);
         cluster.uniqueSources.add(article.source.name);
+        if (!cluster.sourceDomains.has(article.source.name)) {
+          cluster.sourceDomains.set(article.source.name, extractDomain(article.source.url));
+        }
         // Merge terms
         for (const t of terms) cluster.terms.add(t);
         matched = true;
@@ -71,6 +76,7 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
         articles: [article],
         terms,
         uniqueSources: new Set([article.source.name]),
+        sourceDomains: new Map([[article.source.name, extractDomain(article.source.url)]]),
         heatLevel: 0,
         coverage: 1,
       });
@@ -79,6 +85,15 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
 
   // Calculate heat for each cluster
   for (const cluster of clusters) {
+    // Compute weighted sources and hyperlocal count
+    let weightedSources = 0;
+    let hyperlocalCount = 0;
+    for (const [, domain] of cluster.sourceDomains) {
+      const { weight, tier } = resolveCredibilityByDomain(domain);
+      weightedSources += weight;
+      if (tier === 'hyperlocal') hyperlocalCount++;
+    }
+
     const newestArticleHoursAgo = Math.min(
       ...cluster.articles.map(a => {
         const diffMs = Date.now() - new Date(a.publishedAt).getTime();
@@ -86,9 +101,10 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
       })
     );
     cluster.heatLevel = calculateClusterHeat(
-      cluster.uniqueSources.size,
+      weightedSources,
       cluster.articles.length,
-      newestArticleHoursAgo
+      newestArticleHoursAgo,
+      hyperlocalCount
     );
     cluster.coverage = cluster.uniqueSources.size;
   }
@@ -98,18 +114,21 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
 
 /**
  * Heat formula from spec:
- * heatScore = min(100, (uniqueSources * 20) + (articleCount * 5) + recencyBonus)
+ * heatScore = min(100, (weightedSources * 20) + (articleCount * 5) + recencyBonus + convergenceBonus)
  */
 export function calculateClusterHeat(
-  uniqueSources: number,
+  weightedSources: number,
   articleCount: number,
-  newestArticleHoursAgo: number
+  newestArticleHoursAgo: number,
+  hyperlocalCount: number = 0
 ): number {
   let recencyBonus = 0;
   if (newestArticleHoursAgo < 2) recencyBonus = 10;
   else if (newestArticleHoursAgo < 6) recencyBonus = 5;
 
-  return Math.min(100, (uniqueSources * 20) + (articleCount * 5) + recencyBonus);
+  const convergenceBonus = hyperlocalCount >= 3 ? hyperlocalCount * 3 : 0;
+
+  return Math.min(100, (weightedSources * 20) + (articleCount * 5) + recencyBonus + convergenceBonus);
 }
 
 /**

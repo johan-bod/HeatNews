@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { clusterArticles, calculateClusterHeat, heatLevelToColor } from '@/utils/topicClustering';
 import type { NewsArticle } from '@/types/news';
 
-const makeArticle = (id: string, title: string, source: string, hoursAgo = 1): NewsArticle => ({
+const makeArticle = (id: string, title: string, source: string, hoursAgo = 1, sourceUrl?: string): NewsArticle => ({
   id,
   title,
   description: '',
   url: 'https://example.com',
   publishedAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
-  source: { name: source, url: `https://${source}.com` },
+  source: { name: source, url: sourceUrl ?? `https://${source}.com` },
 });
 
 describe('clusterArticles', () => {
@@ -47,6 +47,34 @@ describe('calculateClusterHeat', () => {
 
   it('caps at 100', () => {
     const heat = calculateClusterHeat(10, 20, 0.1);
+    expect(heat).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('calculateClusterHeat with credibility', () => {
+  it('uses weighted sources instead of raw count', () => {
+    // newestArticleHoursAgo=4 → recencyBonus=5 (between 2 and 6 hours)
+    const refHeat = calculateClusterHeat(3.0, 3, 4, 0);
+    const nicheHeat = calculateClusterHeat(1.2, 3, 4, 0);
+    expect(refHeat).toBeGreaterThan(nicheHeat);
+    // refHeat = min(100, 60 + 15 + 5) = 80
+    expect(refHeat).toBe(80);
+    // nicheHeat = min(100, 24 + 15 + 5) = 44
+    expect(nicheHeat).toBe(44);
+  });
+
+  it('adds convergence bonus when 3+ hyperlocal sources', () => {
+    // newestArticleHoursAgo=4 → recencyBonus=5
+    const withConvergence = calculateClusterHeat(2.0, 4, 4, 4);
+    const withoutConvergence = calculateClusterHeat(2.0, 4, 4, 2);
+    // withConvergence: min(100, 40 + 20 + 5 + 12) = 77
+    expect(withConvergence).toBe(77);
+    // withoutConvergence: min(100, 40 + 20 + 5 + 0) = 65
+    expect(withoutConvergence).toBe(65);
+  });
+
+  it('convergence bonus does not exceed cap', () => {
+    const heat = calculateClusterHeat(4.0, 10, 0.5, 10);
     expect(heat).toBeLessThanOrEqual(100);
   });
 });
