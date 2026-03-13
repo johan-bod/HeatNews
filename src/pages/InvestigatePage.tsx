@@ -13,6 +13,8 @@ import { formatTimeAgo } from '@/utils/formatTime';
 import { getCacheData } from '@/utils/cache';
 import { analyzeCoverageGap } from '@/utils/coverageGap';
 import { analyzeGeographicGap } from '@/utils/geographicGap';
+import { getCountryName } from '@/utils/countryNames';
+import { analyzeEditorialPerspective } from '@/utils/editorialPerspective';
 
 interface InvestigateState {
   cluster: StoryCluster;
@@ -100,6 +102,7 @@ export default function InvestigatePage() {
   const articlesWithCoords = cluster.articles.filter(a => a.coordinates);
   const coverageGap = analyzeCoverageGap(cluster);
   const geoGap = analyzeGeographicGap(cluster);
+  const perspective = analyzeEditorialPerspective(cluster.articles);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
@@ -166,7 +169,25 @@ export default function InvestigatePage() {
                           <span className="text-xs text-ivory-200/40">
                             {formatTimeAgo(clusterArticle.publishedAt)}
                           </span>
-                          {clusterArticle.coordinates && (
+                          {clusterArticle.location && clusterArticle.country && (
+                            <span className="flex items-center gap-1 text-xs text-ivory-200/40">
+                              <MapPin className="w-3 h-3" />
+                              {clusterArticle.location}, {getCountryName(clusterArticle.country)}
+                            </span>
+                          )}
+                          {clusterArticle.location && !clusterArticle.country && (
+                            <span className="flex items-center gap-1 text-xs text-ivory-200/40">
+                              <MapPin className="w-3 h-3" />
+                              {clusterArticle.location}
+                            </span>
+                          )}
+                          {!clusterArticle.location && clusterArticle.country && (
+                            <span className="flex items-center gap-1 text-xs text-ivory-200/40">
+                              <MapPin className="w-3 h-3" />
+                              {getCountryName(clusterArticle.country)}
+                            </span>
+                          )}
+                          {!clusterArticle.location && !clusterArticle.country && clusterArticle.coordinates && (
                             <MapPin className="w-3 h-3 text-ivory-200/30" />
                           )}
                         </div>
@@ -224,6 +245,39 @@ export default function InvestigatePage() {
           </div>
         )}
 
+        {/* Perspective Comparison */}
+        {perspective.hasInsights && (
+          <div className="mb-10">
+            <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
+              Perspective Comparison
+            </h2>
+            {perspective.uniqueAngles.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Unique angles</p>
+                <ul className="space-y-1">
+                  {perspective.uniqueAngles.map((insight, i) => (
+                    <li key={i} className="text-sm text-ivory-200/60">
+                      {insight.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {perspective.emphasisDifferences.length > 0 && (
+              <div>
+                <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Emphasis differences</p>
+                <ul className="space-y-1">
+                  {perspective.emphasisDifferences.map((insight, i) => (
+                    <li key={i} className="text-sm text-ivory-200/60">
+                      {insight.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Geographic Spread */}
         <div className="mb-8">
           <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
@@ -237,7 +291,14 @@ export default function InvestigatePage() {
               <ul className="space-y-1">
                 {articlesWithCoords.map(a => (
                   <li key={a.id} className="text-sm text-ivory-200/60">
-                    {a.source.name} — {(Math.round(a.coordinates!.lat * 10) / 10).toFixed(1)}, {(Math.round(a.coordinates!.lng * 10) / 10).toFixed(1)}
+                    {a.source.name} — {a.location && a.country
+                      ? `${a.location}, ${getCountryName(a.country)}`
+                      : a.location
+                      ? a.location
+                      : a.country
+                      ? getCountryName(a.country)
+                      : `${(Math.round(a.coordinates!.lat * 10) / 10).toFixed(1)}, ${(Math.round(a.coordinates!.lng * 10) / 10).toFixed(1)}`
+                    }
                   </li>
                 ))}
               </ul>
