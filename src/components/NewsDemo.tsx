@@ -3,6 +3,7 @@ import { MapPin, Globe, ExternalLink, Calendar, Flame } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { NewsArticle } from '@/types/news';
+import { formatTimeAgo } from '@/utils/formatTime';
 
 interface NewsDemoProps {
   articles: NewsArticle[];
@@ -19,16 +20,6 @@ const SCALE_LABELS: Record<string, string> = {
   international: 'International',
 };
 
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const diffMs = Date.now() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffDays > 0) return `${diffDays}d ago`;
-  if (diffHours > 0) return `${diffHours}h ago`;
-  return 'Just now';
-}
 
 function getHeatColor(level: number): string {
   if (level <= 20) return 'text-slate-400';
