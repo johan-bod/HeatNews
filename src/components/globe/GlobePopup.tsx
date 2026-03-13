@@ -5,6 +5,7 @@ import type { ArcData } from '@/utils/arcBuilder';
 import { ExternalLink, Flame, MapPin } from 'lucide-react';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
 import { getTierLabel, getTierColor, buildSourceBreakdown, getClusterArticles } from './credibilityHelpers';
+import { useNavigate } from 'react-router-dom';
 
 interface GlobePopupProps {
   article: NewsArticle;
@@ -26,6 +27,8 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
     : 0;
   const distinctLocations = cluster ? countDistinctLocations(cluster) : 0;
   const showGeoTeaser = distinctLocations >= 2;
+  const navigate = useNavigate();
+  const showInvestigate = cluster && cluster.articles.length >= 2;
 
   function hasDifferentLocation(clusterArticle: NewsArticle): boolean {
     if (!article.coordinates || !clusterArticle.coordinates) return false;
@@ -185,6 +188,18 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
         >
           Read article <ExternalLink className="w-3 h-3" />
         </a>
+        {showInvestigate && (
+          <button
+            onClick={() => {
+              navigate(`/investigate?article=${article.id}`, {
+                state: { cluster, article },
+              });
+            }}
+            className="mt-2 flex items-center gap-1.5 font-body text-xs text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            Investigate this story →
+          </button>
+        )}
       </div>
     </>
   );
