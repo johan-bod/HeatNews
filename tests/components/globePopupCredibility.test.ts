@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { getTierLabel, getTierColor, getBreakdownLabel, buildSourceBreakdown } from '@/components/globe/credibilityHelpers';
+import { getTierLabel, getTierColor, getBreakdownLabel, buildSourceBreakdown, getClusterArticles } from '@/components/globe/credibilityHelpers';
+import type { NewsArticle } from '@/types/news';
 
 describe('credibilityHelpers', () => {
   describe('getTierLabel', () => {
@@ -35,6 +36,45 @@ describe('credibilityHelpers', () => {
     it('returns plural for wire services', () => {
       expect(getBreakdownLabel('reference', 2)).toBe('wire services');
     });
+  });
+});
+
+describe('getClusterArticles', () => {
+  const makeArticle = (id: string, name: string, url: string): NewsArticle => ({
+    id,
+    title: `Article by ${name}`,
+    url: `https://${url}/article`,
+    source: { name, url: `https://${url}` },
+    publishedAt: new Date().toISOString(),
+  } as NewsArticle);
+
+  it('excludes the current article', () => {
+    const articles = [
+      makeArticle('1', 'AFP', 'afp.com'),
+      makeArticle('2', 'Reuters', 'reuters.com'),
+      makeArticle('3', 'Le Monde', 'lemonde.fr'),
+    ];
+    const result = getClusterArticles(articles, '1');
+    expect(result.map(a => a.article.id)).toEqual(['2', '3']);
+  });
+
+  it('limits to 5 items', () => {
+    const articles = Array.from({ length: 8 }, (_, i) =>
+      makeArticle(String(i), `Source ${i}`, `source${i}.com`)
+    );
+    const result = getClusterArticles(articles, '0');
+    expect(result.length).toBe(5);
+  });
+
+  it('sorts by tier weight descending (reference before niche)', () => {
+    const articles = [
+      makeArticle('1', 'Current', 'current.com'),
+      makeArticle('2', 'Unknown Blog', 'randomblog.xyz'),  // niche (fallback)
+      makeArticle('3', 'Reuters', 'reuters.com'),           // reference
+    ];
+    const result = getClusterArticles(articles, '1');
+    expect(result[0].article.id).toBe('3');
+    expect(result[1].article.id).toBe('2');
   });
 });
 

@@ -1,5 +1,6 @@
 import type { CredibilityTier } from '@/data/media-types';
 import { resolveCredibilityByDomain, TIER_WEIGHTS } from '@/utils/credibilityService';
+import type { NewsArticle } from '@/types/news';
 
 const TIER_LABELS: Record<CredibilityTier, string> = {
   reference: 'Reference',
@@ -40,6 +41,53 @@ export function getBreakdownLabel(tier: CredibilityTier, count: number): string 
   const label = BREAKDOWN_LABELS[tier];
   if (tier === 'reference' && count > 1) return label + 's';
   return label;
+}
+
+const MAX_CLUSTER_ITEMS = 5;
+
+export interface ClusterArticleItem {
+  article: NewsArticle;
+  tier: CredibilityTier;
+  tierLabel: string;
+  tierColor: string;
+}
+
+export function getClusterArticles(
+  articles: NewsArticle[],
+  currentArticleId: string
+): ClusterArticleItem[] {
+  const others = articles.filter(a => a.id !== currentArticleId);
+
+  const withTier = others.map(article => {
+    const domain = extractDomainFromArticle(article);
+    const { tier } = resolveCredibilityByDomain(domain);
+    return {
+      article,
+      tier,
+      tierLabel: getTierLabel(tier),
+      tierColor: getTierColor(tier),
+      weight: TIER_WEIGHTS[tier],
+    };
+  });
+
+  withTier.sort((a, b) => b.weight - a.weight);
+
+  return withTier.slice(0, MAX_CLUSTER_ITEMS).map(({ article, tier, tierLabel, tierColor }) => ({
+    article,
+    tier,
+    tierLabel,
+    tierColor,
+  }));
+}
+
+function extractDomainFromArticle(article: NewsArticle): string | undefined {
+  try {
+    const url = article.source.url || article.url;
+    if (!url) return undefined;
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
 }
 
 export function buildSourceBreakdown(

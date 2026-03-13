@@ -2,7 +2,7 @@ import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { ExternalLink, Flame } from 'lucide-react';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
-import { getTierLabel, getTierColor, buildSourceBreakdown } from './credibilityHelpers';
+import { getTierLabel, getTierColor, buildSourceBreakdown, getClusterArticles } from './credibilityHelpers';
 
 interface GlobePopupProps {
   article: NewsArticle;
@@ -16,6 +16,10 @@ export default function GlobePopup({ article, position, onClose, clusters }: Glo
   const { tier } = resolveCredibilityByDomain(extractDomain(article.source.url));
   const cluster = clusters.find(c => c.articles.some(a => a.id === article.id));
   const breakdown = cluster ? buildSourceBreakdown(cluster.sourceDomains) : null;
+  const clusterArticles = cluster ? getClusterArticles(cluster.articles, article.id) : [];
+  const remainingCount = cluster
+    ? cluster.articles.filter(a => a.id !== article.id).length - clusterArticles.length
+    : 0;
 
   return (
     <>
@@ -26,10 +30,10 @@ export default function GlobePopup({ article, position, onClose, clusters }: Glo
       />
       {/* Popup */}
       <div
-        className="fixed z-50 w-80 bg-navy-900/95 backdrop-blur-md border border-amber-500/20 rounded-lg shadow-2xl shadow-black/50 p-4"
+        className="fixed z-50 w-80 bg-navy-900/95 backdrop-blur-md border border-amber-500/20 rounded-lg shadow-2xl shadow-black/50 p-4 max-h-[70vh] overflow-y-auto"
         style={{
           left: Math.min(position.x, window.innerWidth - 340),
-          top: Math.min(position.y, window.innerHeight - 300),
+          top: Math.min(position.y, window.innerHeight - 450),
         }}
       >
         {/* Header with heat indicator */}
@@ -73,6 +77,38 @@ export default function GlobePopup({ article, position, onClose, clusters }: Glo
                 {topic}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Cluster article list */}
+        {clusterArticles.length > 0 && (
+          <div className="mb-3">
+            <p className="font-body text-[10px] text-ivory-200/40 mb-1.5">Other coverage:</p>
+            <div className="space-y-1">
+              {clusterArticles.map(({ article: clusterArticle, tierLabel, tierColor }) => (
+                <a
+                  key={clusterArticle.id}
+                  href={clusterArticle.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 group"
+                >
+                  <span className="font-body text-[10px] text-ivory-200/60 truncate group-hover:text-ivory-50 transition-colors">
+                    <span className="text-ivory-200/80">{clusterArticle.source.name}</span>
+                    {' — '}
+                    <span className="italic">"{clusterArticle.title}"</span>
+                  </span>
+                  <span className={`font-body text-[9px] flex-shrink-0 ${tierColor}`}>
+                    {tierLabel}
+                  </span>
+                </a>
+              ))}
+              {remainingCount > 0 && (
+                <p className="font-body text-[9px] text-ivory-200/30">
+                  and {remainingCount} more source{remainingCount > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
