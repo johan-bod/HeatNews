@@ -1,4 +1,4 @@
-import { Flame, MousePointer2, ZoomIn } from 'lucide-react';
+import { Flame, MousePointer2 } from 'lucide-react';
 
 export default function GlobeLegend() {
   return (
@@ -30,8 +30,8 @@ export default function GlobeLegend() {
             Click a marker for details
           </span>
           <span className="flex items-center gap-1.5 font-body text-[10px] text-ivory-200/25">
-            <ZoomIn className="w-3 h-3 text-ivory-200/20" />
-            Zoom to reveal local stories
+            <MousePointer2 className="w-3 h-3 text-ivory-200/20" />
+            Click globe to interact, scroll to continue
           </span>
         </div>
       </div>
