@@ -27,6 +27,7 @@ export function useGlobeAutoRotation(options: GlobeControlsOptions = {}) {
   const isRotating = useRef(enabled);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const angleRef = useRef(0);
+  const isGlobeActiveRef = useRef(false);
 
   const onUserInteraction = useCallback(() => {
     if (!enabled) return;
@@ -45,7 +46,16 @@ export function useGlobeAutoRotation(options: GlobeControlsOptions = {}) {
     }, idleTimeout);
   }, [enabled, idleTimeout]);
 
+  const setActive = useCallback((active: boolean) => {
+    isGlobeActiveRef.current = active;
+    if (!active) {
+      // Returning to dormant — restart idle timer
+      onUserInteraction();
+    }
+  }, [onUserInteraction]);
+
   const getRotationAngle = useCallback((): number | null => {
+    if (isGlobeActiveRef.current) return null;
     if (!enabled || !isRotating.current) return null;
     angleRef.current = (angleRef.current + rotationSpeed) % 360;
     return angleRef.current;
@@ -64,5 +74,6 @@ export function useGlobeAutoRotation(options: GlobeControlsOptions = {}) {
     onUserInteraction,
     getRotationAngle,
     isRotating: () => isRotating.current,
+    setActive,
   };
 }
