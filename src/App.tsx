@@ -6,6 +6,7 @@ import { AdminRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import InvestigatePage from "./pages/InvestigatePage";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +17,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/investigate" element={<InvestigatePage />} />
           <Route
             path="/admin"
             element={
