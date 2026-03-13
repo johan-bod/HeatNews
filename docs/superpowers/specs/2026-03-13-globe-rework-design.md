@@ -2,7 +2,7 @@
 
 ## Goal
 
-Rework the HeatNews globe interaction model, add territory halos for geographic coverage visualization, fix scroll hijacking, and relocate search above the globe with filter+fly behavior.
+Rework the HeatStory globe interaction model, add territory halos for geographic coverage visualization, fix scroll hijacking, and relocate search above the globe with filter+fly behavior.
 
 ## Context
 

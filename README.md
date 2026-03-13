@@ -1,8 +1,8 @@
-# Global News Horizon View
+# HeatStory
 
-A real-time news mapping application that visualizes news articles from around the world on an interactive map. 
+**HeatStory** maps global news coverage in real-time. See which stories get the most attention, which regions are underreported, and which local stories are bubbling up before they go national.
 
-The goal? Helping local news to thrive and users to read based on geolocation or topics of interest. In short, giving both journalists and readers their power. 
+Local journalism is dying — but local stories still matter. HeatStory surfaces coverage patterns that traditional news feeds bury, giving editors and informed readers the tools to connect the dots across newsrooms and geographies.
 
 Built with React, TypeScript, and NewsData.io API.
 
