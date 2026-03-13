@@ -3,7 +3,7 @@ import { db } from '@/lib/firebase';
 
 // Spec: 200 requests/day total, ~40 for shared pool
 export const DAILY_LIMIT = 200;
-export const SHARED_POOL_BUDGET = 40;
+export const SHARED_POOL_BUDGET = 30;
 export const USER_DAILY_FETCHES = 2;
 export const BUDGET_RESERVE = 20; // Reserve for emergency shared pool refresh
 

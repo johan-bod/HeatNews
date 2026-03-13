@@ -9,6 +9,7 @@ import {
   canUserFetch,
   resetIfNewDay,
   DAILY_LIMIT,
+  SHARED_POOL_BUDGET,
   USER_DAILY_FETCHES,
   BUDGET_RESERVE,
 } from '@/services/apiBudget';
@@ -16,6 +17,10 @@ import {
 describe('apiBudget', () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it('shared pool budget is 30 requests', () => {
+    expect(SHARED_POOL_BUDGET).toBe(30);
   });
 
   describe('global budget', () => {
