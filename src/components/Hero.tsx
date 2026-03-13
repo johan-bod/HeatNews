@@ -28,20 +28,20 @@ const Hero = () => {
 
         {/* Tagline */}
         <h1 className="font-display text-3xl md:text-5xl font-bold text-ivory-50 mb-3 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          News, Mapped. <span className="text-amber-500">Everywhere.</span>
+          Map coverage. Spot patterns. <span className="text-amber-500">Surface stories.</span>
         </h1>
         <p className="font-body text-sm md:text-base text-ivory-200/50 max-w-lg mx-auto mb-6 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-          See what the world is talking about. Heat shows where coverage is hottest.
+          HeatStory shows you which stories get the most coverage, which regions are underreported, and which local stories are bubbling up before they go national.
         </p>
 
         {/* Scroll CTA */}
         <button
           onClick={scrollToGlobe}
-          aria-label="Scroll to globe"
+          aria-label="See today's coverage map"
           className="inline-flex items-center gap-2 font-body text-xs text-amber-400/60 hover:text-amber-400 transition-colors animate-fade-up"
           style={{ animationDelay: '0.3s' }}
         >
-          Explore the globe
+          See today's coverage map
           <ChevronDown className="w-4 h-4 animate-bounce" />
         </button>
       </div>
