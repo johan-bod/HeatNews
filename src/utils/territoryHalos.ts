@@ -33,3 +33,62 @@ export function heatToFillOpacity(heat: number): number {
   if (heat <= 80) return 0.2;
   return 0.3;
 }
+
+// --- Audience scale mapping ---
+
+const AUDIENCE_RADIUS_KM: Record<string, number> = {
+  small: 50,
+  medium: 150,
+  large: 400,
+};
+
+const DEFAULT_RADIUS_KM = 80;
+
+export function audienceScaleToRadiusKm(
+  scale: 'small' | 'medium' | 'large' | undefined
+): number {
+  if (!scale) return DEFAULT_RADIUS_KM;
+  return AUDIENCE_RADIUS_KM[scale] ?? DEFAULT_RADIUS_KM;
+}
+
+// --- Radial blob polygon generation ---
+
+interface BlobFeature {
+  type: 'Feature';
+  geometry: {
+    type: 'Polygon';
+    coordinates: [number, number][][];
+  };
+  properties: Record<string, unknown>;
+}
+
+const BLOB_POINTS = 32;
+const KM_PER_DEGREE_LAT = 111.32;
+
+export function generateBlobPolygon(
+  lat: number,
+  lng: number,
+  radiusKm: number
+): BlobFeature {
+  const latOffset = radiusKm / KM_PER_DEGREE_LAT;
+  const lngOffset = radiusKm / (KM_PER_DEGREE_LAT * Math.cos((lat * Math.PI) / 180));
+
+  const coords: [number, number][] = [];
+  for (let i = 0; i < BLOB_POINTS; i++) {
+    const angle = (2 * Math.PI * i) / BLOB_POINTS;
+    coords.push([
+      lng + lngOffset * Math.cos(angle),
+      lat + latOffset * Math.sin(angle),
+    ]);
+  }
+  coords.push(coords[0]);
+
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coords],
+    },
+    properties: {},
+  };
+}

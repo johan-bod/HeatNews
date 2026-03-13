@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   aggregateCountryHeat,
   heatToFillOpacity,
+  audienceScaleToRadiusKm,
+  generateBlobPolygon,
   type CountryHeatEntry,
 } from '@/utils/territoryHalos';
 import type { NewsArticle } from '@/types/news';
@@ -69,5 +71,57 @@ describe('heatToFillOpacity', () => {
 
   it('returns 0.05 for heat 0', () => {
     expect(heatToFillOpacity(0)).toBe(0.05);
+  });
+});
+
+describe('audienceScaleToRadiusKm', () => {
+  it('maps small to 50km', () => {
+    expect(audienceScaleToRadiusKm('small')).toBe(50);
+  });
+
+  it('maps medium to 150km', () => {
+    expect(audienceScaleToRadiusKm('medium')).toBe(150);
+  });
+
+  it('maps large to 400km', () => {
+    expect(audienceScaleToRadiusKm('large')).toBe(400);
+  });
+
+  it('defaults to 80km for undefined', () => {
+    expect(audienceScaleToRadiusKm(undefined)).toBe(80);
+  });
+});
+
+describe('generateBlobPolygon', () => {
+  it('generates a 32-point circle polygon', () => {
+    const blob = generateBlobPolygon(48.86, 2.35, 100);
+    expect(blob.type).toBe('Feature');
+    expect(blob.geometry.type).toBe('Polygon');
+    expect(blob.geometry.coordinates[0]).toHaveLength(33); // 32 + closing point
+  });
+
+  it('first and last points are the same (closed ring)', () => {
+    const blob = generateBlobPolygon(48.86, 2.35, 100);
+    const ring = blob.geometry.coordinates[0];
+    expect(ring[0]).toEqual(ring[ring.length - 1]);
+  });
+
+  it('center of blob is approximately at the given lat/lng', () => {
+    const blob = generateBlobPolygon(48.86, 2.35, 50);
+    const ring = blob.geometry.coordinates[0];
+    const avgLng = ring.slice(0, -1).reduce((s, p) => s + p[0], 0) / 32;
+    const avgLat = ring.slice(0, -1).reduce((s, p) => s + p[1], 0) / 32;
+    expect(avgLng).toBeCloseTo(2.35, 0);
+    expect(avgLat).toBeCloseTo(48.86, 0);
+  });
+
+  it('larger radius produces wider spread', () => {
+    const small = generateBlobPolygon(48.86, 2.35, 50);
+    const large = generateBlobPolygon(48.86, 2.35, 400);
+    const spreadSmall = Math.max(...small.geometry.coordinates[0].map(p => p[0])) -
+                        Math.min(...small.geometry.coordinates[0].map(p => p[0]));
+    const spreadLarge = Math.max(...large.geometry.coordinates[0].map(p => p[0])) -
+                        Math.min(...large.geometry.coordinates[0].map(p => p[0]));
+    expect(spreadLarge).toBeGreaterThan(spreadSmall);
   });
 });
