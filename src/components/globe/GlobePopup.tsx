@@ -1,6 +1,8 @@
 import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
-import { ExternalLink, Flame } from 'lucide-react';
+import { buildClusterArcs, countDistinctLocations } from '@/utils/arcBuilder';
+import type { ArcData } from '@/utils/arcBuilder';
+import { ExternalLink, Flame, MapPin } from 'lucide-react';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
 import { getTierLabel, getTierColor, buildSourceBreakdown, getClusterArticles } from './credibilityHelpers';
 
@@ -9,9 +11,11 @@ interface GlobePopupProps {
   position: { x: number; y: number };
   onClose: () => void;
   clusters: StoryCluster[];
+  onShowArcs?: (arcs: ArcData[]) => void;
+  onFlyToArticle?: (lat: number, lng: number) => void;
 }
 
-export default function GlobePopup({ article, position, onClose, clusters }: GlobePopupProps) {
+export default function GlobePopup({ article, position, onClose, clusters, onShowArcs, onFlyToArticle }: GlobePopupProps) {
   const heatLevel = article.heatLevel || 0;
   const { tier } = resolveCredibilityByDomain(extractDomain(article.source.url));
   const cluster = clusters.find(c => c.articles.some(a => a.id === article.id));
@@ -20,6 +24,17 @@ export default function GlobePopup({ article, position, onClose, clusters }: Glo
   const remainingCount = cluster
     ? cluster.articles.filter(a => a.id !== article.id).length - clusterArticles.length
     : 0;
+  const distinctLocations = cluster ? countDistinctLocations(cluster) : 0;
+  const showGeoTeaser = distinctLocations >= 2;
+
+  function hasDifferentLocation(clusterArticle: NewsArticle): boolean {
+    if (!article.coordinates || !clusterArticle.coordinates) return false;
+    const round = (n: number) => Math.round(n * 10) / 10;
+    return (
+      round(article.coordinates.lat) !== round(clusterArticle.coordinates.lat) ||
+      round(article.coordinates.lng) !== round(clusterArticle.coordinates.lng)
+    );
+  }
 
   return (
     <>
@@ -86,27 +101,59 @@ export default function GlobePopup({ article, position, onClose, clusters }: Glo
             <p className="font-body text-[10px] text-ivory-200/40 mb-1.5">Other coverage:</p>
             <div className="space-y-1">
               {clusterArticles.map(({ article: clusterArticle, tierLabel, tierColor }) => (
-                <a
-                  key={clusterArticle.id}
-                  href={clusterArticle.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-2 group"
-                >
-                  <span className="font-body text-[10px] text-ivory-200/60 truncate group-hover:text-ivory-50 transition-colors">
-                    <span className="text-ivory-200/80">{clusterArticle.source.name}</span>
-                    {' — '}
-                    <span className="italic">"{clusterArticle.title}"</span>
-                  </span>
-                  <span className={`font-body text-[9px] flex-shrink-0 ${tierColor}`}>
-                    {tierLabel}
-                  </span>
-                </a>
+                <div key={clusterArticle.id} className="flex items-center gap-1">
+                  <a
+                    href={clusterArticle.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 group flex-1 min-w-0"
+                  >
+                    <span className="font-body text-[10px] text-ivory-200/60 truncate group-hover:text-ivory-50 transition-colors">
+                      <span className="text-ivory-200/80">{clusterArticle.source.name}</span>
+                      {' — '}
+                      <span className="italic">"{clusterArticle.title}"</span>
+                    </span>
+                    <span className={`font-body text-[9px] flex-shrink-0 ${tierColor}`}>
+                      {tierLabel}
+                    </span>
+                  </a>
+                  {hasDifferentLocation(clusterArticle) && onFlyToArticle && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFlyToArticle(clusterArticle.coordinates!.lat, clusterArticle.coordinates!.lng);
+                      }}
+                      className="flex-shrink-0 p-0.5 text-ivory-200/30 hover:text-amber-400 transition-colors"
+                      title="Fly to location"
+                    >
+                      <MapPin className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               ))}
               {remainingCount > 0 && (
                 <p className="font-body text-[9px] text-ivory-200/30">
                   and {remainingCount} more source{remainingCount > 1 ? 's' : ''}
                 </p>
+              )}
+              {/* Geographic teaser */}
+              {showGeoTeaser && onShowArcs && (
+                <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-ivory-200/5">
+                  <span className="font-body text-[10px] text-ivory-200/40">
+                    Covered across {distinctLocations} regions
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (cluster) {
+                        const arcs = buildClusterArcs(cluster, article);
+                        onShowArcs(arcs);
+                      }
+                    }}
+                    className="font-body text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    See on globe →
+                  </button>
+                </div>
               )}
             </div>
           </div>

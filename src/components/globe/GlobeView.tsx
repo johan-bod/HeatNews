@@ -6,6 +6,8 @@ import type { Topology, GeometryObject } from 'topojson-specification';
 import type { NewsArticle } from '@/types/news';
 import type { PreferenceLocation } from '@/types/preferences';
 import type { StoryCluster } from '@/utils/topicClustering';
+import type { ArcData } from '@/utils/arcBuilder';
+import { playDiscoverSound } from '@/utils/soundManager';
 import RegionJumpPills from './RegionJumpPills';
 import { filterArticlesByAltitude, getMaxMarkers, computeResultsCentroid, computeFlyToAltitude } from '@/utils/globeUtils';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
@@ -209,6 +211,7 @@ export default function GlobeView({
       })
       .onGlobeClick(() => {
         setSelectedArticle(null);
+        globe.arcsData([]);
       })
       .onPointHover((point: object | null) => {
         if (point) {
@@ -278,6 +281,21 @@ export default function GlobeView({
       .hexSideColor(() => 'rgba(245, 158, 11, 0.02)')
       .hexBinMerge(true)
       .hexTransitionDuration(MARKER_TRANSITION_MS);
+
+    // Arc layer for story threads (starts empty)
+    globe
+      .arcsData([])
+      .arcStartLat('startLat')
+      .arcEndLat('endLat')
+      .arcStartLng('startLng')
+      .arcEndLng('endLng')
+      .arcColor('color')
+      .arcStroke(1.5)
+      .arcAltitude(0.15)
+      .arcDashLength(3)
+      .arcDashGap(2)
+      .arcDashAnimateTime(2000)
+      .arcsTransitionDuration(300);
 
     // Track zoom changes
     globe.controls().addEventListener('change', () => {
@@ -438,6 +456,20 @@ export default function GlobeView({
     }
   }, [autoRotation]);
 
+  const handleShowArcs = useCallback((arcs: ArcData[]) => {
+    if (globeRef.current) {
+      globeRef.current.arcsData(arcs);
+    }
+  }, []);
+
+  const handleFlyToArticle = useCallback((lat: number, lng: number) => {
+    if (globeRef.current) {
+      globeRef.current.pointOfView({ lat, lng, altitude: 1.2 }, 1000);
+      autoRotation.onUserInteraction();
+      playDiscoverSound();
+    }
+  }, [autoRotation]);
+
   return (
     <div
       id="globe-section"
@@ -487,8 +519,13 @@ export default function GlobeView({
         <GlobePopup
           article={selectedArticle}
           position={popupPosition}
-          onClose={() => setSelectedArticle(null)}
+          onClose={() => {
+            setSelectedArticle(null);
+            if (globeRef.current) globeRef.current.arcsData([]);
+          }}
           clusters={clusters}
+          onShowArcs={handleShowArcs}
+          onFlyToArticle={handleFlyToArticle}
         />
       )}
 
