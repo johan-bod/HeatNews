@@ -92,3 +92,19 @@ export function generateBlobPolygon(
     properties: {},
   };
 }
+
+// --- Altitude crossfade ---
+
+const CROSSFADE_LOW = 2500;
+const CROSSFADE_HIGH = 3500;
+
+export function crossfadeOpacity(altitudeKm: number): {
+  country: number;
+  blob: number;
+} {
+  if (altitudeKm >= CROSSFADE_HIGH) return { country: 1, blob: 0 };
+  if (altitudeKm <= CROSSFADE_LOW) return { country: 0, blob: 1 };
+
+  const t = (altitudeKm - CROSSFADE_LOW) / (CROSSFADE_HIGH - CROSSFADE_LOW);
+  return { country: t, blob: 1 - t };
+}

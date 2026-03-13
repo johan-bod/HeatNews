@@ -4,6 +4,7 @@ import {
   heatToFillOpacity,
   audienceScaleToRadiusKm,
   generateBlobPolygon,
+  crossfadeOpacity,
   type CountryHeatEntry,
 } from '@/utils/territoryHalos';
 import type { NewsArticle } from '@/types/news';
@@ -123,5 +124,30 @@ describe('generateBlobPolygon', () => {
     const spreadLarge = Math.max(...large.geometry.coordinates[0].map(p => p[0])) -
                         Math.min(...large.geometry.coordinates[0].map(p => p[0]));
     expect(spreadLarge).toBeGreaterThan(spreadSmall);
+  });
+});
+
+describe('crossfadeOpacity', () => {
+  it('returns { country: 1, blob: 0 } above 3500km', () => {
+    expect(crossfadeOpacity(5000)).toEqual({ country: 1, blob: 0 });
+    expect(crossfadeOpacity(3500)).toEqual({ country: 1, blob: 0 });
+  });
+
+  it('returns { country: 0, blob: 1 } below 2500km', () => {
+    expect(crossfadeOpacity(1000)).toEqual({ country: 0, blob: 1 });
+    expect(crossfadeOpacity(2500)).toEqual({ country: 0, blob: 1 });
+  });
+
+  it('returns interpolated values in 2500-3500km range', () => {
+    const mid = crossfadeOpacity(3000);
+    expect(mid.country).toBeCloseTo(0.5, 1);
+    expect(mid.blob).toBeCloseTo(0.5, 1);
+  });
+
+  it('country + blob always sum to 1 within the crossfade range', () => {
+    for (const alt of [2600, 2800, 3000, 3200, 3400]) {
+      const { country, blob } = crossfadeOpacity(alt);
+      expect(country + blob).toBeCloseTo(1, 5);
+    }
   });
 });
