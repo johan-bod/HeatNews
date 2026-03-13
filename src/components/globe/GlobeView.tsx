@@ -6,42 +6,104 @@ import type { Topology, GeometryObject } from 'topojson-specification';
 import type { NewsArticle } from '@/types/news';
 import type { PreferenceLocation } from '@/types/preferences';
 import RegionJumpPills from './RegionJumpPills';
-import { filterArticlesByAltitude, getMaxMarkers } from '@/utils/globeUtils';
+import { filterArticlesByAltitude, getMaxMarkers, computeResultsCentroid, computeFlyToAltitude } from '@/utils/globeUtils';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
 import { useGlobeAutoRotation } from './GlobeControls';
+import { useGlobeInteraction } from './useGlobeInteraction';
+import GlobeOverlay from './GlobeOverlay';
 import GlobePopup from './GlobePopup';
 import GlobeTooltip from './GlobeTooltip';
+import {
+  aggregateCountryHeat,
+  heatToFillOpacity,
+  crossfadeOpacity,
+  audienceScaleToRadiusKm,
+  generateBlobPolygon,
+} from '@/utils/territoryHalos';
+import { MEDIA_OUTLETS } from '@/data/media-outlets';
 
 interface GlobeViewProps {
   articles: NewsArticle[];
-  onFlyToReady?: (flyTo: (lat: number, lng: number) => void) => void;
+  onFlyToReady?: (
+    flyTo: (lat: number, lng: number, alt?: number) => void,
+    flyToResults?: (articles: NewsArticle[]) => void
+  ) => void;
   preferenceLocations?: PreferenceLocation[];
+  searchResultIds?: Set<string> | null;
 }
 
 // Spec: 300ms transition for marker fade in/out
 const MARKER_TRANSITION_MS = 300;
 
-export default function GlobeView({ articles, onFlyToReady, preferenceLocations = [] }: GlobeViewProps) {
+// ISO 3166-1 numeric → alpha-2 for countries with media outlets
+const NUMERIC_TO_ALPHA2: Record<string, string> = {
+  '032': 'ar', '036': 'au', '056': 'be', '076': 'br', '124': 'ca',
+  '156': 'cn', '250': 'fr', '276': 'de', '356': 'in', '360': 'id',
+  '380': 'it', '392': 'jp', '404': 'ke', '410': 'kr', '458': 'my',
+  '484': 'mx', '528': 'nl', '566': 'ng', '620': 'pt', '643': 'ru',
+  '682': 'sa', '702': 'sg', '710': 'za', '724': 'es', '756': 'ch',
+  '764': 'th', '784': 'ae', '818': 'eg', '826': 'gb', '840': 'us',
+};
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export default function GlobeView({
+  articles,
+  onFlyToReady,
+  preferenceLocations = [],
+  searchResultIds,
+}: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
+  const countryPolygonsRef = useRef<any[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [hoveredMarker, setHoveredMarker] = useState<GlobeMarkerData | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-  const [altitude, setAltitude] = useState(2.5); // Globe.gl altitude units
+  const [altitude, setAltitude] = useState(2.5);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [activeRegionIndex, setActiveRegionIndex] = useState(0);
   const isMobile = screenWidth < 768;
 
-  const { onUserInteraction, getRotationAngle } = useGlobeAutoRotation({
-    enabled: !isMobile, // Spec: disable auto-rotation on mobile
+  const autoRotation = useGlobeAutoRotation({
+    enabled: !isMobile,
     idleTimeout: 4000,
     rotationSpeed: 0.15,
   });
 
-  // Convert Globe.gl altitude to km (rough: altitude 1 ≈ 6371km earth radius)
   const altitudeKm = altitude * 6371;
   const maxMarkers = getMaxMarkers(screenWidth);
+
+  // Globe interaction (dormant/active)
+  const { isActive, activate, deactivate, handleWheel, showScrollToast } =
+    useGlobeInteraction({
+      altitudeKm,
+      isMobile,
+      onDeactivate: () => {
+        autoRotation.setActive(false);
+      },
+    });
+
+  // Sync active state to auto-rotation
+  useEffect(() => {
+    if (isActive && !isMobile) {
+      autoRotation.setActive(true);
+    }
+  }, [isActive, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Toggle globe zoom controls based on active state
+  useEffect(() => {
+    if (!globeRef.current || isMobile) return;
+    const controls = globeRef.current.controls() as any;
+    if (controls) {
+      controls.noZoom = !isActive;
+    }
+  }, [isActive, isMobile]);
 
   // Filter articles by current zoom level
   const visibleArticles = useMemo(
@@ -49,11 +111,60 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
     [articles, altitudeKm, maxMarkers]
   );
 
-  // Convert to marker data
+  // Convert to marker data with search dimming
   const markers = useMemo(
-    () => articlesToMarkers(visibleArticles),
-    [visibleArticles]
+    () => articlesToMarkers(visibleArticles, searchResultIds),
+    [visibleArticles, searchResultIds]
   );
+
+  // Build merged polygon data (country fills + radial blobs)
+  const mergedPolygons = useMemo(() => {
+    if (countryPolygonsRef.current.length === 0) return [];
+
+    const { country: countryOpacity, blob: blobOpacity } = crossfadeOpacity(altitudeKm);
+    const countryHeatMap = aggregateCountryHeat(articles);
+
+    // Country polygons tagged with type
+    const countryPolys = countryPolygonsRef.current.map((feat: any) => {
+      const numericCode = String(feat.id).padStart(3, '0');
+      const alpha2 = NUMERIC_TO_ALPHA2[numericCode] || '';
+      const heatEntry = countryHeatMap.get(alpha2);
+      return {
+        ...feat,
+        __type: 'country',
+        __heat: heatEntry?.heat || 0,
+        __color: heatEntry?.color || null,
+        __crossfadeOpacity: countryOpacity,
+      };
+    });
+
+    // Radial blob polygons (skip on mobile for performance)
+    let blobPolys: any[] = [];
+    if (blobOpacity > 0 && !isMobile) {
+      const withCoords = articles.filter(a => a.coordinates);
+      blobPolys = withCoords.map(article => {
+        const outlet = MEDIA_OUTLETS.find(o =>
+          o.domain && article.source?.url?.includes(o.domain)
+        );
+        const radiusKm = audienceScaleToRadiusKm(outlet?.audienceScale);
+        const blob = generateBlobPolygon(
+          article.coordinates!.lat,
+          article.coordinates!.lng,
+          radiusKm
+        );
+        return {
+          ...blob,
+          __type: 'blob',
+          __color: article.color || '#94A3B8',
+          __heat: article.heatLevel || 0,
+          __crossfadeOpacity: blobOpacity,
+          __articleId: article.id,
+        };
+      });
+    }
+
+    return [...countryPolys, ...blobPolys];
+  }, [articles, altitudeKm, isMobile]);
 
   // Track screen width for responsive behavior
   useEffect(() => {
@@ -77,9 +188,14 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
       .pointLng('lng')
       .pointAltitude(0.01)
       .pointRadius('size')
-      .pointColor('color')
+      .pointColor((d: object) => {
+        const marker = d as GlobeMarkerData;
+        if (marker.opacity < 1) {
+          return hexToRgba(marker.color, marker.opacity);
+        }
+        return marker.color;
+      })
       .pointLabel('')
-      // Spec: 300ms transition for marker fade in/out between zoom levels
       .pointsMerge(false)
       .pointsTransitionDuration(MARKER_TRANSITION_MS)
       .onPointClick((point: object) => {
@@ -111,11 +227,13 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
       globeMaterial.shininess = 0.7;
     }
 
-    // Show country polygons with subtle borders
+    // Load country polygons and store for territory halos
     fetch('https://unpkg.com/world-atlas@2/countries-110m.json')
       .then(res => res.json())
       .then((topology: Topology) => {
         const countries = feature(topology, topology.objects.countries as GeometryObject);
+        countryPolygonsRef.current = countries.features;
+        // Initial polygon render (will be updated by mergedPolygons effect)
         globe
           .polygonsData(countries.features)
           .polygonCapColor(() => 'rgba(30, 42, 58, 0.6)')
@@ -124,14 +242,19 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
           .polygonAltitude(0.005);
       })
       .catch(() => {
-        // Graceful: globe works without country borders
         console.warn('Could not load country polygons');
       });
 
     // Set initial point of view (Europe centered)
     globe.pointOfView({ lat: 46, lng: 2, altitude: 2.5 }, 0);
 
-    // Hex-bin heatmap glow layer — ambient warmth under markers
+    // Disable zoom by default (dormant state)
+    const controls = globe.controls() as any;
+    if (controls && !isMobile) {
+      controls.noZoom = true;
+    }
+
+    // Hex-bin heatmap glow layer
     globe
       .hexBinPointsData(articles.filter(a => a.coordinates).map(a => ({
         lat: a.coordinates!.lat,
@@ -141,13 +264,13 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
       .hexBinPointLat('lat')
       .hexBinPointLng('lng')
       .hexBinPointWeight((d: object) => (d as { heatLevel: number }).heatLevel)
-      .hexBinResolution(3) // coarse bins for ambient effect
-      .hexAltitude(0.003) // just above globe surface
+      .hexBinResolution(3)
+      .hexAltitude(0.003)
       .hexTopColor((d: object) => {
         const pts = d as { points: { heatLevel: number }[] };
         const avgHeat = pts.points.reduce((s, p) => s + p.heatLevel, 0) / pts.points.length;
         const alpha = Math.min(0.35, avgHeat / 200);
-        return `rgba(245, 158, 11, ${alpha})`; // amber glow
+        return `rgba(245, 158, 11, ${alpha})`;
       })
       .hexSideColor(() => 'rgba(245, 158, 11, 0.02)')
       .hexBinMerge(true)
@@ -157,7 +280,7 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
     globe.controls().addEventListener('change', () => {
       const pov = globe.pointOfView();
       setAltitude(pov.altitude);
-      onUserInteraction();
+      autoRotation.onUserInteraction();
     });
 
     globeRef.current = globe;
@@ -173,24 +296,36 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
 
     return () => {
       resizeObserver.disconnect();
-      // Globe.gl cleanup: remove the renderer's DOM element
       if (containerRef.current) {
         const canvas = containerRef.current.querySelector('canvas');
         if (canvas) canvas.remove();
       }
     };
-  }, [onUserInteraction]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Expose flyTo for external callers (article feed)
+  // Expose flyTo and flyToResults for external callers
   useEffect(() => {
     if (!globeRef.current || !onFlyToReady) return;
-    onFlyToReady((lat: number, lng: number) => {
+
+    const flyTo = (lat: number, lng: number, alt?: number) => {
       if (globeRef.current) {
-        globeRef.current.pointOfView({ lat, lng, altitude: 0.4 }, 1000);
-        onUserInteraction();
+        globeRef.current.pointOfView({ lat, lng, altitude: alt ?? 0.4 }, alt ? 1000 : 400);
+        autoRotation.onUserInteraction();
       }
-    });
-  }, [onFlyToReady, onUserInteraction]);
+    };
+
+    const flyToResults = (resultArticles: NewsArticle[]) => {
+      const centroid = computeResultsCentroid(resultArticles);
+      if (!centroid) return;
+      const alt = computeFlyToAltitude(resultArticles);
+      globeRef.current?.pointOfView(
+        { lat: centroid.lat, lng: centroid.lng, altitude: alt },
+        1000
+      );
+    };
+
+    onFlyToReady(flyTo, flyToResults);
+  }, [onFlyToReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-focus on primary preference location on mount
   const primaryLocKey = preferenceLocations.length > 0
@@ -200,7 +335,6 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
   useEffect(() => {
     if (!globeRef.current || !primaryLocKey) return;
     const primary = preferenceLocations[0];
-    // Delay to let globe initialize
     const timer = setTimeout(() => {
       if (globeRef.current) {
         globeRef.current.pointOfView(
@@ -212,11 +346,45 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
     return () => clearTimeout(timer);
   }, [primaryLocKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update markers when data changes (Globe.gl handles 300ms transition)
+  // Update markers when data changes
   useEffect(() => {
     if (!globeRef.current) return;
     globeRef.current.pointsData(markers);
   }, [markers]);
+
+  // Update polygon data (territory halos) when merged polygons change
+  useEffect(() => {
+    if (!globeRef.current || mergedPolygons.length === 0) return;
+    globeRef.current
+      .polygonsData(mergedPolygons)
+      .polygonCapColor((d: any) => {
+        if (d.__type === 'blob') {
+          const alpha = 0.15 * d.__crossfadeOpacity;
+          // Dim blobs for non-matching search results
+          if (searchResultIds && !searchResultIds.has(d.__articleId)) {
+            return 'rgba(0,0,0,0)';
+          }
+          return hexToRgba(d.__color, alpha);
+        }
+        // Country fill
+        if (!d.__color) return 'rgba(30, 42, 58, 0.6)';
+        const heatAlpha = heatToFillOpacity(d.__heat);
+        const alpha = heatAlpha * d.__crossfadeOpacity;
+        return hexToRgba(d.__color, alpha);
+      })
+      .polygonSideColor((d: any) => {
+        if (d.__type === 'blob') return 'rgba(0,0,0,0)';
+        return 'rgba(30, 42, 58, 0.2)';
+      })
+      .polygonStrokeColor((d: any) => {
+        if (d.__type === 'blob') return 'rgba(0,0,0,0)';
+        return 'rgba(148, 163, 184, 0.15)';
+      })
+      .polygonAltitude((d: any) => {
+        if (d.__type === 'blob') return 0.006;
+        return 0.005;
+      });
+  }, [mergedPolygons, searchResultIds]);
 
   // Update hex-bin heatmap when articles change
   useEffect(() => {
@@ -235,21 +403,19 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
     let animationId: number;
     const animate = () => {
       if (globeRef.current) {
-        // Auto-rotation (desktop only) — getRotationAngle returns null when paused
         if (!isMobile) {
-          const angle = getRotationAngle();
+          const angle = autoRotation.getRotationAngle();
           if (angle !== null && globeRef.current) {
             const pov = globeRef.current.pointOfView();
             globeRef.current.pointOfView({ lat: pov.lat, lng: angle, altitude: pov.altitude }, 0);
           }
         }
 
-        // Pulse very-hot markers (81-100 heat) by oscillating their altitude
         const time = Date.now() / 1000;
         globeRef.current.pointAltitude((d: object) => {
           const marker = d as GlobeMarkerData;
           if (marker.heatLevel >= 81) {
-            return 0.01 + Math.sin(time * 2) * 0.008; // subtle altitude pulse
+            return 0.01 + Math.sin(time * 2) * 0.008;
           }
           return 0.01;
         });
@@ -259,22 +425,38 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
     animationId = requestAnimationFrame(animate);
 
     return () => cancelAnimationFrame(animationId);
-  }, [isMobile, getRotationAngle]);
+  }, [isMobile, autoRotation]);
 
   const handleRegionJump = useCallback((loc: PreferenceLocation, index: number) => {
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: loc.lat, lng: loc.lng, altitude: 1.2 }, 1000);
       setActiveRegionIndex(index);
-      onUserInteraction();
+      autoRotation.onUserInteraction();
     }
-  }, [onUserInteraction]);
+  }, [autoRotation]);
 
   return (
-    <div className="relative w-full" style={{ height: isMobile ? '400px' : '600px' }}>
+    <div
+      id="globe-section"
+      className="relative w-full bg-navy-900"
+      style={{ height: isMobile ? '400px' : '600px' }}
+      onWheel={handleWheel}
+    >
+      <GlobeOverlay
+        showOverlay={!isActive && !isMobile}
+        showScrollToast={showScrollToast}
+        onActivate={activate}
+      />
       <div
         ref={containerRef}
-        className="w-full h-full"
+        className={`w-full h-full ${isActive ? 'cursor-grab active:cursor-grabbing' : ''}`}
         style={{ background: 'radial-gradient(ellipse at center, #0a1628 0%, #050d18 70%, #000000 100%)' }}
+        onClick={(e) => {
+          // Click on globe canvas activates interaction
+          if (!isActive && !isMobile) {
+            activate();
+          }
+        }}
       />
 
       {/* Zoom level indicator */}
@@ -288,7 +470,7 @@ export default function GlobeView({ articles, onFlyToReady, preferenceLocations 
         </div>
       </div>
 
-      {/* Region jump pills (signed-in users with multiple locations) */}
+      {/* Region jump pills */}
       {preferenceLocations.length > 1 && (
         <RegionJumpPills
           locations={preferenceLocations}
