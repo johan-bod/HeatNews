@@ -7,6 +7,7 @@ import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilitySe
 import { getTierLabel, getTierColor, buildSourceBreakdown, getClusterArticles } from './credibilityHelpers';
 import { useNavigate } from 'react-router-dom';
 import { analyzeCoverageGap } from '@/utils/coverageGap';
+import { analyzeGeographicGap } from '@/utils/geographicGap';
 
 interface GlobePopupProps {
   article: NewsArticle;
@@ -31,6 +32,7 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
   const navigate = useNavigate();
   const showInvestigate = cluster && cluster.articles.length >= 2;
   const coverageGap = cluster ? analyzeCoverageGap(cluster) : null;
+  const geoGap = cluster ? analyzeGeographicGap(cluster) : null;
 
   function hasDifferentLocation(clusterArticle: NewsArticle): boolean {
     if (!article.coordinates || !clusterArticle.coordinates) return false;
@@ -89,6 +91,16 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
             <AlertTriangle className="w-2.5 h-2.5 text-amber-400/70 flex-shrink-0" />
             <span className="font-body text-[10px] text-amber-400/70">
               {coverageGap.gapLabel}
+            </span>
+          </div>
+        )}
+
+        {/* Geographic gap indicator */}
+        {geoGap?.hasGeoGap && geoGap.countryGapLabel && (
+          <div className="flex items-center gap-1 mb-2">
+            <AlertTriangle className="w-2.5 h-2.5 text-amber-400/70 flex-shrink-0" />
+            <span className="font-body text-[10px] text-amber-400/70">
+              {geoGap.countryGapLabel}
             </span>
           </div>
         )}
