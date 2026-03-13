@@ -1,7 +1,7 @@
 import type { NewsArticle } from '@/types/news';
 import { fetchNewsDataArticles, convertNewsDataArticle } from './newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
-import { inferArticleOrigins } from '@/utils/geoInference';
+import { inferArticleOrigins, loadCoreGazetteer } from '@/utils/geoInference';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
 import { indexArticleTopics } from '@/utils/topicIndexer';
 import { setCacheData, getCacheData, getCacheMetadata, getRotationIndex, setRotationIndex } from '@/utils/cache';
@@ -36,10 +36,11 @@ const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 const BACKGROUND_REFRESH_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Shared processing: geocode, assign scale, compute heat colors
+ * Shared processing: geocode, infer origins, assign scale, compute heat colors
  */
-function processArticles(articles: NewsArticle[], scale: ArticleScale): NewsArticle[] {
+async function processArticles(articles: NewsArticle[], scale: ArticleScale): Promise<NewsArticle[]> {
   let processed = geocodeArticles(articles);
+  await loadCoreGazetteer();
   processed = inferArticleOrigins(processed);
   processed = processed.map(a => {
     const topics = indexArticleTopics(a, a.language || 'en');
@@ -115,7 +116,7 @@ async function fetchSharedPool(): Promise<{
     for (const r of batchResults) {
       if (r.status === 'fulfilled') {
         const { scale, articles } = r.value;
-        result[scale].push(...processArticles(articles, scale));
+        result[scale].push(...await processArticles(articles, scale));
       }
     }
   }
@@ -231,7 +232,7 @@ export async function fetchPersonalizedNews(
   syncUsageToFirestore(uid); // fire-and-forget
 
   // Process and cache
-  const processed = processArticles(articles, 'international');
+  const processed = await processArticles(articles, 'international');
   setCacheData(CACHE_KEY_PERSONALIZED, processed, {
     region: 'Personalized',
     scale: 'international',

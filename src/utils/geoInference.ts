@@ -117,6 +117,12 @@ export async function loadCoreGazetteer(): Promise<Map<string, GazetteerEntry[]>
   return gazetteer;
 }
 
+// Eagerly start loading the core gazetteer when this module is imported.
+// By the time processArticles runs (after API fetch), it should be ready.
+if (typeof window !== 'undefined') {
+  loadCoreGazetteer();
+}
+
 /**
  * Load the extended gazetteer (async, from public/).
  * Merges into the existing gazetteer Map.
