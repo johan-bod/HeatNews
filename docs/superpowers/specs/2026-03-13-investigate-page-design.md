@@ -33,9 +33,9 @@ navigate(`/investigate?article=${article.id}`, { state: { cluster, article } })
 **Refresh fallback:** If route state is missing (page refresh or direct URL):
 
 1. Read `articleId` from the query param
-2. Call `getCachedNews()` from `src/services/cachedNews.ts` — returns `{ local, regional, national, international }` arrays
-3. Combine all four arrays into a single `allArticles` list
-4. Call `analyzeArticleHeat(allArticles, 'international')` to rebuild clusters (uses `'international'` because this is the same scale used by the globe's cluster computation in `Index.tsx`)
+2. Call `getCachedNews()` from `src/services/cachedNews.ts` — returns `{ localNews, regionalNews, nationalNews, international }` arrays (note the inconsistent naming in the existing interface)
+3. Combine all four arrays: `[...localNews, ...regionalNews, ...nationalNews, ...international]`
+4. Call `analyzeArticleHeat(allArticles, 'international')` to rebuild clusters. The scale parameter is ignored internally (kept for API compatibility) but passed for consistency with `Index.tsx`.
 5. Find the cluster whose `articles` array contains an article with matching `id`
 
 **Not found:** If the article can't be located in either path, renders: "This story is no longer available." with a "← Back to map" link below it. Page stays at `/investigate?article=<id>` — no redirect.
@@ -56,7 +56,7 @@ Below the "← Back to map" link:
 
 - **Representative title**: the clicked article's title, styled as `text-2xl font-bold text-ivory-100`
 - **Meta row**: heat level pill, source count, and location count. All `text-sm text-ivory-200/60`, inline with small dot separators.
-  - Heat pill: use `heatLevelToColor(cluster.heatLevel)` from `topicClustering.ts` to get the hex color, apply as inline style `backgroundColor` with 0.2 opacity and `color` at full — e.g., `style={{ backgroundColor: hexToRgba(color, 0.2), color }}`. Display the numeric heat level inside (e.g., "72").
+  - Heat pill: use `heatLevelToColor(cluster.heatLevel)` from `topicClustering.ts` to get the hex color. Use `hexToRgbaArc(color, 0.2)` from `arcBuilder.ts` for the background and the hex color directly for the text: `style={{ backgroundColor: hexToRgbaArc(color, 0.2), color: color }}`. Display the numeric heat level inside (e.g., "72").
   - Source count: `"N sources"` where N = `cluster.articles.length`
   - Location count: `"across N regions"` where N = `countDistinctLocations(cluster)` from `arcBuilder.ts`. Omitted if N < 2.
 
@@ -74,7 +74,7 @@ Each tier group:
 - **Tier header**: tier label + colored dot, styled as `text-xs uppercase tracking-wide text-ivory-200/40`:
   ```tsx
   <div className="flex items-center gap-2">
-    <span className={getTierColor(tier)}>●</span>
+    <span className={getTierColor(tier)}>●</span>  {/* getTierColor returns Tailwind text-color classes like 'text-blue-400' — works on text content */}
     <span>{getTierLabel(tier)}</span>
   </div>
   ```
@@ -90,7 +90,7 @@ A compact text-only summary section at the bottom:
 
 - Section header: "Geographic Spread" styled as `text-sm font-semibold text-ivory-200/60`
 - Summary text: `"This story is covered from N distinct locations"` using `countDistinctLocations` from `arcBuilder.ts`
-- List of articles that have coordinates, showing source name + rounded lat/lng (e.g., "48.9°N, 2.4°E")
+- List of articles that have coordinates, showing source name + rounded lat/lng (e.g., "48.9, 2.4") — plain numbers, no cardinal direction formatting in V1
 - If no articles have coordinates: `"No geographic data available for this cluster"`
 
 ---
