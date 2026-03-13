@@ -80,6 +80,31 @@ export function getClusterArticles(
   }));
 }
 
+export function getAllClusterArticles(
+  articles: NewsArticle[]
+): ClusterArticleItem[] {
+  const withTier = articles.map(article => {
+    const domain = extractDomainFromArticle(article);
+    const { tier } = resolveCredibilityByDomain(domain);
+    return {
+      article,
+      tier,
+      tierLabel: getTierLabel(tier),
+      tierColor: getTierColor(tier),
+      weight: TIER_WEIGHTS[tier],
+    };
+  });
+
+  withTier.sort((a, b) => b.weight - a.weight);
+
+  return withTier.map(({ article, tier, tierLabel, tierColor }) => ({
+    article,
+    tier,
+    tierLabel,
+    tierColor,
+  }));
+}
+
 function extractDomainFromArticle(article: NewsArticle): string | undefined {
   try {
     const url = article.source.url || article.url;
