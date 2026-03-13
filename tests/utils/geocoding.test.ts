@@ -45,4 +45,16 @@ describe('geocoding', () => {
     const loc = extractLocation(article);
     expect(loc).toBe('rennes');
   });
+
+  it('geocodeArticle sets locationConfidence to exact when coordinates found', () => {
+    const article = makeArticle('Protest in Lyon streets');
+    const result = geocodeArticle(article);
+    expect(result.locationConfidence).toBe('exact');
+  });
+
+  it('geocodeArticle does not set locationConfidence when no location found', () => {
+    const article = makeArticle('Generic news with no city name');
+    const result = geocodeArticle(article);
+    expect(result.locationConfidence).toBeUndefined();
+  });
 });

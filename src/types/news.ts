@@ -25,6 +25,7 @@ export interface NewsArticle {
   secondaryTopics?: string[];
   language?: string;
   country?: string;
+  locationConfidence?: 'exact' | 'inferred' | 'centroid';
 }
 
 export interface NewsDataArticle {

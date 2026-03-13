@@ -67,6 +67,7 @@ export function geocodeArticle(article: NewsArticle): NewsArticle {
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' '),
       coordinates: coordinates || undefined,
+      locationConfidence: coordinates ? 'exact' : undefined,
     };
   }
 
