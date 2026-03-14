@@ -79,6 +79,9 @@ export function groupByTier(items: ClusterArticleItem[]): { tier: CredibilityTie
 export default function InvestigatePage() {
   const navigate = useNavigate();
   const { cluster, article } = useInvestigateData();
+  const coverageGap = useMemo(() => cluster ? analyzeCoverageGap(cluster) : null, [cluster]);
+  const geoGap = useMemo(() => cluster ? analyzeGeographicGap(cluster) : null, [cluster]);
+  const perspective = useMemo(() => cluster ? analyzeEditorialPerspective(cluster.articles) : null, [cluster]);
 
   if (!cluster || !article) {
     return (
@@ -101,9 +104,6 @@ export default function InvestigatePage() {
   const allItems = getAllClusterArticles(cluster.articles);
   const tierGroups = groupByTier(allItems);
   const articlesWithCoords = cluster.articles.filter(a => a.coordinates);
-  const coverageGap = useMemo(() => analyzeCoverageGap(cluster), [cluster]);
-  const geoGap = useMemo(() => analyzeGeographicGap(cluster), [cluster]);
-  const perspective = useMemo(() => analyzeEditorialPerspective(cluster.articles), [cluster]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
@@ -202,32 +202,32 @@ export default function InvestigatePage() {
         </div>
 
         {/* Coverage Analysis */}
-        {(coverageGap.hasGap || geoGap.hasGeoGap) && (
+        {(coverageGap?.hasGap || geoGap?.hasGeoGap) && (
           <div className="mb-10">
             <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
               Coverage Analysis
             </h2>
-            {coverageGap.hasGap && (
+            {coverageGap?.hasGap && (
               <div className="flex items-center gap-2 text-sm text-amber-400/80">
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>{coverageGap.gapLabel}</span>
+                <span>{coverageGap!.gapLabel}</span>
               </div>
             )}
-            {coverageGap.imbalanceNote && (
+            {coverageGap?.imbalanceNote && (
               <p className="text-sm text-ivory-200/40 mt-2">
-                {coverageGap.imbalanceNote}
+                {coverageGap!.imbalanceNote}
               </p>
             )}
             {/* Geographic gap */}
-            {geoGap.hasGeoGap && (
+            {geoGap?.hasGeoGap && (
               <div className="mt-3">
-                {geoGap.countryGapLabel && (
+                {geoGap?.countryGapLabel && (
                   <div className="flex items-center gap-2 text-sm text-amber-400/80">
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{geoGap.countryGapLabel}</span>
+                    <span>{geoGap!.countryGapLabel}</span>
                   </div>
                 )}
-                {geoGap.regionalBreakdown.map((rg) => (
+                {geoGap!.regionalBreakdown.map((rg) => (
                   <div key={rg.country} className="mt-2">
                     {rg.coveredRegions.length > 0 && (
                       <p className="text-sm text-ivory-200/40">
@@ -247,16 +247,16 @@ export default function InvestigatePage() {
         )}
 
         {/* Perspective Comparison */}
-        {perspective.hasInsights && (
+        {perspective?.hasInsights && (
           <div className="mb-10">
             <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
               Perspective Comparison
             </h2>
-            {perspective.uniqueAngles.length > 0 && (
+            {perspective!.uniqueAngles.length > 0 && (
               <div className="mb-3">
                 <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Unique angles</p>
                 <ul className="space-y-1">
-                  {perspective.uniqueAngles.map((insight, i) => (
+                  {perspective!.uniqueAngles.map((insight, i) => (
                     <li key={i} className="text-sm text-ivory-200/60">
                       {insight.label}
                     </li>
@@ -264,11 +264,11 @@ export default function InvestigatePage() {
                 </ul>
               </div>
             )}
-            {perspective.emphasisDifferences.length > 0 && (
+            {perspective!.emphasisDifferences.length > 0 && (
               <div>
                 <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Emphasis differences</p>
                 <ul className="space-y-1">
-                  {perspective.emphasisDifferences.map((insight, i) => (
+                  {perspective!.emphasisDifferences.map((insight, i) => (
                     <li key={i} className="text-sm text-ivory-200/60">
                       {insight.label}
                     </li>
