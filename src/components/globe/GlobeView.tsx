@@ -553,14 +553,19 @@ export default function GlobeView({
         }}
       />
 
-      {/* Zoom level indicator */}
-      <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
-        <div className="bg-navy-900/80 backdrop-blur-sm border border-amber-500/20 rounded-lg px-3 py-1.5 font-body text-xs text-ivory-200/60">
-          {altitudeKm > 8000 && 'International view'}
-          {altitudeKm > 3000 && altitudeKm <= 8000 && 'National view'}
-          {altitudeKm > 800 && altitudeKm <= 3000 && 'Regional view'}
-          {altitudeKm <= 800 && 'Local view'}
-          <span className="ml-2 text-amber-400/60">{visibleArticles.length} stories</span>
+      {/* Scale indicator + country — upper-left */}
+      <div className="absolute top-4 left-4 z-10">
+        <div className="bg-navy-900/80 backdrop-blur-sm border border-amber-500/20 rounded-lg px-3 py-2 font-body text-xs">
+          <div className="text-ivory-200/80 font-semibold">
+            🇫🇷 France
+          </div>
+          <div className="text-ivory-200/50 mt-0.5">
+            {altitudeKm > 8000 && 'International view'}
+            {altitudeKm > 3000 && altitudeKm <= 8000 && 'National view'}
+            {altitudeKm > 800 && altitudeKm <= 3000 && 'Regional view'}
+            {altitudeKm <= 800 && 'Local view'}
+            <span className="ml-2 text-amber-400/60">{visibleArticles.length} stories</span>
+          </div>
           {!isMobile && (
             <button
               onClick={() => {
@@ -568,7 +573,7 @@ export default function GlobeView({
                 setSoundOn(next);
                 setSoundEnabled(next);
               }}
-              className="ml-2 text-ivory-200/30 hover:text-ivory-200/60 transition-colors"
+              className="mt-1 text-ivory-200/30 hover:text-ivory-200/60 transition-colors"
               title={soundOn ? 'Mute discovery sound' : 'Enable discovery sound'}
             >
               {soundOn ? <Volume2 className="w-3 h-3 inline" /> : <VolumeX className="w-3 h-3 inline" />}
