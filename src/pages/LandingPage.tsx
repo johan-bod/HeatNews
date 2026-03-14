@@ -133,8 +133,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <GradientLine />
-
       {/* Who It's For */}
       <section className="py-20 px-6 animate-fade-up">
         <div className="max-w-4xl mx-auto">
@@ -159,6 +157,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <GradientLine />
 
       {/* Testimonial Placeholder / Early Access */}
       <section className="py-20 px-6 animate-fade-up">
