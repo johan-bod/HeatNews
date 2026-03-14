@@ -21,6 +21,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- SPA redirect restoration for GitHub Pages -->
+    <script>
+      (function() {
+        var redirect = new URLSearchParams(window.location.search).get('__spa_redirect');
+        if (redirect) {
+          history.replaceState(null, '', decodeURIComponent(redirect));
+        }
+      })();
+    </script>
   </head>
 
   <body>
