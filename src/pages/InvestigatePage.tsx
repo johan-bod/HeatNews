@@ -1,5 +1,5 @@
 // src/pages/InvestigatePage.tsx
-import { useMemo } from 'react';
+import { useMemo, lazy, Suspense } from 'react';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle, MapPin } from 'lucide-react';
 import type { NewsArticle } from '@/types/news';
@@ -15,6 +15,7 @@ import { analyzeCoverageGap } from '@/utils/coverageGap';
 import { analyzeGeographicGap } from '@/utils/geographicGap';
 import { getCountryName } from '@/utils/countryNames';
 import { analyzeEditorialPerspective } from '@/utils/editorialPerspective';
+const ClusterMiniMap = lazy(() => import('@/components/investigate/ClusterMiniMap'));
 
 interface InvestigateState {
   cluster: StoryCluster;
@@ -288,7 +289,10 @@ export default function InvestigatePage() {
               <p className="text-sm text-ivory-200/40 mb-2">
                 This story is covered from {distinctLocations} distinct location{distinctLocations !== 1 ? 's' : ''}
               </p>
-              <ul className="space-y-1">
+              <Suspense fallback={<div style={{ height: 280 }} />}>
+                <ClusterMiniMap articles={articlesWithCoords} heatColor={heatColor} />
+              </Suspense>
+              <ul className="space-y-1 mt-4">
                 {articlesWithCoords.map(a => (
                   <li key={a.id} className="text-sm text-ivory-200/60">
                     {a.source.name} — {a.location && a.country
