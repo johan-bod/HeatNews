@@ -215,7 +215,7 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
         {showInvestigate && (
           <button
             onClick={() => {
-              navigate(`/investigate?article=${article.id}`, {
+              navigate(`/app/investigate?article=${article.id}`, {
                 state: { cluster, article },
               });
             }}

@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminRoute } from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
+import LandingPage from "./pages/LandingPage";
+import AppPage from "./pages/AppPage";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import InvestigatePage from "./pages/InvestigatePage";
@@ -16,8 +17,9 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/investigate" element={<InvestigatePage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/app" element={<AppPage />} />
+          <Route path="/app/investigate" element={<InvestigatePage />} />
           <Route
             path="/admin"
             element={
