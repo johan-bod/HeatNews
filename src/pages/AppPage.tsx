@@ -405,6 +405,7 @@ const Index = () => {
           }}
           preferenceLocations={preferences.locations}
           searchResultIds={searchResultIds}
+          selectedScale={selectedScale}
         />
       </ErrorBoundary>
       <GlobeLegend />

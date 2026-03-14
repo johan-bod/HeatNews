@@ -11,6 +11,7 @@ import { playDiscoverSound, isSoundEnabled, setSoundEnabled } from '@/utils/soun
 import { Volume2, VolumeX } from 'lucide-react';
 import RegionJumpPills from './RegionJumpPills';
 import { filterArticlesByAltitude, getMaxMarkers, computeResultsCentroid, computeFlyToAltitude } from '@/utils/globeUtils';
+import { DEFAULT_COUNTRY, SCALE_ALTITUDES } from '@/data/countries';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
 import { useGlobeAutoRotation } from './GlobeControls';
 import { useGlobeInteraction } from './useGlobeInteraction';
@@ -35,6 +36,7 @@ interface GlobeViewProps {
   ) => void;
   preferenceLocations?: PreferenceLocation[];
   searchResultIds?: Set<string> | null;
+  selectedScale?: string;
 }
 
 // Spec: 300ms transition for marker fade in/out
@@ -63,6 +65,7 @@ export default function GlobeView({
   onFlyToReady,
   preferenceLocations = [],
   searchResultIds,
+  selectedScale = 'all',
 }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
@@ -256,10 +259,15 @@ export default function GlobeView({
     // Set initial point of view (France centered, national scale)
     globe.pointOfView({ lat: 46.5, lng: 2.5, altitude: 0.8 }, 0);
 
-    // Disable zoom by default (dormant state)
+    // Set zoom distance limits + dormant state
     const controls = globe.controls() as any;
-    if (controls && !isMobile) {
-      controls.noZoom = true;
+    if (controls) {
+      const radius = globe.getGlobeRadius();
+      controls.minDistance = radius * 1.02;
+      controls.maxDistance = radius * 4.5;
+      if (!isMobile) {
+        controls.noZoom = true;
+      }
     }
 
     // Hex-bin heatmap glow layer
@@ -368,6 +376,26 @@ export default function GlobeView({
     }, 500);
     return () => clearTimeout(timer);
   }, [primaryLocKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fly to preset altitude when scale changes
+  const prevScaleRef = useRef(selectedScale);
+  useEffect(() => {
+    if (!globeRef.current || selectedScale === 'all' || selectedScale === prevScaleRef.current) return;
+    prevScaleRef.current = selectedScale;
+    const altitude = SCALE_ALTITUDES[selectedScale as keyof typeof SCALE_ALTITUDES];
+    if (!altitude) return;
+
+    const countryCenter = DEFAULT_COUNTRY.center;
+    const pov = globeRef.current.pointOfView();
+    const dLat = Math.abs(pov.lat - countryCenter.lat);
+    const dLng = Math.abs(pov.lng - countryCenter.lng);
+    if (dLat <= 10 && dLng <= 10) {
+      globeRef.current.pointOfView({ lat: countryCenter.lat, lng: countryCenter.lng, altitude }, 1000);
+    } else {
+      globeRef.current.pointOfView({ ...pov, altitude }, 1000);
+    }
+    autoRotation.onUserInteraction();
+  }, [selectedScale, autoRotation]);
 
   // Update markers when data changes
   useEffect(() => {
