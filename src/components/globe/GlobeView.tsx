@@ -150,7 +150,7 @@ export default function GlobeView({
 
     // Radial blob polygons (skip on mobile for performance)
     let blobPolys: any[] = [];
-    if (blobOpacity > 0 && !isMobile) {
+    if (blobOpacity > 0 && !isMobile && altitudeKm > 500) {
       const withCoords = articles.filter(a => a.coordinates);
       blobPolys = withCoords.map(article => {
         const outlet = MEDIA_OUTLETS.find(o =>
@@ -437,23 +437,43 @@ export default function GlobeView({
       });
   }, [mergedPolygons, searchResultIds]);
 
-  // Update hex-bin heatmap when articles change
+  // Update hex-bin heatmap when articles change (debounced)
+  const hexBinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!globeRef.current) return;
-    globeRef.current.hexBinPointsData(
-      articles.filter(a => a.coordinates).map(a => ({
-        lat: a.coordinates!.lat,
-        lng: a.coordinates!.lng,
-        heatLevel: a.heatLevel || 0,
-      }))
-    );
+    if (hexBinTimeoutRef.current) clearTimeout(hexBinTimeoutRef.current);
+    hexBinTimeoutRef.current = setTimeout(() => {
+      if (!globeRef.current) return;
+      globeRef.current.hexBinPointsData(
+        articles.filter(a => a.coordinates).map(a => ({
+          lat: a.coordinates!.lat,
+          lng: a.coordinates!.lng,
+          heatLevel: a.heatLevel || 0,
+        }))
+      );
+    }, 300);
+    return () => {
+      if (hexBinTimeoutRef.current) clearTimeout(hexBinTimeoutRef.current);
+    };
   }, [articles]);
+
+  // Pause RAF when globe is off-screen
+  const isVisibleRef = useRef(true);
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0.1 }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Auto-rotation + very-hot marker pulse animation loop
   useEffect(() => {
     let animationId: number;
     const animate = () => {
-      if (globeRef.current) {
+      if (globeRef.current && isVisibleRef.current) {
         if (!isMobile) {
           const angle = autoRotation.getRotationAngle();
           if (angle !== null && globeRef.current) {
