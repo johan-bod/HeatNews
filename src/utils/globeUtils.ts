@@ -131,3 +131,69 @@ export function computeFlyToAltitude(articles: NewsArticle[]): number {
 
   return Math.max(0.3, Math.min(2.5, maxSpread / 40));
 }
+
+/**
+ * Spatial clustering: groups nearby markers into cluster markers.
+ * Only clusters when 20+ markers in view.
+ */
+export interface ClusteredMarker {
+  lat: number;
+  lng: number;
+  count: number;
+  maxHeatLevel: number;
+  color: string;
+  articles: NewsArticle[];
+}
+
+export function clusterMarkers(
+  articles: NewsArticle[],
+  distanceThreshold: number = 0.5
+): { singles: NewsArticle[]; clusters: ClusteredMarker[] } {
+  if (articles.length < 20) {
+    return { singles: articles, clusters: [] };
+  }
+
+  const used = new Set<number>();
+  const clusters: ClusteredMarker[] = [];
+  const singles: NewsArticle[] = [];
+
+  for (let i = 0; i < articles.length; i++) {
+    if (used.has(i)) continue;
+    const a = articles[i];
+    if (!a.coordinates) { singles.push(a); continue; }
+
+    const group: NewsArticle[] = [a];
+    used.add(i);
+
+    for (let j = i + 1; j < articles.length; j++) {
+      if (used.has(j)) continue;
+      const b = articles[j];
+      if (!b.coordinates) continue;
+
+      const dLat = Math.abs(a.coordinates.lat - b.coordinates.lat);
+      const dLng = Math.abs(a.coordinates.lng - b.coordinates.lng);
+      if (dLat <= distanceThreshold && dLng <= distanceThreshold) {
+        group.push(b);
+        used.add(j);
+      }
+    }
+
+    if (group.length === 1) {
+      singles.push(a);
+    } else {
+      const maxHeat = Math.max(...group.map(g => g.heatLevel || 0));
+      const avgLat = group.reduce((s, g) => s + g.coordinates!.lat, 0) / group.length;
+      const avgLng = group.reduce((s, g) => s + g.coordinates!.lng, 0) / group.length;
+      clusters.push({
+        lat: avgLat,
+        lng: avgLng,
+        count: group.length,
+        maxHeatLevel: maxHeat,
+        color: getMarkerColor(maxHeat),
+        articles: group,
+      });
+    }
+  }
+
+  return { singles, clusters };
+}

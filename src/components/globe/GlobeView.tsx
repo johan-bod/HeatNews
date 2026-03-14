@@ -123,8 +123,8 @@ export default function GlobeView({
 
   // Convert to marker data with search dimming
   const markers = useMemo(
-    () => articlesToMarkers(visibleArticles, searchResultIds),
-    [visibleArticles, searchResultIds]
+    () => articlesToMarkers(visibleArticles, searchResultIds, altitudeKm),
+    [visibleArticles, searchResultIds, altitudeKm]
   );
 
   // Build merged polygon data (country fills + radial blobs)
@@ -210,6 +210,15 @@ export default function GlobeView({
       .pointsTransitionDuration(MARKER_TRANSITION_MS)
       .onPointClick((point: object) => {
         const marker = point as GlobeMarkerData;
+        if (marker.isCluster) {
+          // Zoom in one level on cluster click
+          const currentAlt = globe.pointOfView().altitude;
+          let targetAlt = currentAlt * 0.3;
+          if (targetAlt < SCALE_ALTITUDES.local) targetAlt = SCALE_ALTITUDES.local;
+          globe.pointOfView({ lat: marker.lat, lng: marker.lng, altitude: targetAlt }, 1000);
+          autoRotation.onUserInteraction();
+          return;
+        }
         setSelectedArticle(marker.article);
         const coords = globe.getScreenCoords(marker.lat, marker.lng);
         setPopupPosition(coords ? { x: coords.x, y: coords.y } : { x: 0, y: 0 });
