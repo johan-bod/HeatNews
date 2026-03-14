@@ -34,17 +34,17 @@ These files contain hardcoded links to `/` or `/investigate` that must be update
 
 - `src/components/globe/GlobePopup.tsx` — "Investigate this story" link: `/investigate?article=` → `/app/investigate?article=`
 - `src/components/NewsDemo.tsx` — "Investigate this story" link: `/investigate?article=` → `/app/investigate?article=`
-- `src/pages/InvestigatePage.tsx` — "Back to map" button: `navigate('/')` → `navigate('/app')`
+- `src/pages/InvestigatePage.tsx` — two `navigate('/')` calls must both become `navigate('/app')`: (1) the "Back to map" button in the normal view at line 113, and (2) the "Back to map" button in the "story no longer available" error state at line 92
 
 ### Navbar Variants
 
-The existing `Navbar` component is used on the app page. The landing page uses a new `LandingNavbar` component (simpler — just logo + "Open the map →" CTA). These are separate components, not a prop-switched variant, to avoid coupling landing page concerns into the app.
+The existing `Navbar` component is used on the app page. Its logo link (`<Link to="/">`) must be updated to `<Link to="/app">` so clicking the logo stays within the app rather than navigating to the marketing landing page. The landing page uses a new `LandingNavbar` component (simpler — just logo + "Open the map →" CTA). These are separate components, not a prop-switched variant, to avoid coupling landing page concerns into the app.
 
 ---
 
 ## 2. Landing Page Structure
 
-All sections live in `src/pages/LandingPage.tsx`. Section components are extracted into `src/components/landing/` when they exceed ~50 lines.
+All sections live in `src/pages/LandingPage.tsx`. Substantial components are extracted into `src/components/landing/` as listed in Section 6 (Files Affected).
 
 ### 2.1 LandingNavbar
 
@@ -153,8 +153,9 @@ A lightweight hero visual — no JavaScript dependencies. Lives in `src/componen
 
 - A dark circle (`w-80 h-80` on desktop, `w-56 h-56` on mobile) with a radial gradient giving it a 3D sphere appearance
 - Background: radial gradient from `#1a2332` (center-left highlight) to `#0a0a0f` (edges), with a subtle blue-tinted edge glow (`box-shadow: inset -20px -20px 60px rgba(26,54,93,0.3)`)
-- Continent hints: a faint SVG overlay of simplified continent outlines (not detailed — just recognizable shapes), `opacity: 0.08`, stroke only, no fill
-- The globe container rotates via `@keyframes spin { to { transform: rotateY(360deg) } }` with `animation: spin 30s linear infinite` for a slow, elegant rotation
+- The globe container uses `perspective(800px)` on the parent and `transform-style: preserve-3d` on the rotating inner wrapper
+- The inner wrapper rotates via `@keyframes spin { to { transform: rotateY(360deg) } }` with `animation: spin 30s linear infinite` for a slow, elegant rotation
+- Continent hints: a faint circular SVG ring pattern (latitude/longitude grid lines, not actual continent shapes) baked into the sphere's radial gradient as additional concentric ellipses. These are part of the static sphere background, not 3D-transformed — they provide visual texture suggesting a globe without needing to rotate with the dots
 
 ### Heat Dots
 
@@ -195,7 +196,7 @@ Between major sections, a thin (`h-px`) horizontal line with a gradient: `bg-gra
 
 ### Scroll Animations
 
-Sections fade up on scroll using the existing `animate-fade-up` class. Applied to each section wrapper with staggered delays for children where appropriate (e.g., feature cards appear one by one).
+Sections fade up on scroll using the `animate-fade-up` class (globally defined in `tailwind.config.ts` under `extend.animation` — available to all components). Applied to each section wrapper with staggered delays for children where appropriate (e.g., feature cards appear one by one).
 
 ---
 
@@ -207,7 +208,7 @@ Three static images needed in `/public/screenshots/`:
 - `investigate-tiers.png` — Investigate page showing tier-grouped sources with location names
 - `investigate-perspective.png` — Investigate page showing perspective comparison section
 
-These are manually captured from the running app. The spec does not generate them — they must be taken from the live product and placed in the directory before the landing page references them. The feature cards use placeholder images (solid dark rectangles with a subtle "Screenshot" label) until real screenshots are added.
+These are manually captured from the running app. The spec does not generate them — they must be taken from the live product and placed in the directory before the landing page references them. The `FeatureCard` component accepts an `imageSrc` prop. When the image file is missing or fails to load, the component renders a styled placeholder div (dark rectangle with `bg-ivory-200/[0.03]`, centered text "Screenshot coming soon" in `text-ivory-200/20`) at the same aspect ratio. This is handled via an `onError` handler on the `<img>` tag that sets a local state flag to show the placeholder.
 
 ---
 
@@ -226,10 +227,12 @@ These are manually captured from the running app. The spec does not generate the
 - `src/App.tsx` — updated routes and imports
 - `src/components/globe/GlobePopup.tsx` — investigate link: `/investigate` → `/app/investigate`
 - `src/components/NewsDemo.tsx` — investigate link: `/investigate` → `/app/investigate`
-- `src/pages/InvestigatePage.tsx` — back button: `/` → `/app`
+- `src/pages/InvestigatePage.tsx` — both `navigate('/')` calls → `navigate('/app')`
+- `src/components/Navbar.tsx` — logo link: `<Link to="/">` → `<Link to="/app">`
 
-**Unchanged:**
-- `src/components/Navbar.tsx` — stays as the app navbar, used only on `/app`
+**Intentionally unchanged (reviewed and confirmed):**
+- `src/components/ProtectedRoute.tsx` — redirects unauthenticated admin users to `/` (landing page). This is correct: unauthenticated users should see the marketing page, not the app.
+- `src/pages/NotFound.tsx` — "Return to Home" links to `/` (landing page). This is correct: 404 users should land on the marketing homepage.
 - `src/pages/Admin.tsx` — no changes
 - All utility files, globe components, etc. — no changes
 
