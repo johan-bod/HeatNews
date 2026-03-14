@@ -1,0 +1,111 @@
+.hero-globe-container {
+  width: 320px;
+  height: 320px;
+  position: relative;
+  perspective: 800px;
+}
+
+@media (max-width: 640px) {
+  .hero-globe-container {
+    width: 224px;
+    height: 224px;
+  }
+}
+
+.hero-globe-sphere {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #1a2332 0%, #0d1520 50%, #0a0a0f 100%);
+  box-shadow:
+    inset -20px -20px 60px rgba(26, 54, 93, 0.3),
+    0 0 80px rgba(245, 158, 11, 0.05);
+  overflow: hidden;
+}
+
+.hero-globe-grid {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg, transparent 0deg, transparent 29deg, rgba(245, 245, 240, 0.03) 29deg, rgba(245, 245, 240, 0.03) 31deg, transparent 31deg, transparent 60deg);
+  mask-image: radial-gradient(circle, black 48%, transparent 50%);
+  -webkit-mask-image: radial-gradient(circle, black 48%, transparent 50%);
+}
+
+.hero-globe-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 245, 240, 0.04);
+  box-shadow:
+    inset 0 0 0 40px transparent,
+    inset 0 0 0 41px rgba(245, 245, 240, 0.03),
+    inset 0 0 0 80px transparent,
+    inset 0 0 0 81px rgba(245, 245, 240, 0.03),
+    inset 0 0 0 120px transparent,
+    inset 0 0 0 121px rgba(245, 245, 240, 0.03);
+}
+
+.hero-globe-orbit {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: hero-globe-spin 30s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes hero-globe-spin {
+  to { transform: rotateY(360deg); }
+}
+
+.hero-globe-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot-color);
+  box-shadow: 0 0 6px var(--dot-color);
+  animation: hero-globe-pulse 3s ease-in-out infinite;
+  animation-delay: var(--dot-delay);
+  backface-visibility: hidden;
+}
+
+.hero-globe-dot--md {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 10px var(--dot-color);
+}
+
+@keyframes hero-globe-pulse {
+  0%, 100% { opacity: 0.2; scale: 0.8; }
+  50% { opacity: 1; scale: 1.2; }
+}
+
+.hero-globe-dot--ignite {
+  animation:
+    hero-globe-pulse 3s ease-in-out infinite var(--dot-delay),
+    hero-globe-ignite 8s ease-in-out infinite var(--dot-ignite-delay);
+}
+
+@keyframes hero-globe-ignite {
+  0%, 85%, 100% { box-shadow: 0 0 6px var(--dot-color); }
+  90% { box-shadow: 0 0 20px var(--dot-color), 0 0 40px var(--dot-color); scale: 1.8; }
+  95% { box-shadow: 0 0 10px var(--dot-color); scale: 1.2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-globe-orbit {
+    animation: none;
+  }
+  .hero-globe-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+  .hero-globe-dot--ignite {
+    animation: none;
+  }
+}
