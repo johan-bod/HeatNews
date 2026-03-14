@@ -27,3 +27,4 @@ dist-ssr
 # GeoNames raw data and generated gazetteers
 scripts/geonames-data/
 public/data/gazetteer-*.json
+.worktrees
