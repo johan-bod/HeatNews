@@ -253,8 +253,8 @@ export default function GlobeView({
         console.warn('Could not load country polygons');
       });
 
-    // Set initial point of view (Europe centered)
-    globe.pointOfView({ lat: 46, lng: 2, altitude: 2.5 }, 0);
+    // Set initial point of view (France centered, national scale)
+    globe.pointOfView({ lat: 46.5, lng: 2.5, altitude: 0.8 }, 0);
 
     // Disable zoom by default (dormant state)
     const controls = globe.controls() as any;

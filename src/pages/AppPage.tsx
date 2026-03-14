@@ -90,7 +90,7 @@ const Index = () => {
   const [currentFilters, setCurrentFilters] = useState<NewsFiltersType | null>(null);
   const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedScale, setSelectedScale] = useState<ScaleFilter>('all');
+  const [selectedScale, setSelectedScale] = useState<ScaleFilter>('national');
   const [globeFlyTo, setGlobeFlyTo] = useState<((lat: number, lng: number, alt?: number) => void) | null>(null);
   const [globeFlyToResults, setGlobeFlyToResults] = useState<((articles: NewsArticle[]) => void) | null>(null);
   const baseArticlesRef = useRef<NewsArticle[]>([]);
@@ -288,10 +288,10 @@ const Index = () => {
   const handleClearFilters = useCallback(() => {
     setCurrentFilters(null);
     setCurrentSearch(null);
-    setSelectedScale('all');
+    setSelectedScale('national');
     setSearchResultIds(null);
     setAllArticles(baseArticlesRef.current);
-    if (globeFlyTo) globeFlyTo(46, 2, 2.5);
+    if (globeFlyTo) globeFlyTo(46.5, 2.5, 0.8);
   }, [globeFlyTo]);
 
   const handlePersonalizedRefresh = useCallback(async () => {
