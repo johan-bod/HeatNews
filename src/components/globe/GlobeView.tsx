@@ -74,7 +74,7 @@ export default function GlobeView({
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [hoveredMarker, setHoveredMarker] = useState<GlobeMarkerData | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-  const [altitude, setAltitude] = useState(2.5);
+  const [altitude, setAltitude] = useState(0.8);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [activeRegionIndex, setActiveRegionIndex] = useState(0);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
