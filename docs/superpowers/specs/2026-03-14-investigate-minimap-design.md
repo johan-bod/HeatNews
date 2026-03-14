@@ -21,14 +21,14 @@ A new `ClusterMiniMap` component uses react-leaflet (already a dependency) to re
 ```typescript
 interface ClusterMiniMapProps {
   articles: NewsArticle[];  // pre-filtered to those with coordinates
-  heatColor: string;        // cluster heat color (hex), used for all markers
+  heatColor: string;        // cluster heat color (hex), used for all markers — always provided by parent via heatLevelToColor() which always returns a value
 }
 ```
 
 ### Rendering
 
 - `MapContainer` at fixed height 280px, full width of the parent content column
-- CARTO dark tiles: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` — same as `GlobeFallback.tsx`
+- CARTO dark tiles: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` (same tile URL as `GlobeFallback.tsx`; other `MapContainer` props differ since this map disables all interaction)
 - Background color: `#0a0a0f` (matches investigate page background)
 - `zoomControl={false}`, `scrollWheelZoom={false}`, `dragging={false}`, `doubleClickZoom={false}`, `touchZoom={false}` — read-only overview map, no user interaction
 - `attributionControl={true}` — required by tile provider license
@@ -49,13 +49,14 @@ One `CircleMarker` per article:
 A small inner component `FitBounds` uses `useMap()` from react-leaflet to access the map instance after mount.
 
 **Logic (in `useEffect`):**
+- Construct bounds: `L.latLngBounds(articles.map(a => [a.coordinates!.lat, a.coordinates!.lng]))`
 - If 2+ unique coordinate positions exist: `map.fitBounds(bounds, { padding: [40, 40], animate: false })`
 - If 1 article or all articles at the same position: `map.setView([lat, lng], 6, { animate: false })` — zoom level 6 gives city-level context
 - Unique positions determined by rounding lat/lng to 1 decimal place (same logic as `countDistinctLocations` in `arcBuilder.ts`)
 
 `animate: false` because the map is below the fold and animation on mount adds no value.
 
-Dependencies: `useEffect` runs on `[articles]` (stable reference from parent's filter).
+Dependencies: `useEffect` runs on `[articles.length]` — keyed on length rather than array reference, since the parent recomputes `articlesWithCoords` via `.filter()` on every render (producing a new reference). The articles themselves don't change for a given cluster, so length is a sufficient trigger.
 
 ### Leaflet CSS
 
@@ -71,7 +72,7 @@ Import `leaflet/dist/leaflet.css` at the top of the component file — same patt
 const ClusterMiniMap = lazy(() => import('@/components/investigate/ClusterMiniMap'));
 ```
 
-Added to the top of `InvestigatePage.tsx` alongside the existing `lazy` import from React (add `lazy, Suspense` to the React import).
+Added to the top of `InvestigatePage.tsx`. The existing React import `import { useMemo } from 'react'` becomes `import { useMemo, lazy, Suspense } from 'react'`.
 
 ### Geographic Spread Section — New Layout
 
@@ -83,10 +84,10 @@ Current layout:
 New layout:
 1. Section heading (unchanged)
 2. Summary line (unchanged)
-3. **`<Suspense fallback={null}><ClusterMiniMap articles={articlesWithCoords} heatColor={heatColor} /></Suspense>`** — rendered only when `articlesWithCoords.length > 0`
+3. **`<Suspense fallback={<div style={{ height: 280 }} />}><ClusterMiniMap articles={articlesWithCoords} heatColor={heatColor} /></Suspense>`** — rendered only when `articlesWithCoords.length > 0`
 4. Source list (unchanged, below the map, with `mt-4` spacing)
 
-The `Suspense fallback={null}` means the text list is immediately visible while Leaflet loads — no layout shift or loading spinner.
+The `Suspense` fallback reserves the map's 280px height while Leaflet loads, preventing the source list from jumping down when the map chunk resolves.
 
 ### Guard
 
@@ -97,7 +98,7 @@ The mini-map shares the same guard as the existing content: only rendered inside
 ## 3. Files Affected
 
 **New files:**
-- `src/components/investigate/ClusterMiniMap.tsx` — mini-map component with `FitBounds` inner component
+- `src/components/investigate/ClusterMiniMap.tsx` — mini-map component with `FitBounds` inner component (directory `src/components/investigate/` must be created)
 
 **Modified files:**
 - `src/pages/InvestigatePage.tsx` — add `lazy`/`Suspense` imports, lazy-load `ClusterMiniMap`, render in Geographic Spread section
