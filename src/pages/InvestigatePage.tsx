@@ -24,6 +24,7 @@ import {
   computeLangBreakdown,
 } from '@/utils/storyBrief';
 import ExportBriefButton from '@/components/investigate/ExportBriefButton';
+import InvestigateDashboard from '@/components/investigate/InvestigateDashboard';
 const ClusterMiniMap = lazy(() => import('@/components/investigate/ClusterMiniMap'));
 const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
 
@@ -40,13 +41,13 @@ function useInvestigateData() {
   return useMemo(() => {
     // Fast path: route state available
     if (state?.cluster && state?.article) {
-      return { cluster: state.cluster, article: state.article, loading: false };
+      return { cluster: state.cluster, article: state.article, loading: false, hasArticleParam: true };
     }
 
     // Refresh fallback: re-derive from localStorage cache
     // Uses getCacheData which handles the 'news_cache_' prefix and expiry checks
     const articleId = searchParams.get('article');
-    if (!articleId) return { cluster: null, article: null, loading: false };
+    if (!articleId) return { cluster: null, article: null, loading: false, hasArticleParam: false };
 
     try {
       const localNews = getCacheData<NewsArticle[]>('local_news') || [];
@@ -60,13 +61,13 @@ function useInvestigateData() {
       const clusters = analyzeArticleHeat(allArticles, 'international');
       for (const cluster of clusters) {
         const found = cluster.articles.find(a => a.id === articleId);
-        if (found) return { cluster, article: found, loading: false };
+        if (found) return { cluster, article: found, loading: false, hasArticleParam: true };
       }
     } catch {
       // Cache read failed
     }
 
-    return { cluster: null, article: null, loading: false };
+    return { cluster: null, article: null, loading: false, hasArticleParam: true };
   }, [state, searchParams]);
 }
 
@@ -88,7 +89,7 @@ export function groupByTier(items: ClusterArticleItem[]): { tier: CredibilityTie
 
 export default function InvestigatePage() {
   const navigate = useNavigate();
-  const { cluster, article } = useInvestigateData();
+  const { cluster, article, hasArticleParam } = useInvestigateData();
   const coverageGap = useMemo(() => cluster ? analyzeCoverageGap(cluster) : null, [cluster]);
   const geoGap = useMemo(() => cluster ? analyzeGeographicGap(cluster) : null, [cluster]);
   const perspective = useMemo(() => cluster ? analyzeEditorialPerspective(cluster.articles) : null, [cluster]);
@@ -143,13 +144,21 @@ export default function InvestigatePage() {
     return (
       <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
         <div className="max-w-4xl mx-auto">
-          <p className="text-ivory-100 text-lg mb-4">This story is no longer available.</p>
-          <button
-            onClick={() => navigate('/app')}
-            className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
-          >
-            ← Back to map
-          </button>
+          {hasArticleParam ? (
+            // Specific article was requested but couldn't be found
+            <>
+              <p className="text-ivory-100 text-lg mb-4">This story is no longer available.</p>
+              <button
+                onClick={() => navigate('/app/investigate')}
+                className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                ← View all stories
+              </button>
+            </>
+          ) : (
+            // No article param — show the dashboard
+            <InvestigateDashboard />
+          )}
         </div>
       </div>
     );
@@ -182,12 +191,20 @@ export default function InvestigatePage() {
       <div className="max-w-4xl mx-auto">
         {/* Back navigation + Export */}
         <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => navigate('/app')}
-            className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
-          >
-            ← Back to map
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/app/investigate')}
+              className="text-sm text-ivory-200/40 hover:text-amber-400 transition-colors"
+            >
+              ← All stories
+            </button>
+            <button
+              onClick={() => navigate('/app')}
+              className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              Map
+            </button>
+          </div>
           <ExportBriefButton input={{ article, cluster, coverageGap, geoGap, perspective }} />
         </div>
 
