@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import Navbar from '../components/Navbar';
-import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
-import HowItWorks from '../components/HowItWorks';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -102,6 +100,13 @@ const Index = () => {
   const [remainingFetches, setRemainingFetches] = useState(USER_DAILY_FETCHES);
   const [showSoftGate, setShowSoftGate] = useState(false);
   const [isPersonalizing, setIsPersonalizing] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const articles = useMemo(() => {
     // Merge shared pool + personalized, deduplicate by id
@@ -352,7 +357,6 @@ const Index = () => {
     <div className="min-h-screen bg-background noise-bg relative">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-amber-500 focus:text-navy-900 focus:px-4 focus:py-2 focus:rounded-lg font-body text-sm">Skip to content</a>
       <Navbar onOpenPreferences={preferences.onboardingComplete ? handleOpenPreferences : undefined} />
-      <Hero />
 
       <main id="main-content">
       {/* API key warning */}
@@ -375,23 +379,6 @@ const Index = () => {
         </div>
       )}
 
-      {/* Search & Filters — dark band above globe */}
-      <div className="w-full bg-navy-900 border-b border-ivory-200/5">
-        <div className="max-w-4xl mx-auto px-6 py-4 space-y-3">
-          <NewsSearch
-            onSearch={handleSearch}
-            onClear={handleClearFilters}
-            isSearching={isSearching}
-            currentSearch={currentSearch || undefined}
-          />
-          <NewsFilters
-            onFilterChange={handleFilterChange}
-            onClear={handleClearFilters}
-            currentFilters={currentFilters || undefined}
-          />
-        </div>
-      </div>
-
       {/* Globe — full width, dark background */}
       <ErrorBoundary>
         <MapSection
@@ -404,35 +391,56 @@ const Index = () => {
           preferenceLocations={preferences.locations}
           searchResultIds={searchResultIds}
           selectedScale={selectedScale}
+          onSearch={handleSearch}
+          onSearchClear={handleClearFilters}
+          isSearching={isSearching}
+          currentSearch={currentSearch || undefined}
         />
       </ErrorBoundary>
       <GlobeLegend />
 
-      {/* Refresh controls — inline below globe legend */}
+      {/* Scale, Filters & Refresh — below globe legend */}
       <div className="w-full bg-navy-900 border-b border-ivory-200/5">
-        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-center gap-4 flex-wrap">
-          <Button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            variant="outline"
-            size="sm"
-            className="bg-transparent text-ivory-200/60 hover:text-amber-400 border-ivory-200/10 hover:border-amber-500/30 font-body text-xs"
-          >
-            <RefreshCw className={`w-3 h-3 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
-          <RefreshIndicator
-            remaining={remainingFetches}
-            total={USER_DAILY_FETCHES}
-            onRefresh={handlePersonalizedRefresh}
-            isRefreshing={isPersonalizing}
-            isSignedIn={!!user}
-          />
-          {lastUpdated && !isLoading && (
-            <span className="font-body text-[10px] text-ivory-200/25">
-              Updated {lastUpdated.toLocaleTimeString()}
-            </span>
+        <div className="max-w-4xl mx-auto px-6 py-4 space-y-3">
+          {/* Mobile search (below globe instead of overlay) */}
+          {isMobile && (
+            <NewsSearch
+              onSearch={handleSearch}
+              onClear={handleClearFilters}
+              isSearching={isSearching}
+              currentSearch={currentSearch || undefined}
+              variant="inline"
+            />
           )}
+          <NewsFilters
+            onFilterChange={handleFilterChange}
+            onClear={handleClearFilters}
+            currentFilters={currentFilters || undefined}
+          />
+          <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+              className="bg-transparent text-ivory-200/60 hover:text-amber-400 border-ivory-200/10 hover:border-amber-500/30 font-body text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <RefreshIndicator
+              remaining={remainingFetches}
+              total={USER_DAILY_FETCHES}
+              onRefresh={handlePersonalizedRefresh}
+              isRefreshing={isPersonalizing}
+              isSignedIn={!!user}
+            />
+            {lastUpdated && !isLoading && (
+              <span className="font-body text-[10px] text-ivory-200/25">
+                Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -443,7 +451,6 @@ const Index = () => {
       />
 
       <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} clusters={clusters} />
-      <HowItWorks />
 
       {/* Soft gate */}
       {showSoftGate && (
