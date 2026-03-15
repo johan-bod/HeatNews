@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Flame } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { LoginButton } from '@/components/LoginButton';
 
 export default function LandingNavbar() {
+  const { user } = useAuth();
+
   return (
     <nav aria-label="Landing navigation" className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-md border-b border-ivory-200/5">
       <div className="max-w-6xl mx-auto px-6">
@@ -16,12 +20,18 @@ export default function LandingNavbar() {
             </span>
           </Link>
 
-          <Link
-            to="/app"
-            className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
-          >
-            Open the map →
-          </Link>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <Link
+                to="/app"
+                className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
+              >
+                Open the map →
+              </Link>
+            ) : (
+              <LoginButton />
+            )}
+          </div>
         </div>
       </div>
     </nav>

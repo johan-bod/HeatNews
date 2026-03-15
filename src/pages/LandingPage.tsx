@@ -3,12 +3,23 @@ import { Globe, Layers, Cpu, Network, Newspaper, FlaskConical, Quote } from 'luc
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import HeroGlobe from '@/components/landing/HeroGlobe';
 import FeatureCard from '@/components/landing/FeatureCard';
+import { useAuth } from '@/contexts/AuthContext';
 
 function GradientLine() {
   return <div className="h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />;
 }
 
 export default function LandingPage() {
+  const { user, signInWithGoogle } = useAuth();
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Sign in failed:', error);
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-[#0a0a0f] text-ivory-100"
@@ -33,12 +44,21 @@ export default function LandingPage() {
                 Real-time news intelligence for journalists and researchers. See who covers what, from where, and how.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 lg:justify-start justify-center animate-fade-up" style={{ animationDelay: '0.2s' }}>
-                <Link
-                  to="/app"
-                  className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"
-                >
-                  Open the map →
-                </Link>
+                {user ? (
+                  <Link
+                    to="/app"
+                    className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"
+                  >
+                    Open the map →
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleSignIn}
+                    className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"
+                  >
+                    Sign in to get started →
+                  </button>
+                )}
               </div>
               {/* Live pulse */}
               <div className="mt-6 flex items-center gap-2 justify-center lg:justify-start animate-fade-up" style={{ animationDelay: '0.3s' }}>
@@ -182,12 +202,21 @@ export default function LandingPage() {
           <h2 className="font-display text-3xl font-bold text-ivory-100 mb-6">
             Ready to see the full picture?
           </h2>
-          <Link
-            to="/app"
-            className="inline-block bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"
-          >
-            Open the map →
-          </Link>
+          {user ? (
+            <Link
+              to="/app"
+              className="inline-block bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"
+            >
+              Open the map →
+            </Link>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"
+            >
+              Sign in to get started →
+            </button>
+          )}
         </div>
       </section>
 
