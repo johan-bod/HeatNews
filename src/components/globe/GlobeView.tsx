@@ -18,6 +18,7 @@ import { useGlobeInteraction } from './useGlobeInteraction';
 import GlobeOverlay from './GlobeOverlay';
 import GlobePopup from './GlobePopup';
 import GlobeTooltip from './GlobeTooltip';
+import { NewsSearch, type SearchParams } from '../NewsSearch';
 import {
   aggregateCountryHeat,
   heatToFillOpacity,
@@ -37,6 +38,10 @@ interface GlobeViewProps {
   preferenceLocations?: PreferenceLocation[];
   searchResultIds?: Set<string> | null;
   selectedScale?: string;
+  onSearch?: (params: SearchParams) => void;
+  onSearchClear?: () => void;
+  isSearching?: boolean;
+  currentSearch?: SearchParams;
 }
 
 // Spec: 300ms transition for marker fade in/out
@@ -66,6 +71,10 @@ export default function GlobeView({
   preferenceLocations = [],
   searchResultIds,
   selectedScale = 'all',
+  onSearch,
+  onSearchClear,
+  isSearching,
+  currentSearch,
 }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
@@ -581,6 +590,19 @@ export default function GlobeView({
           )}
         </div>
       </div>
+
+      {/* Search overlay — upper-right (desktop only) */}
+      {!isMobile && onSearch && onSearchClear && (
+        <div className="absolute top-4 right-4 z-10">
+          <NewsSearch
+            onSearch={onSearch}
+            onClear={onSearchClear}
+            isSearching={isSearching}
+            currentSearch={currentSearch}
+            variant="overlay"
+          />
+        </div>
+      )}
 
       {/* Region jump pills */}
       {preferenceLocations.length > 1 && (
