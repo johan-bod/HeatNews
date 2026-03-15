@@ -132,14 +132,39 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
     localFilters.countries.length +
     localFilters.languages.length +
     localFilters.categories.length +
-    (localFilters.scale !== 'all' ? 1 : 0) +
     (localFilters.prioritydomain ? 1 : 0);
 
   return (
     <div className="bg-ivory-50/80 border border-amber-200/30 rounded-lg">
-      {/* Header */}
+      {/* Scale selector — always visible */}
+      <div className="p-4">
+        <div className="flex flex-wrap gap-1.5">
+          {SCALES.map(s => (
+            <Button
+              key={s.id}
+              variant={localFilters.scale === s.id ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                const updated = { ...localFilters, scale: s.id as NewsFiltersType['scale'] };
+                setLocalFilters(updated);
+                // Scale applies immediately (primary filter control, no staged apply needed)
+                onFilterChange(updated);
+              }}
+              className={`font-body text-xs h-8 ${
+                localFilters.scale === s.id
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                  : 'border-amber-200/40 text-navy-700/50 hover:border-amber-300'
+              }`}
+            >
+              {s.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Advanced Filters header — collapsible toggle */}
       <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-amber-50/30 transition-colors"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-amber-50/30 transition-colors border-t border-amber-200/20"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2.5">
@@ -159,28 +184,6 @@ export function NewsFilters({ onFilterChange, onClear, currentFilters }: NewsFil
 
       {isExpanded && (
         <div className="p-5 border-t border-amber-200/20 space-y-5">
-          {/* Scale */}
-          <div>
-            <Label className="font-body text-xs font-semibold text-navy-700/50 mb-2 block">Scale</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {SCALES.map(s => (
-                <Button
-                  key={s.id}
-                  variant={localFilters.scale === s.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setLocalFilters({ ...localFilters, scale: s.id as NewsFiltersType['scale'] })}
-                  className={`font-body text-xs h-8 ${
-                    localFilters.scale === s.id
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                      : 'border-amber-200/40 text-navy-700/50 hover:border-amber-300'
-                  }`}
-                >
-                  {s.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-
           {/* Countries */}
           <div>
             <Label className="font-body text-xs font-semibold text-navy-700/50 mb-2 block">
