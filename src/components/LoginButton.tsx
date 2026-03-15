@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isConfigured } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, Shield, User, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +13,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export function LoginButton() {
+interface LoginButtonProps {
+  redirectTo?: string;
+}
+
+export function LoginButton({ redirectTo }: LoginButtonProps = {}) {
   const { user, signInWithGoogle, logout, isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   if (!isConfigured) return null;
 
@@ -23,6 +28,7 @@ export function LoginButton() {
     try {
       setIsLoading(true);
       await signInWithGoogle();
+      if (redirectTo) navigate(redirectTo);
     } catch (error) {
       console.error('Sign in failed:', error);
       alert('Failed to sign in. Please try again.');

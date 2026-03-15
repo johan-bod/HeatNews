@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Globe, Layers, Cpu, Network, Newspaper, FlaskConical, Quote } from 'lucide-react';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import HeroGlobe from '@/components/landing/HeroGlobe';
@@ -11,10 +11,14 @@ function GradientLine() {
 
 export default function LandingPage() {
   const { user, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignIn = async () => {
     try {
       await signInWithGoogle();
+      const destination = (location.state as { from?: string })?.from || '/app';
+      navigate(destination);
     } catch (error) {
       console.error('Sign in failed:', error);
     }

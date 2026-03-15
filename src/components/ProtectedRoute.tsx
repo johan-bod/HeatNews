@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { user, loading, isAdmin } = useAuth();
+  const location = useLocation();
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -23,15 +24,13 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     );
   }
 
-  // Redirect to home if not authenticated
+  // Redirect to home if not authenticated, preserving intended destination
   if (!user) {
-    console.log('🔒 Access denied: User not authenticated');
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" state={{ from: location.pathname }} replace />;
   }
 
   // Redirect to home if admin access is required but user is not admin
   if (requireAdmin && !isAdmin) {
-    console.log('🔒 Access denied: Admin privileges required');
     return <Navigate to="/" replace />;
   }
 

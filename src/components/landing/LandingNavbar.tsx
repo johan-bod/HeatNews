@@ -87,7 +87,7 @@ export default function LandingNavbar() {
                 Open the map →
               </Link>
             ) : (
-              <LoginButton />
+              <LoginButton redirectTo="/app" />
             )}
           </div>
 
@@ -121,7 +121,7 @@ export default function LandingNavbar() {
                 Open the map →
               </Link>
             ) : (
-              <LoginButton />
+              <LoginButton redirectTo="/app" />
             )}
           </div>
         </div>
