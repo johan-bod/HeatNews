@@ -99,7 +99,7 @@ export default function LandingPage() {
       </section>
 
       {/* Feature Cards */}
-      <section className="py-20 px-6 animate-fade-up">
+      <section id="features" className="py-20 px-6 animate-fade-up">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-display text-3xl font-bold text-ivory-100 mb-3">
@@ -132,7 +132,7 @@ export default function LandingPage() {
       <GradientLine />
 
       {/* How It Works */}
-      <section className="py-20 px-6 animate-fade-up">
+      <section id="how-it-works" className="py-20 px-6 animate-fade-up">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-display text-3xl font-bold text-ivory-100 text-center mb-12">
             How it works
@@ -154,7 +154,7 @@ export default function LandingPage() {
       </section>
 
       {/* Who It's For */}
-      <section className="py-20 px-6 animate-fade-up">
+      <section id="who-its-for" className="py-20 px-6 animate-fade-up">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-display text-3xl font-bold text-ivory-100 text-center mb-12">
             Who it's for
