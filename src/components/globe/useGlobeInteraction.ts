@@ -1,10 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-const MAX_DEZOOM_BUFFER = 3;
-
 interface UseGlobeInteractionOptions {
   altitudeKm: number;
-  minAltitudeKm?: number;
+  maxAltitudeKm?: number;
   isMobile: boolean;
   onDeactivate?: () => void;
 }
@@ -19,13 +17,12 @@ interface UseGlobeInteractionReturn {
 
 export function useGlobeInteraction({
   altitudeKm,
-  minAltitudeKm = 200,
+  maxAltitudeKm = 15000,
   isMobile,
   onDeactivate,
 }: UseGlobeInteractionOptions): UseGlobeInteractionReturn {
   const [isActive, setIsActive] = useState(false);
   const [showScrollToast, setShowScrollToast] = useState(false);
-  const dezoomCountRef = useRef(0);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const effectiveActive = isMobile ? true : isActive;
@@ -33,43 +30,31 @@ export function useGlobeInteraction({
   const activate = useCallback(() => {
     if (isMobile) return;
     setIsActive(true);
-    dezoomCountRef.current = 0;
   }, [isMobile]);
 
   const deactivate = useCallback(() => {
     if (isMobile) return;
     setIsActive(false);
-    dezoomCountRef.current = 0;
     onDeactivate?.();
   }, [isMobile, onDeactivate]);
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
-      if (isMobile) return;
+      if (isMobile || !isActive) return;
 
-      if (!isActive) {
-        return;
-      }
-
-      const isAtMinAltitude = altitudeKm <= minAltitudeKm + 50;
+      const isAtMaxAltitude = altitudeKm >= maxAltitudeKm;
       const isScrollingDown = e.deltaY > 0;
 
-      if (isAtMinAltitude && isScrollingDown) {
-        dezoomCountRef.current++;
-        if (dezoomCountRef.current >= MAX_DEZOOM_BUFFER) {
-          setIsActive(false);
-          dezoomCountRef.current = 0;
-          onDeactivate?.();
+      if (isAtMaxAltitude && isScrollingDown) {
+        setIsActive(false);
+        onDeactivate?.();
 
-          setShowScrollToast(true);
-          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-          toastTimerRef.current = setTimeout(() => setShowScrollToast(false), 1000);
-        }
-      } else {
-        dezoomCountRef.current = 0;
+        setShowScrollToast(true);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setShowScrollToast(false), 1000);
       }
     },
-    [isActive, altitudeKm, minAltitudeKm, isMobile, onDeactivate]
+    [isActive, altitudeKm, maxAltitudeKm, isMobile, onDeactivate]
   );
 
   useEffect(() => {
