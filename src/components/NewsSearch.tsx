@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 
 export interface SearchParams {
   query: string;
-  scale: 'all' | 'local' | 'regional' | 'national' | 'international';
 }
 
 interface NewsSearchProps {
@@ -42,13 +41,12 @@ export function NewsSearch({
   currentSearch,
 }: NewsSearchProps) {
   const [query, setQuery] = useState(currentSearch?.query || '');
-  const [scale, setScale] = useState<string>(currentSearch?.scale || 'all');
+  const [scale, setScale] = useState<string>('all');
 
   const handleSearch = () => {
     if (!query.trim()) return;
     onSearch({
       query: query.trim(),
-      scale: scale as SearchParams['scale'],
     });
   };
 
@@ -164,9 +162,6 @@ export function NewsSearch({
               <p className="font-body text-xs font-medium text-amber-800">Active Search</p>
               <p className="font-body text-[11px] text-amber-700/70 mt-0.5">
                 "{currentSearch.query}"
-                {currentSearch.scale !== 'all' && (
-                  <> &middot; <span className="capitalize">{currentSearch.scale}</span></>
-                )}
               </p>
             </div>
             <Button onClick={handleClear} size="sm" variant="ghost" className="text-amber-700 hover:text-amber-900 hover:bg-amber-100 h-7 w-7 p-0">

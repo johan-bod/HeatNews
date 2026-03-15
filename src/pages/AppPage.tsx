@@ -235,15 +235,13 @@ const Index = () => {
       setIsSearching(true);
       setError(null);
       setCurrentSearch(search);
-      setSelectedScale(search.scale);
 
       const searchedArticles = await searchAndFilterNews({
         query: search.query,
-        scale: search.scale,
         size: 10,
       });
 
-      const processed = processFilteredArticles(searchedArticles, search.scale);
+      const processed = processFilteredArticles(searchedArticles, selectedScale);
 
       if (processed.length === 0) {
         setError(new Error(`No articles found for "${search.query}"`));
@@ -271,7 +269,7 @@ const Index = () => {
     } finally {
       setIsSearching(false);
     }
-  }, [globeFlyToResults]);
+  }, [globeFlyToResults, selectedScale]);
 
   const handleArticleLocate = useCallback((lat: number, lng: number) => {
     // Scroll to globe first, then fly
