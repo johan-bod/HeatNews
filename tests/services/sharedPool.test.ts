@@ -53,15 +53,18 @@ describe('buildRefreshQueries', () => {
     }
   });
 
-  it('nextIndex advances by 22', () => {
+  it('nextIndex from 0 is 0 (pool size equals slice size)', () => {
+    // (0 + 22) % 22 = 0
     const { nextIndex } = buildRefreshQueries(0);
-    expect(nextIndex).toBe(22);
+    expect(nextIndex).toBe(0);
   });
 
-  it('nextIndex wraps around pool length', () => {
-    const poolLen = ROTATION_POOL.length; // 60
-    const { nextIndex } = buildRefreshQueries(50);
-    expect(nextIndex).toBe((50 + 22) % poolLen); // 12
+  it('nextIndex equals start index (pool size = slice size, no net advance)', () => {
+    // (start + 22) % 22 = start % 22 — rotation position stays the same
+    for (const start of [0, 5, 11, 21]) {
+      const { nextIndex } = buildRefreshQueries(start);
+      expect(nextIndex).toBe(start % 22);
+    }
   });
 
   it('rotation slice starts at given index', () => {
@@ -72,33 +75,23 @@ describe('buildRefreshQueries', () => {
   });
 
   it('rotation slice wraps correctly', () => {
-    const { queries } = buildRefreshQueries(50);
+    // Start at index 15: items [15..21] + [0..14] = 22 items
+    const { queries } = buildRefreshQueries(15);
     const rotationIds = queries.slice(8).map(q => q.id);
-    // Should be items [50..59] + [0..11]
     const expected = [
-      ...ROTATION_POOL.slice(50, 60),
-      ...ROTATION_POOL.slice(0, 12),
+      ...ROTATION_POOL.slice(15, 22),
+      ...ROTATION_POOL.slice(0, 15),
     ].map(q => q.id);
     expect(rotationIds).toEqual(expected);
   });
 
-  it('full cycle covers every rotation query exactly once', () => {
-    const poolLen = ROTATION_POOL.length; // 60
-    const seenIds = new Set<string>();
-    let index = 0;
-    const refreshCount = Math.ceil(poolLen / 22); // 3
+  it('single refresh covers every rotation query (pool size = slice size)', () => {
+    // Pool has 22 items, entire pool runs on every refresh — 1 cycle is enough
+    const { queries } = buildRefreshQueries(0);
+    const rotationIds = new Set(queries.slice(8).map(q => q.id));
 
-    for (let i = 0; i < refreshCount; i++) {
-      const { queries, nextIndex } = buildRefreshQueries(index);
-      const rotationIds = queries.slice(8).map(q => q.id);
-      rotationIds.forEach(id => seenIds.add(id));
-      index = nextIndex;
-    }
-
-    // All 60 rotation queries should have been seen
-    // (some may repeat on last partial cycle: 22+22+22=66, so 6 overlap)
     for (const q of ROTATION_POOL) {
-      expect(seenIds.has(q.id)).toBe(true);
+      expect(rotationIds.has(q.id)).toBe(true);
     }
   });
 });

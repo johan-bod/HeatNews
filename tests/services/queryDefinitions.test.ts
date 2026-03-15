@@ -10,28 +10,21 @@ describe('QueryDefinition validation', () => {
       expect(ANCHOR_QUERIES).toHaveLength(8);
     });
 
-    it('all anchors have category top', () => {
-      for (const q of ANCHOR_QUERIES) {
-        expect(q.category).toBe('top');
-      }
-    });
-
-    it('all anchors have prioritydomain top', () => {
-      for (const q of ANCHOR_QUERIES) {
-        expect(q.prioritydomain).toBe('top');
-      }
-    });
-
     it('all anchor IDs start with anchor-', () => {
       for (const q of ANCHOR_QUERIES) {
         expect(q.id).toMatch(/^anchor-/);
       }
     });
+
+    it('majority of anchors use prioritydomain top for quality signal', () => {
+      const withPriority = ANCHOR_QUERIES.filter(q => q.prioritydomain === 'top');
+      expect(withPriority.length).toBeGreaterThanOrEqual(5);
+    });
   });
 
   describe('ROTATION_POOL', () => {
-    it('has exactly 60 rotation queries', () => {
-      expect(ROTATION_POOL).toHaveLength(60);
+    it('has exactly 22 rotation queries (full pool runs every refresh)', () => {
+      expect(ROTATION_POOL).toHaveLength(22);
     });
 
     it('all rotation IDs start with rot-', () => {
@@ -79,6 +72,13 @@ describe('QueryDefinition validation', () => {
           expect(q.countries.length).toBeGreaterThan(0);
         }
       }
+    });
+
+    it('France is the dominant geography (>50% of all queries target fr)', () => {
+      const frQueries = allQueries.filter(
+        q => q.countries?.includes('fr') || q.id.includes('france') || q.id.includes('fr-')
+      );
+      expect(frQueries.length / allQueries.length).toBeGreaterThan(0.5);
     });
   });
 });

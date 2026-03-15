@@ -1,6 +1,7 @@
 import type { NewsDataSearchParams } from './newsdata-api';
 import { ANCHOR_QUERIES, ROTATION_POOL, type QueryDefinition } from './queryDefinitions';
 
+// Pool is exactly 22 items — entire pool runs on every refresh (no rotation needed)
 const ROTATION_SLICE_SIZE = 22;
 
 /**
