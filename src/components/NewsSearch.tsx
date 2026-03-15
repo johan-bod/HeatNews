@@ -1,7 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, Loader2, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export interface SearchParams {
@@ -13,15 +11,8 @@ interface NewsSearchProps {
   onClear: () => void;
   isSearching?: boolean;
   currentSearch?: SearchParams;
+  variant?: 'overlay' | 'inline';
 }
-
-const SCALES = [
-  { id: 'all', name: 'All', description: 'All scales' },
-  { id: 'local', name: 'Local', description: 'City news' },
-  { id: 'regional', name: 'Regional', description: 'Regional news' },
-  { id: 'national', name: 'National', description: 'Country news' },
-  { id: 'international', name: 'Global', description: 'World news' },
-];
 
 const SUGGESTED_SEARCHES = [
   'climate change',
@@ -39,21 +30,53 @@ export function NewsSearch({
   onClear,
   isSearching = false,
   currentSearch,
+  variant = 'overlay',
 }: NewsSearchProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState(currentSearch?.query || '');
-  const [scale, setScale] = useState<string>('all');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const isSearchActive = !!currentSearch?.query;
+
+  // Close on outside click or Escape
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsExpanded(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isExpanded]);
+
+  // Focus input on expand
+  useEffect(() => {
+    if (isExpanded && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isExpanded]);
 
   const handleSearch = () => {
     if (!query.trim()) return;
-    onSearch({
-      query: query.trim(),
-    });
+    onSearch({ query: query.trim() });
+    setIsExpanded(false);
   };
 
   const handleClear = () => {
     setQuery('');
-    setScale('all');
     onClear();
+    setIsExpanded(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -62,112 +85,107 @@ export function NewsSearch({
 
   const handleSuggestedSearch = (suggestion: string) => {
     setQuery(suggestion);
+    onSearch({ query: suggestion });
+    setIsExpanded(false);
   };
 
-  const isSearchActive = currentSearch && currentSearch.query;
-
-  return (
-    <div className="bg-ivory-50/80 border border-amber-200/30 rounded-lg p-5">
-      <h3 className="font-display text-lg font-bold text-navy-800 mb-1">
-        Search News
-      </h3>
-      <p className="font-body text-xs text-navy-700/40 mb-4">
-        Search topics across different geographic scales
-      </p>
-
-      {/* Search Input */}
-      <div className="flex gap-2 mb-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-700/30" />
-          <Input
-            type="text"
-            placeholder="Search topics... (climate, elections, tech)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-10 pr-9 bg-white border-amber-200/40 focus:border-amber-400 focus:ring-amber-400/20 font-body text-sm placeholder:text-navy-700/25"
-            disabled={isSearching}
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-700/30 hover:text-navy-700/60"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        <Button
-          onClick={handleSearch}
-          disabled={!query.trim() || isSearching}
-          className="bg-amber-600 hover:bg-amber-700 text-white font-body text-sm px-6"
-        >
-          {isSearching ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-              Searching
-            </>
-          ) : (
-            'Search'
-          )}
-        </Button>
-
-        {isSearchActive && (
-          <Button onClick={handleClear} variant="outline" className="border-amber-200/40 hover:bg-amber-50 font-body text-sm">
-            Clear
-          </Button>
-        )}
-      </div>
-
-      {/* Scale Filter */}
-      <div className="flex gap-1.5 mb-4">
-        {SCALES.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setScale(s.id)}
-            className={`px-3 py-1.5 rounded-md font-body text-xs transition-all ${
-              scale === s.id
-                ? 'bg-amber-600 text-white'
-                : 'bg-white border border-amber-200/40 text-navy-700/50 hover:border-amber-300 hover:text-navy-700/70'
-            }`}
-            title={s.description}
-          >
-            {s.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Suggested Searches */}
-      {!isSearchActive && (
-        <div className="flex flex-wrap gap-1.5">
-          {SUGGESTED_SEARCHES.map((suggestion) => (
-            <Badge
-              key={suggestion}
-              variant="outline"
-              className="cursor-pointer border-amber-200/30 text-navy-700/40 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors font-body text-[11px]"
-              onClick={() => handleSuggestedSearch(suggestion)}
-            >
-              {suggestion}
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* Active Search */}
-      {isSearchActive && (
-        <div className="mt-3 p-3 bg-amber-50/80 border border-amber-200/30 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-body text-xs font-medium text-amber-800">Active Search</p>
-              <p className="font-body text-[11px] text-amber-700/70 mt-0.5">
-                "{currentSearch.query}"
-              </p>
+  // Inline variant (mobile: full-width bar below globe)
+  if (variant === 'inline') {
+    return (
+      <div className="w-full bg-navy-900 border-b border-ivory-200/5">
+        <div className="max-w-4xl mx-auto px-4 py-2">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ivory-200/30" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-full pl-9 pr-8 py-2 bg-navy-900/80 border border-amber-500/20 rounded-lg font-body text-xs text-ivory-50 placeholder:text-ivory-200/30 focus:outline-none focus:border-amber-500/40"
+                disabled={isSearching}
+              />
+              {(query || isSearchActive) && (
+                <button
+                  onClick={handleClear}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ivory-200/30 hover:text-ivory-200/60"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
-            <Button onClick={handleClear} size="sm" variant="ghost" className="text-amber-700 hover:text-amber-900 hover:bg-amber-100 h-7 w-7 p-0">
-              <X className="w-3.5 h-3.5" />
-            </Button>
+            {isSearching && <Loader2 className="w-4 h-4 text-amber-400 animate-spin flex-shrink-0" />}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Overlay variant (desktop: upper-right pill on globe)
+  return (
+    <div ref={containerRef} className="relative">
+      {!isExpanded ? (
+        // Collapsed pill
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="flex items-center gap-2 bg-navy-900/80 backdrop-blur-sm border border-amber-500/20 rounded-lg px-3 py-2 font-body text-xs text-ivory-200/50 hover:text-ivory-200/80 hover:border-amber-500/30 transition-colors"
+          style={{ width: isSearchActive ? 'auto' : '160px' }}
+        >
+          <Search className="w-3.5 h-3.5 flex-shrink-0" />
+          {isSearchActive ? (
+            <span className="text-amber-400 truncate max-w-[120px]">"{currentSearch.query}"</span>
+          ) : (
+            <span>Search...</span>
+          )}
+          {isSearching && <Loader2 className="w-3 h-3 animate-spin ml-auto" />}
+        </button>
+      ) : (
+        // Expanded state
+        <div className="bg-navy-900/95 backdrop-blur-md border border-amber-500/20 rounded-lg shadow-2xl shadow-black/50" style={{ width: '300px' }}>
+          {/* Input */}
+          <div className="relative p-2">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ivory-200/30" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search topics..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full pl-8 pr-16 py-2 bg-transparent border-none font-body text-xs text-ivory-50 placeholder:text-ivory-200/30 focus:outline-none"
+              disabled={isSearching}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {(query || isSearchActive) && (
+                <button
+                  onClick={handleClear}
+                  className="text-ivory-200/30 hover:text-ivory-200/60 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+              {isSearching && <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />}
+            </div>
+          </div>
+
+          {/* Suggestions */}
+          {!isSearchActive && (
+            <div className="px-2 pb-2 border-t border-ivory-200/5">
+              <div className="flex flex-wrap gap-1 pt-2">
+                {SUGGESTED_SEARCHES.map((suggestion) => (
+                  <Badge
+                    key={suggestion}
+                    variant="outline"
+                    className="cursor-pointer border-amber-500/15 text-ivory-200/40 hover:bg-amber-500/10 hover:text-ivory-200/70 hover:border-amber-500/30 transition-colors font-body text-[10px]"
+                    onClick={() => handleSuggestedSearch(suggestion)}
+                  >
+                    {suggestion}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
