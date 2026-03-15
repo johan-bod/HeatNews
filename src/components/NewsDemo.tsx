@@ -73,7 +73,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
   };
 
   return (
-    <section className="py-16 px-6">
+    <section className="py-16 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
         <div className="mb-10">
           <h2 className="font-display text-3xl font-bold text-navy-800">
@@ -157,7 +157,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open(article.url, '_blank'); } }}
                 >
-                  <CardContent className="p-5">
+                  <CardContent className="p-4 md:p-5">
                     <div className="flex items-start gap-4">
                       {/* Heat indicator bar */}
                       <div className="flex flex-col items-center gap-1 pt-1">
