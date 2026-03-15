@@ -86,6 +86,12 @@ html {
   animation: fade-up 0.5s ease-out both;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+}
+
 /* Globe section dark transition — applied via id #globe-section */
 #globe-section {
   background: linear-gradient(

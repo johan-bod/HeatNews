@@ -28,7 +28,7 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
     ? cluster.articles.filter(a => a.id !== article.id).length - clusterArticles.length
     : 0;
   const distinctLocations = cluster ? countDistinctLocations(cluster) : 0;
-  const showGeoTeaser = distinctLocations >= 2;
+
   const navigate = useNavigate();
   const showInvestigate = cluster && cluster.articles.length >= 2;
   const coverageGap = cluster ? analyzeCoverageGap(cluster) : null;
@@ -163,11 +163,13 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
                   and {remainingCount} more source{remainingCount > 1 ? 's' : ''}
                 </p>
               )}
-              {/* Geographic teaser */}
-              {showGeoTeaser && onShowArcs && (
+              {/* Show connections on globe */}
+              {onShowArcs && (
                 <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-ivory-200/5">
                   <span className="font-body text-[10px] text-ivory-200/40">
-                    Covered across {distinctLocations} regions
+                    {distinctLocations >= 2
+                      ? `Covered across ${distinctLocations} regions`
+                      : `${cluster!.articles.length} sources`}
                   </span>
                   <button
                     onClick={() => {
@@ -215,7 +217,7 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
         {showInvestigate && (
           <button
             onClick={() => {
-              navigate(`/investigate?article=${article.id}`, {
+              navigate(`/app/investigate?article=${article.id}`, {
                 state: { cluster, article },
               });
             }}

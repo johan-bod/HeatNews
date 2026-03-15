@@ -14,6 +14,7 @@ interface MapSectionProps {
   onFlyToReady?: (flyTo: (lat: number, lng: number, alt?: number) => void, flyToResults?: (articles: NewsArticle[]) => void) => void;
   preferenceLocations?: PreferenceLocation[];
   searchResultIds?: Set<string> | null;
+  selectedScale?: string;
 }
 
 const GlobeLoading = () => (
@@ -25,7 +26,7 @@ const GlobeLoading = () => (
   </div>
 );
 
-export default function MapSection({ articles, clusters, onFlyToReady, preferenceLocations, searchResultIds }: MapSectionProps) {
+export default function MapSection({ articles, clusters, onFlyToReady, preferenceLocations, searchResultIds, selectedScale }: MapSectionProps) {
   const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function MapSection({ articles, clusters, onFlyToReady, preferenc
     <section id="globe-section" className="w-full bg-navy-900 py-0">
       <Suspense fallback={<GlobeLoading />}>
         {hasWebGL ? (
-          <GlobeView articles={articles} clusters={clusters} onFlyToReady={onFlyToReady} preferenceLocations={preferenceLocations} searchResultIds={searchResultIds} />
+          <GlobeView articles={articles} clusters={clusters} onFlyToReady={onFlyToReady} preferenceLocations={preferenceLocations} searchResultIds={searchResultIds} selectedScale={selectedScale} />
         ) : (
           <GlobeFallback articles={articles} />
         )}

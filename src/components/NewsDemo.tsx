@@ -222,7 +222,7 @@ const NewsDemo = ({ articles, isLoading = false, selectedScale = 'all', onArticl
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/investigate?article=${article.id}`, {
+                                navigate(`/app/investigate?article=${article.id}`, {
                                   state: { cluster, article },
                                 });
                               }}

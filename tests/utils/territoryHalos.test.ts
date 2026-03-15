@@ -94,11 +94,11 @@ describe('audienceScaleToRadiusKm', () => {
 });
 
 describe('generateBlobPolygon', () => {
-  it('generates a 32-point circle polygon', () => {
+  it('generates an 8-point circle polygon', () => {
     const blob = generateBlobPolygon(48.86, 2.35, 100);
     expect(blob.type).toBe('Feature');
     expect(blob.geometry.type).toBe('Polygon');
-    expect(blob.geometry.coordinates[0]).toHaveLength(33); // 32 + closing point
+    expect(blob.geometry.coordinates[0]).toHaveLength(9); // 8 + closing point
   });
 
   it('first and last points are the same (closed ring)', () => {
@@ -110,8 +110,8 @@ describe('generateBlobPolygon', () => {
   it('center of blob is approximately at the given lat/lng', () => {
     const blob = generateBlobPolygon(48.86, 2.35, 50);
     const ring = blob.geometry.coordinates[0];
-    const avgLng = ring.slice(0, -1).reduce((s, p) => s + p[0], 0) / 32;
-    const avgLat = ring.slice(0, -1).reduce((s, p) => s + p[1], 0) / 32;
+    const avgLng = ring.slice(0, -1).reduce((s, p) => s + p[0], 0) / 8;
+    const avgLat = ring.slice(0, -1).reduce((s, p) => s + p[1], 0) / 8;
     expect(avgLng).toBeCloseTo(2.35, 0);
     expect(avgLat).toBeCloseTo(48.86, 0);
   });

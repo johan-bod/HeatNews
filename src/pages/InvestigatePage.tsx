@@ -89,7 +89,7 @@ export default function InvestigatePage() {
         <div className="max-w-4xl mx-auto">
           <p className="text-ivory-100 text-lg mb-4">This story is no longer available.</p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/app')}
             className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
           >
             ← Back to map
@@ -110,7 +110,7 @@ export default function InvestigatePage() {
       <div className="max-w-4xl mx-auto">
         {/* Back navigation */}
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/app')}
           className="text-sm text-amber-400 hover:text-amber-300 transition-colors mb-6 block"
         >
           ← Back to map

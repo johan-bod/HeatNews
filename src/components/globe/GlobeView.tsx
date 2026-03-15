@@ -11,6 +11,7 @@ import { playDiscoverSound, isSoundEnabled, setSoundEnabled } from '@/utils/soun
 import { Volume2, VolumeX } from 'lucide-react';
 import RegionJumpPills from './RegionJumpPills';
 import { filterArticlesByAltitude, getMaxMarkers, computeResultsCentroid, computeFlyToAltitude } from '@/utils/globeUtils';
+import { DEFAULT_COUNTRY, SCALE_ALTITUDES } from '@/data/countries';
 import { articlesToMarkers, type GlobeMarkerData } from './GlobeMarkers';
 import { useGlobeAutoRotation } from './GlobeControls';
 import { useGlobeInteraction } from './useGlobeInteraction';
@@ -35,6 +36,7 @@ interface GlobeViewProps {
   ) => void;
   preferenceLocations?: PreferenceLocation[];
   searchResultIds?: Set<string> | null;
+  selectedScale?: string;
 }
 
 // Spec: 300ms transition for marker fade in/out
@@ -63,6 +65,7 @@ export default function GlobeView({
   onFlyToReady,
   preferenceLocations = [],
   searchResultIds,
+  selectedScale = 'all',
 }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
@@ -71,7 +74,7 @@ export default function GlobeView({
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [hoveredMarker, setHoveredMarker] = useState<GlobeMarkerData | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-  const [altitude, setAltitude] = useState(2.5);
+  const [altitude, setAltitude] = useState(0.8);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [activeRegionIndex, setActiveRegionIndex] = useState(0);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
@@ -120,8 +123,8 @@ export default function GlobeView({
 
   // Convert to marker data with search dimming
   const markers = useMemo(
-    () => articlesToMarkers(visibleArticles, searchResultIds),
-    [visibleArticles, searchResultIds]
+    () => articlesToMarkers(visibleArticles, searchResultIds, altitudeKm),
+    [visibleArticles, searchResultIds, altitudeKm]
   );
 
   // Build merged polygon data (country fills + radial blobs)
@@ -147,7 +150,7 @@ export default function GlobeView({
 
     // Radial blob polygons (skip on mobile for performance)
     let blobPolys: any[] = [];
-    if (blobOpacity > 0 && !isMobile) {
+    if (blobOpacity > 0 && !isMobile && altitudeKm > 500) {
       const withCoords = articles.filter(a => a.coordinates);
       blobPolys = withCoords.map(article => {
         const outlet = MEDIA_OUTLETS.find(o =>
@@ -207,6 +210,15 @@ export default function GlobeView({
       .pointsTransitionDuration(MARKER_TRANSITION_MS)
       .onPointClick((point: object) => {
         const marker = point as GlobeMarkerData;
+        if (marker.isCluster) {
+          // Zoom in one level on cluster click
+          const currentAlt = globe.pointOfView().altitude;
+          let targetAlt = currentAlt * 0.3;
+          if (targetAlt < SCALE_ALTITUDES.local) targetAlt = SCALE_ALTITUDES.local;
+          globe.pointOfView({ lat: marker.lat, lng: marker.lng, altitude: targetAlt }, 1000);
+          autoRotation.onUserInteraction();
+          return;
+        }
         setSelectedArticle(marker.article);
         const coords = globe.getScreenCoords(marker.lat, marker.lng);
         setPopupPosition(coords ? { x: coords.x, y: coords.y } : { x: 0, y: 0 });
@@ -253,13 +265,18 @@ export default function GlobeView({
         console.warn('Could not load country polygons');
       });
 
-    // Set initial point of view (Europe centered)
-    globe.pointOfView({ lat: 46, lng: 2, altitude: 2.5 }, 0);
+    // Set initial point of view (France centered, national scale)
+    globe.pointOfView({ lat: 46.5, lng: 2.5, altitude: 0.8 }, 0);
 
-    // Disable zoom by default (dormant state)
+    // Set zoom distance limits + dormant state
     const controls = globe.controls() as any;
-    if (controls && !isMobile) {
-      controls.noZoom = true;
+    if (controls) {
+      const radius = globe.getGlobeRadius();
+      controls.minDistance = radius * 1.02;
+      controls.maxDistance = radius * 4.5;
+      if (!isMobile) {
+        controls.noZoom = true;
+      }
     }
 
     // Hex-bin heatmap glow layer
@@ -369,6 +386,26 @@ export default function GlobeView({
     return () => clearTimeout(timer);
   }, [primaryLocKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fly to preset altitude when scale changes
+  const prevScaleRef = useRef(selectedScale);
+  useEffect(() => {
+    if (!globeRef.current || selectedScale === 'all' || selectedScale === prevScaleRef.current) return;
+    prevScaleRef.current = selectedScale;
+    const altitude = SCALE_ALTITUDES[selectedScale as keyof typeof SCALE_ALTITUDES];
+    if (!altitude) return;
+
+    const countryCenter = DEFAULT_COUNTRY.center;
+    const pov = globeRef.current.pointOfView();
+    const dLat = Math.abs(pov.lat - countryCenter.lat);
+    const dLng = Math.abs(pov.lng - countryCenter.lng);
+    if (dLat <= 10 && dLng <= 10) {
+      globeRef.current.pointOfView({ lat: countryCenter.lat, lng: countryCenter.lng, altitude }, 1000);
+    } else {
+      globeRef.current.pointOfView({ ...pov, altitude }, 1000);
+    }
+    autoRotation.onUserInteraction();
+  }, [selectedScale, autoRotation]);
+
   // Update markers when data changes
   useEffect(() => {
     if (!globeRef.current) return;
@@ -409,23 +446,43 @@ export default function GlobeView({
       });
   }, [mergedPolygons, searchResultIds]);
 
-  // Update hex-bin heatmap when articles change
+  // Update hex-bin heatmap when articles change (debounced)
+  const hexBinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!globeRef.current) return;
-    globeRef.current.hexBinPointsData(
-      articles.filter(a => a.coordinates).map(a => ({
-        lat: a.coordinates!.lat,
-        lng: a.coordinates!.lng,
-        heatLevel: a.heatLevel || 0,
-      }))
-    );
+    if (hexBinTimeoutRef.current) clearTimeout(hexBinTimeoutRef.current);
+    hexBinTimeoutRef.current = setTimeout(() => {
+      if (!globeRef.current) return;
+      globeRef.current.hexBinPointsData(
+        articles.filter(a => a.coordinates).map(a => ({
+          lat: a.coordinates!.lat,
+          lng: a.coordinates!.lng,
+          heatLevel: a.heatLevel || 0,
+        }))
+      );
+    }, 300);
+    return () => {
+      if (hexBinTimeoutRef.current) clearTimeout(hexBinTimeoutRef.current);
+    };
   }, [articles]);
+
+  // Pause RAF when globe is off-screen
+  const isVisibleRef = useRef(true);
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0.1 }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Auto-rotation + very-hot marker pulse animation loop
   useEffect(() => {
     let animationId: number;
     const animate = () => {
-      if (globeRef.current) {
+      if (globeRef.current && isVisibleRef.current) {
         if (!isMobile) {
           const angle = autoRotation.getRotationAngle();
           if (angle !== null && globeRef.current) {
@@ -496,14 +553,19 @@ export default function GlobeView({
         }}
       />
 
-      {/* Zoom level indicator */}
-      <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
-        <div className="bg-navy-900/80 backdrop-blur-sm border border-amber-500/20 rounded-lg px-3 py-1.5 font-body text-xs text-ivory-200/60">
-          {altitudeKm > 8000 && 'International view'}
-          {altitudeKm > 3000 && altitudeKm <= 8000 && 'National view'}
-          {altitudeKm > 800 && altitudeKm <= 3000 && 'Regional view'}
-          {altitudeKm <= 800 && 'Local view'}
-          <span className="ml-2 text-amber-400/60">{visibleArticles.length} stories</span>
+      {/* Scale indicator + country — upper-left */}
+      <div className="absolute top-4 left-4 z-10">
+        <div className="bg-navy-900/80 backdrop-blur-sm border border-amber-500/20 rounded-lg px-3 py-2 font-body text-xs">
+          <div className="text-ivory-200/80 font-semibold">
+            🇫🇷 France
+          </div>
+          <div className="text-ivory-200/50 mt-0.5">
+            {altitudeKm > 8000 && 'International view'}
+            {altitudeKm > 3000 && altitudeKm <= 8000 && 'National view'}
+            {altitudeKm > 800 && altitudeKm <= 3000 && 'Regional view'}
+            {altitudeKm <= 800 && 'Local view'}
+            <span className="ml-2 text-amber-400/60">{visibleArticles.length} stories</span>
+          </div>
           {!isMobile && (
             <button
               onClick={() => {
@@ -511,7 +573,7 @@ export default function GlobeView({
                 setSoundOn(next);
                 setSoundEnabled(next);
               }}
-              className="ml-2 text-ivory-200/30 hover:text-ivory-200/60 transition-colors"
+              className="mt-1 text-ivory-200/30 hover:text-ivory-200/60 transition-colors"
               title={soundOn ? 'Mute discovery sound' : 'Enable discovery sound'}
             >
               {soundOn ? <Volume2 className="w-3 h-3 inline" /> : <VolumeX className="w-3 h-3 inline" />}

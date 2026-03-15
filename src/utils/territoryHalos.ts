@@ -62,7 +62,7 @@ interface BlobFeature {
   properties: Record<string, unknown>;
 }
 
-const BLOB_POINTS = 32;
+const BLOB_POINTS = 8;
 const KM_PER_DEGREE_LAT = 111.32;
 
 export function generateBlobPolygon(

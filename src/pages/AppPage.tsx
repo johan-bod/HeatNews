@@ -90,7 +90,7 @@ const Index = () => {
   const [currentFilters, setCurrentFilters] = useState<NewsFiltersType | null>(null);
   const [currentSearch, setCurrentSearch] = useState<SearchParams | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedScale, setSelectedScale] = useState<ScaleFilter>('all');
+  const [selectedScale, setSelectedScale] = useState<ScaleFilter>('national');
   const [globeFlyTo, setGlobeFlyTo] = useState<((lat: number, lng: number, alt?: number) => void) | null>(null);
   const [globeFlyToResults, setGlobeFlyToResults] = useState<((articles: NewsArticle[]) => void) | null>(null);
   const baseArticlesRef = useRef<NewsArticle[]>([]);
@@ -288,10 +288,10 @@ const Index = () => {
   const handleClearFilters = useCallback(() => {
     setCurrentFilters(null);
     setCurrentSearch(null);
-    setSelectedScale('all');
+    setSelectedScale('national');
     setSearchResultIds(null);
     setAllArticles(baseArticlesRef.current);
-    if (globeFlyTo) globeFlyTo(46, 2, 2.5);
+    if (globeFlyTo) globeFlyTo(46.5, 2.5, 0.8);
   }, [globeFlyTo]);
 
   const handlePersonalizedRefresh = useCallback(async () => {
@@ -405,40 +405,44 @@ const Index = () => {
           }}
           preferenceLocations={preferences.locations}
           searchResultIds={searchResultIds}
+          selectedScale={selectedScale}
         />
       </ErrorBoundary>
       <GlobeLegend />
+
+      {/* Refresh controls — inline below globe legend */}
+      <div className="w-full bg-navy-900 border-b border-ivory-200/5">
+        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-center gap-4 flex-wrap">
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            variant="outline"
+            size="sm"
+            className="bg-transparent text-ivory-200/60 hover:text-amber-400 border-ivory-200/10 hover:border-amber-500/30 font-body text-xs"
+          >
+            <RefreshCw className={`w-3 h-3 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <RefreshIndicator
+            remaining={remainingFetches}
+            total={USER_DAILY_FETCHES}
+            onRefresh={handlePersonalizedRefresh}
+            isRefreshing={isPersonalizing}
+            isSignedIn={!!user}
+          />
+          {lastUpdated && !isLoading && (
+            <span className="font-body text-[10px] text-ivory-200/25">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Personalize CTA — shown to anonymous or non-onboarded users */}
       <PersonalizeCTA
         hasCompletedOnboarding={preferences.onboardingComplete}
         onOpenPreferences={handleOpenPreferences}
       />
-
-      {/* Refresh controls */}
-      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
-        <Button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="bg-ivory-50/95 backdrop-blur-sm text-navy-700 hover:bg-white hover:text-amber-600 shadow-lg border border-amber-200/40 font-body text-sm"
-          size="lg"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
-        <RefreshIndicator
-          remaining={remainingFetches}
-          total={USER_DAILY_FETCHES}
-          onRefresh={handlePersonalizedRefresh}
-          isRefreshing={isPersonalizing}
-          isSignedIn={!!user}
-        />
-        {lastUpdated && !isLoading && (
-          <div className="font-body text-[10px] text-navy-700/35 bg-ivory-50/90 backdrop-blur-sm px-3 py-1 rounded-md border border-amber-200/20 text-center">
-            Updated {lastUpdated.toLocaleTimeString()}
-          </div>
-        )}
-      </div>
 
       <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} clusters={clusters} />
       <HowItWorks />
