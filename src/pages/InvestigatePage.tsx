@@ -18,6 +18,12 @@ import { analyzeEditorialPerspective } from '@/utils/editorialPerspective';
 import { useArticleTranslation } from '@/hooks/useArticleTranslation';
 import { useTranslationPreference } from '@/hooks/useTranslationPreference';
 import { getCachedTranslation, translateArticle, type TranslationResult } from '@/services/translationService';
+import {
+  assessStoryPotential,
+  computeTimeline,
+  computeLangBreakdown,
+} from '@/utils/storyBrief';
+import ExportBriefButton from '@/components/investigate/ExportBriefButton';
 const ClusterMiniMap = lazy(() => import('@/components/investigate/ClusterMiniMap'));
 const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
 
@@ -155,39 +161,80 @@ export default function InvestigatePage() {
   const tierGroups = groupByTier(allItems);
   const articlesWithCoords = cluster.articles.filter(a => a.coordinates);
 
+  // ── Brief enrichment ────────────────────────────────────────────────────────
+  const potential = assessStoryPotential(cluster, coverageGap, geoGap);
+  const timeline = computeTimeline(cluster.articles);
+  const langBreakdown = computeLangBreakdown(cluster.articles);
+  const topLangs = Object.entries(langBreakdown)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+  const LANG_NAMES: Record<string, string> = {
+    fr: 'FR', en: 'EN', de: 'DE', es: 'ES', it: 'IT', ar: 'AR', pt: 'PT', nl: 'NL',
+  };
+  const POTENTIAL_COLORS: Record<string, string> = {
+    urgent: 'text-red-400 border-red-400/40 bg-red-400/10',
+    investigate: 'text-amber-400 border-amber-400/40 bg-amber-400/10',
+    monitor: 'text-ivory-200/40 border-ivory-200/20 bg-ivory-200/5',
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
       <div className="max-w-4xl mx-auto">
-        {/* Back navigation */}
-        <button
-          onClick={() => navigate('/app')}
-          className="text-sm text-amber-400 hover:text-amber-300 transition-colors mb-6 block"
-        >
-          ← Back to map
-        </button>
+        {/* Back navigation + Export */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate('/app')}
+            className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            ← Back to map
+          </button>
+          <ExportBriefButton input={{ article, cluster, coverageGap, geoGap, perspective }} />
+        </div>
 
         {/* Story Header */}
         <h1 className="text-2xl font-bold text-ivory-100 mb-3">
           {mainTranslation.displayTitle}
         </h1>
-        <div className="flex items-center flex-wrap gap-2 text-sm text-ivory-200/60 mb-8">
+
+        {/* Meta row */}
+        <div className="flex items-center flex-wrap gap-2 text-sm text-ivory-200/60 mb-2">
+          {/* Heat */}
           <span
             className="px-2 py-0.5 rounded text-xs font-semibold"
-            style={{
-              backgroundColor: hexToRgbaArc(heatColor, 0.2),
-              color: heatColor,
-            }}
+            style={{ backgroundColor: hexToRgbaArc(heatColor, 0.2), color: heatColor }}
           >
             {cluster.heatLevel}
           </span>
+
+          {/* Story potential */}
+          <span className={`px-2 py-0.5 rounded border text-xs font-medium ${POTENTIAL_COLORS[potential.level]}`}>
+            {potential.emoji} {potential.label}
+          </span>
+
           <span className="text-ivory-200/30">·</span>
           <span>{cluster.articles.length} sources</span>
+
           {distinctLocations >= 2 && (
             <>
               <span className="text-ivory-200/30">·</span>
               <span>across {distinctLocations} regions</span>
             </>
           )}
+
+          {/* Timeline */}
+          {timeline && (
+            <>
+              <span className="text-ivory-200/30">·</span>
+              <span className="text-xs text-ivory-200/50">
+                {timeline.status} ·{' '}
+                {timeline.durationHours < 24
+                  ? `${Math.round(timeline.durationHours)}h`
+                  : `${Math.round(timeline.durationHours / 24)}d`}
+              </span>
+            </>
+          )}
+
+          {/* Translation toggle */}
           {hasAnyNonEnglish && DEEPL_API_KEY && (
             <>
               <span className="text-ivory-200/30">·</span>
@@ -202,6 +249,21 @@ export default function InvestigatePage() {
             </>
           )}
         </div>
+
+        {/* Language breakdown */}
+        {topLangs.length > 1 && (
+          <div className="flex items-center gap-2 mb-8">
+            {topLangs.map(([lang, count]) => (
+              <span
+                key={lang}
+                className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-ivory-200/5 text-ivory-200/40 border border-ivory-200/10"
+              >
+                {LANG_NAMES[lang] ?? lang.toUpperCase()} {count}
+              </span>
+            ))}
+          </div>
+        )}
+        {topLangs.length <= 1 && <div className="mb-8" />}
 
         {/* Source List by Tier */}
         <div className="space-y-6 mb-10">
@@ -341,6 +403,38 @@ export default function InvestigatePage() {
             )}
           </div>
         )}
+
+        {/* Key Themes */}
+        {(() => {
+          const crossThemes = perspective?.emphasisDifferences.map(d => d.entity) ?? [];
+          const topics = cluster.articles
+            .flatMap(a => [a.primaryTopic, ...(a.secondaryTopics ?? [])])
+            .filter((t): t is string => !!t);
+          const topicCounts = topics.reduce<Record<string, number>>((acc, t) => {
+            acc[t] = (acc[t] ?? 0) + 1; return acc;
+          }, {});
+          const topTopics = Object.entries(topicCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([t]) => t);
+          const all = [...new Set([...crossThemes, ...topTopics])].slice(0, 12);
+          if (all.length === 0) return null;
+          return (
+            <div className="mb-10">
+              <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">Key Themes & Entities</h2>
+              <div className="flex flex-wrap gap-2">
+                {all.map(t => (
+                  <span
+                    key={t}
+                    className="text-xs px-2 py-1 rounded-full bg-ivory-200/5 border border-ivory-200/10 text-ivory-200/60"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Geographic Spread */}
         <div className="mb-8">
