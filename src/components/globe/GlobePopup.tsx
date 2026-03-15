@@ -8,6 +8,7 @@ import { getTierLabel, getTierColor, buildSourceBreakdown, getClusterArticles } 
 import { useNavigate } from 'react-router-dom';
 import { analyzeCoverageGap } from '@/utils/coverageGap';
 import { analyzeGeographicGap } from '@/utils/geographicGap';
+import { useArticleTranslation } from '@/hooks/useArticleTranslation';
 
 interface GlobePopupProps {
   article: NewsArticle;
@@ -22,6 +23,7 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
   const heatLevel = article.heatLevel || 0;
   const { tier } = resolveCredibilityByDomain(extractDomain(article.source.url));
   const cluster = clusters.find(c => c.articles.some(a => a.id === article.id));
+  const { displayTitle, detectedLang, hasTranslation, showOriginal, toggle } = useArticleTranslation(article);
   const breakdown = cluster ? buildSourceBreakdown(cluster.sourceDomains) : null;
   const clusterArticles = cluster ? getClusterArticles(cluster.articles, article.id) : [];
   const remainingCount = cluster
@@ -64,9 +66,20 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
             className="w-4 h-4 flex-shrink-0 mt-0.5"
             style={{ color: article.color || '#94A3B8' }}
           />
-          <h3 className="font-display text-sm font-semibold text-ivory-50 leading-tight line-clamp-3">
-            {article.title}
-          </h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display text-sm font-semibold text-ivory-50 leading-tight line-clamp-3">
+              {displayTitle}
+            </h3>
+            {hasTranslation && (
+              <button
+                onClick={toggle}
+                className="mt-1 font-body text-[10px] text-ivory-200/30 hover:text-amber-400 transition-colors uppercase tracking-wider"
+                title={showOriginal ? 'Show English translation' : 'Show original'}
+              >
+                {showOriginal ? `${detectedLang?.toUpperCase() ?? '??'} · show translation` : `EN · show ${detectedLang?.toUpperCase() ?? 'original'}`}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Source + reach badge */}

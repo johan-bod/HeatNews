@@ -1,0 +1,63 @@
+import { useState, useEffect } from 'react';
+import { getCachedTranslation, translateArticle } from '@/services/translationService';
+import type { NewsArticle } from '@/types/news';
+
+const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
+
+export interface ArticleTranslation {
+  /** Title to display (translated or original depending on showOriginal) */
+  displayTitle: string;
+  /** Description to display (translated or original depending on showOriginal) */
+  displayDescription: string | undefined;
+  /** Detected or known source language, e.g. 'fr'. Undefined for English articles. */
+  detectedLang: string | undefined;
+  /** Translation is being fetched from DeepL */
+  isTranslating: boolean;
+  /** A translation was successfully loaded (from cache or API) */
+  hasTranslation: boolean;
+  /** Currently showing the original (non-English) text */
+  showOriginal: boolean;
+  /** Toggle between translated and original */
+  toggle: () => void;
+}
+
+/**
+ * Translates a single article to English on mount (lazy, cached per article ID).
+ * Shows translation by default; exposes a toggle to switch to original.
+ * No-ops when VITE_DEEPL_API_KEY is not set or article is already in English.
+ */
+export function useArticleTranslation(article: NewsArticle): ArticleTranslation {
+  const lang = (article.language ?? 'en').toLowerCase().slice(0, 2);
+  const needsTranslation = lang !== 'en' && !!DEEPL_API_KEY;
+
+  const [trans, setTrans] = useState(() =>
+    needsTranslation ? getCachedTranslation(article.id) : null,
+  );
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+
+  useEffect(() => {
+    if (!needsTranslation || trans) return;
+
+    setIsTranslating(true);
+    translateArticle(article.id, article.title, article.description, lang, DEEPL_API_KEY!)
+      .then(result => { if (result) setTrans(result); })
+      .finally(() => setIsTranslating(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article.id]);
+
+  const hasTranslation = !!trans;
+  const useTranslated = hasTranslation && !showOriginal;
+
+  return {
+    displayTitle: useTranslated ? trans!.titleEn : article.title,
+    displayDescription: useTranslated
+      ? (trans!.descriptionEn || article.description)
+      : article.description,
+    detectedLang: trans?.detectedLang ?? (lang !== 'en' ? lang : undefined),
+    isTranslating,
+    hasTranslation,
+    showOriginal,
+    toggle: () => setShowOriginal(p => !p),
+  };
+}

@@ -1,7 +1,7 @@
 // src/pages/InvestigatePage.tsx
-import { useMemo, lazy, Suspense } from 'react';
+import { useMemo, useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import { AlertTriangle, MapPin } from 'lucide-react';
+import { AlertTriangle, Languages, MapPin } from 'lucide-react';
 import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { analyzeArticleHeat, heatLevelToColor } from '@/utils/topicClustering';
@@ -15,7 +15,10 @@ import { analyzeCoverageGap } from '@/utils/coverageGap';
 import { analyzeGeographicGap } from '@/utils/geographicGap';
 import { getCountryName } from '@/utils/countryNames';
 import { analyzeEditorialPerspective } from '@/utils/editorialPerspective';
+import { useArticleTranslation } from '@/hooks/useArticleTranslation';
+import { getCachedTranslation, translateArticle, type TranslationResult } from '@/services/translationService';
 const ClusterMiniMap = lazy(() => import('@/components/investigate/ClusterMiniMap'));
+const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
 
 interface InvestigateState {
   cluster: StoryCluster;
@@ -83,6 +86,52 @@ export default function InvestigatePage() {
   const geoGap = useMemo(() => cluster ? analyzeGeographicGap(cluster) : null, [cluster]);
   const perspective = useMemo(() => cluster ? analyzeEditorialPerspective(cluster.articles) : null, [cluster]);
 
+  // ── Translation ────────────────────────────────────────────────────────────
+  const mainTranslation = useArticleTranslation(article ?? { id: '', title: '', url: '', publishedAt: '', source: { name: '' }, language: 'en' });
+
+  const [showTranslations, setShowTranslations] = useState(true);
+  const [clusterTrans, setClusterTrans] = useState<Map<string, TranslationResult>>(() => {
+    if (!cluster) return new Map();
+    const map = new Map<string, TranslationResult>();
+    for (const a of cluster.articles) {
+      const cached = getCachedTranslation(a.id);
+      if (cached) map.set(a.id, cached);
+    }
+    return map;
+  });
+
+  useEffect(() => {
+    if (!showTranslations || !DEEPL_API_KEY || !cluster) return;
+    const toTranslate = cluster.articles.filter(a => {
+      const lang = (a.language ?? 'en').toLowerCase().slice(0, 2);
+      return lang !== 'en' && !clusterTrans.has(a.id);
+    });
+    if (toTranslate.length === 0) return;
+
+    Promise.all(
+      toTranslate.map(a =>
+        translateArticle(a.id, a.title, a.description, a.language ?? 'fr', DEEPL_API_KEY!)
+          .then(result => (result ? { id: a.id, result } : null))
+      ),
+    ).then(results => {
+      const next = new Map(clusterTrans);
+      for (const item of results) {
+        if (item) next.set(item.id, item.result);
+      }
+      setClusterTrans(next);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTranslations, cluster]);
+
+  const hasAnyNonEnglish = cluster
+    ? cluster.articles.some(a => (a.language ?? 'en').toLowerCase().slice(0, 2) !== 'en')
+    : false;
+
+  function getClusterTitle(a: NewsArticle): string {
+    if (!showTranslations) return a.title;
+    return clusterTrans.get(a.id)?.titleEn ?? a.title;
+  }
+
   if (!cluster || !article) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] px-6 py-8">
@@ -118,9 +167,9 @@ export default function InvestigatePage() {
 
         {/* Story Header */}
         <h1 className="text-2xl font-bold text-ivory-100 mb-3">
-          {article.title}
+          {mainTranslation.displayTitle}
         </h1>
-        <div className="flex items-center gap-2 text-sm text-ivory-200/60 mb-8">
+        <div className="flex items-center flex-wrap gap-2 text-sm text-ivory-200/60 mb-8">
           <span
             className="px-2 py-0.5 rounded text-xs font-semibold"
             style={{
@@ -136,6 +185,19 @@ export default function InvestigatePage() {
             <>
               <span className="text-ivory-200/30">·</span>
               <span>across {distinctLocations} regions</span>
+            </>
+          )}
+          {hasAnyNonEnglish && DEEPL_API_KEY && (
+            <>
+              <span className="text-ivory-200/30">·</span>
+              <button
+                onClick={() => setShowTranslations(p => !p)}
+                className="flex items-center gap-1 text-xs text-ivory-200/40 hover:text-amber-400 transition-colors"
+                title={showTranslations ? 'Show original languages' : 'Show English translations'}
+              >
+                <Languages className="w-3 h-3" />
+                {showTranslations ? 'Translated · show originals' : 'Originals · show EN'}
+              </button>
             </>
           )}
         </div>
@@ -164,7 +226,7 @@ export default function InvestigatePage() {
                           rel="noopener noreferrer"
                           className="block text-sm text-ivory-200/80 hover:text-ivory-100 transition-colors truncate"
                         >
-                          {clusterArticle.title}
+                          {getClusterTitle(clusterArticle)}
                         </a>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-ivory-200/40">
