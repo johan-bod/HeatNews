@@ -27,6 +27,31 @@ import {
 } from '@/utils/territoryHalos';
 import { MEDIA_OUTLETS } from '@/data/media-outlets';
 
+// Minimal GeoJSON feature shape returned by topojson feature()
+interface GeoFeature {
+  id: string | number;
+  type: string;
+  geometry: object;
+  properties: Record<string, unknown>;
+}
+
+// Merged polygon: either a GeoJSON country feature or a blob, with __type metadata
+interface MergedPolygon extends GeoFeature {
+  __type: 'country' | 'blob';
+  __heat: number;
+  __color: string | null;
+  __crossfadeOpacity: number;
+  __articleId?: string;
+}
+
+// Subset of Three.js OrbitControls we actually use
+interface OrbitControls {
+  noZoom: boolean;
+  minDistance: number;
+  maxDistance: number;
+  addEventListener: (event: string, listener: () => void) => void;
+}
+
 interface GlobeViewProps {
   articles: NewsArticle[];
   clusters: StoryCluster[];
@@ -69,7 +94,7 @@ export default function GlobeView({
 }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
-  const countryPolygonsRef = useRef<any[]>([]);
+  const countryPolygonsRef = useRef<GeoFeature[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [hoveredMarker, setHoveredMarker] = useState<GlobeMarkerData | null>(null);
@@ -109,7 +134,7 @@ export default function GlobeView({
   // Toggle globe zoom controls based on active state
   useEffect(() => {
     if (!globeRef.current || isMobile) return;
-    const controls = globeRef.current.controls() as any;
+    const controls = globeRef.current.controls() as OrbitControls;
     if (controls) {
       controls.noZoom = !isActive;
     }
@@ -135,7 +160,7 @@ export default function GlobeView({
     const countryHeatMap = aggregateCountryHeat(articles);
 
     // Country polygons tagged with type
-    const countryPolys = countryPolygonsRef.current.map((feat: any) => {
+    const countryPolys = countryPolygonsRef.current.map((feat) => {
       const numericCode = String(feat.id).padStart(3, '0');
       const alpha2 = NUMERIC_TO_ALPHA2[numericCode] || '';
       const heatEntry = countryHeatMap.get(alpha2);
@@ -149,7 +174,7 @@ export default function GlobeView({
     });
 
     // Radial blob polygons (skip on mobile for performance)
-    let blobPolys: any[] = [];
+    let blobPolys: MergedPolygon[] = [];
     if (blobOpacity > 0 && !isMobile && altitudeKm > 500) {
       const withCoords = articles.filter(a => a.coordinates);
       blobPolys = withCoords.map(article => {
@@ -269,7 +294,7 @@ export default function GlobeView({
     globe.pointOfView({ lat: 46.5, lng: 2.5, altitude: 0.8 }, 0);
 
     // Set zoom distance limits + dormant state
-    const controls = globe.controls() as any;
+    const controls = globe.controls() as OrbitControls;
     if (controls) {
       const radius = globe.getGlobeRadius();
       controls.minDistance = radius * 1.02;
@@ -417,31 +442,33 @@ export default function GlobeView({
     if (!globeRef.current || mergedPolygons.length === 0) return;
     globeRef.current
       .polygonsData(mergedPolygons)
-      .polygonCapColor((d: any) => {
-        if (d.__type === 'blob') {
-          const alpha = 0.15 * d.__crossfadeOpacity;
-          // Dim blobs for non-matching search results
-          if (searchResultIds && !searchResultIds.has(d.__articleId)) {
+      .polygonCapColor((d: object) => {
+        const poly = d as MergedPolygon;
+        if (poly.__type === 'blob') {
+          const alpha = 0.15 * poly.__crossfadeOpacity;
+          if (searchResultIds && !searchResultIds.has(poly.__articleId ?? '')) {
             return 'rgba(0,0,0,0)';
           }
-          return hexToRgba(d.__color, alpha);
+          return hexToRgba(poly.__color ?? '#94A3B8', alpha);
         }
-        // Country fill
-        if (!d.__color) return 'rgba(30, 42, 58, 0.6)';
-        const heatAlpha = heatToFillOpacity(d.__heat);
-        const alpha = heatAlpha * d.__crossfadeOpacity;
-        return hexToRgba(d.__color, alpha);
+        if (!poly.__color) return 'rgba(30, 42, 58, 0.6)';
+        const heatAlpha = heatToFillOpacity(poly.__heat);
+        const alpha = heatAlpha * poly.__crossfadeOpacity;
+        return hexToRgba(poly.__color, alpha);
       })
-      .polygonSideColor((d: any) => {
-        if (d.__type === 'blob') return 'rgba(0,0,0,0)';
+      .polygonSideColor((d: object) => {
+        const poly = d as MergedPolygon;
+        if (poly.__type === 'blob') return 'rgba(0,0,0,0)';
         return 'rgba(30, 42, 58, 0.2)';
       })
-      .polygonStrokeColor((d: any) => {
-        if (d.__type === 'blob') return 'rgba(0,0,0,0)';
+      .polygonStrokeColor((d: object) => {
+        const poly = d as MergedPolygon;
+        if (poly.__type === 'blob') return 'rgba(0,0,0,0)';
         return 'rgba(148, 163, 184, 0.15)';
       })
-      .polygonAltitude((d: any) => {
-        if (d.__type === 'blob') return 0.006;
+      .polygonAltitude((d: object) => {
+        const poly = d as MergedPolygon;
+        if (poly.__type === 'blob') return 0.006;
         return 0.005;
       });
   }, [mergedPolygons, searchResultIds]);

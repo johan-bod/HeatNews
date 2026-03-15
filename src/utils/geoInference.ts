@@ -22,7 +22,7 @@ export interface GazetteerEntry {
 // --- Dateline regex ---
 // Matches: "PARIS —", "LONDON (Reuters) —", "TOKYO, March 13 —", "BERLIN – "
 // Captures the city name (group 1). Language-agnostic (punctuation-based).
-const DATELINE_RE = /^([A-Z][A-Za-zÀ-ÿ\s-]+?)(?:\s*[\(,].*?)?\s*[—–\-]\s/;
+const DATELINE_RE = /^([A-Z][A-Za-zÀ-ÿ\s-]+?)(?:\s*[(,].*?)?\s*[—–-]\s/;
 
 // --- Place extraction ---
 

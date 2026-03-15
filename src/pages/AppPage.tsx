@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import Navbar from '../components/Navbar';
-import Hero from '../components/Hero';
 import NewsDemo from '../components/NewsDemo';
-import HowItWorks from '../components/HowItWorks';
 import Footer from '../components/Footer';
 import MapSection from '../components/MapSection';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -350,11 +348,40 @@ const Index = () => {
     );
   }
 
+  if (!isLoading && error && allArticles.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6 text-center">
+          <AlertTriangle className="w-10 h-10 text-amber-500/60" />
+          <div>
+            <h2 className="font-display text-xl font-semibold text-ivory-100 mb-2">
+              Couldn't load stories
+            </h2>
+            <p className="font-body text-sm text-ivory-200/50 max-w-sm">
+              {error.message.includes('401') || error.message.includes('403')
+                ? 'API key issue — check your NewsData.io credentials.'
+                : error.message.includes('429')
+                ? 'API rate limit reached. Stories will refresh automatically soon.'
+                : 'Network error. Check your connection and try again.'}
+            </p>
+          </div>
+          <button
+            onClick={loadNews}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background noise-bg relative">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-amber-500 focus:text-navy-900 focus:px-4 focus:py-2 focus:rounded-lg font-body text-sm">Skip to content</a>
       <Navbar onOpenPreferences={preferences.onboardingComplete ? handleOpenPreferences : undefined} />
-      <Hero />
 
       <main id="main-content">
       {/* API key warning */}
@@ -445,7 +472,6 @@ const Index = () => {
       />
 
       <NewsDemo articles={articles} isLoading={isLoading} selectedScale={selectedScale} onArticleLocate={handleArticleLocate} clusters={clusters} />
-      <HowItWorks />
 
       {/* Soft gate */}
       {showSoftGate && (
