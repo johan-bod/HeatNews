@@ -273,7 +273,7 @@ export default function GlobeView({
     if (controls) {
       const radius = globe.getGlobeRadius();
       controls.minDistance = radius * 1.02;
-      controls.maxDistance = radius * 4.5;
+      controls.maxDistance = radius * 3.5;
       if (!isMobile) {
         controls.noZoom = true;
       }
