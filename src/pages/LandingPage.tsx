@@ -3,6 +3,7 @@ import { Globe, Layers, Cpu, Network, Newspaper, FlaskConical, Quote } from 'luc
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import HeroGlobe from '@/components/landing/HeroGlobe';
 import FeatureCard from '@/components/landing/FeatureCard';
+import BetaNudge from '@/components/landing/BetaNudge';
 import { useAuth } from '@/contexts/AuthContext';
 
 function GradientLine() {
@@ -223,6 +224,8 @@ export default function LandingPage() {
           )}
         </div>
       </section>
+
+      {!user && <BetaNudge />}
 
       {/* Footer */}
       <footer className="border-t border-ivory-200/5 py-12 px-6">
