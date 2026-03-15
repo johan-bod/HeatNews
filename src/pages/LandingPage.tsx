@@ -236,7 +236,7 @@ export default function LandingPage() {
               <div>
                 <h3 className="font-body text-xs font-semibold text-ivory-200/30 uppercase tracking-widest mb-4">Links</h3>
                 <ul className="space-y-2.5">
-                  <li><a href="#" className="font-body text-sm text-ivory-200/40 hover:text-amber-400 transition-colors">About</a></li>
+                  <li><Link to="/pricing" className="font-body text-sm text-ivory-200/40 hover:text-amber-400 transition-colors">Pricing</Link></li>
                   <li><a href="mailto:contact@heatstory.app" className="font-body text-sm text-ivory-200/40 hover:text-amber-400 transition-colors">Contact</a></li>
                   <li><a href="https://github.com/johan-bod/HeatNews" target="_blank" rel="noopener noreferrer" className="font-body text-sm text-ivory-200/40 hover:text-amber-400 transition-colors">GitHub</a></li>
                 </ul>

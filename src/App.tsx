@@ -8,6 +8,7 @@ import AppPage from "./pages/AppPage";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import InvestigatePage from "./pages/InvestigatePage";
+import PricingPage from "./pages/PricingPage";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/app" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
           <Route path="/app/investigate" element={<ProtectedRoute><InvestigatePage /></ProtectedRoute>} />
           <Route

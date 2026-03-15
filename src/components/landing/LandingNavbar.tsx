@@ -20,7 +20,13 @@ export default function LandingNavbar() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <Link
+              to="/pricing"
+              className="font-body text-sm text-ivory-200/60 hover:text-amber-400 transition-colors"
+            >
+              Pricing
+            </Link>
             {user ? (
               <Link
                 to="/app"
