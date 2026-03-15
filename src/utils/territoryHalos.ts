@@ -94,17 +94,20 @@ export function generateBlobPolygon(
 }
 
 // --- Altitude crossfade ---
+// Country polygons always visible. Blobs fade in only at high altitude
+// where overlap is minimal. Below 2500km (regional/local), blobs hidden
+// to prevent indecipherable yellow mass from 100+ overlapping articles.
 
 const CROSSFADE_LOW = 2500;
-const CROSSFADE_HIGH = 3500;
+const CROSSFADE_HIGH = 5000;
 
 export function crossfadeOpacity(altitudeKm: number): {
   country: number;
   blob: number;
 } {
-  if (altitudeKm >= CROSSFADE_HIGH) return { country: 1, blob: 0 };
-  if (altitudeKm <= CROSSFADE_LOW) return { country: 0, blob: 1 };
+  if (altitudeKm >= CROSSFADE_HIGH) return { country: 1, blob: 1 };
+  if (altitudeKm <= CROSSFADE_LOW) return { country: 1, blob: 0 };
 
   const t = (altitudeKm - CROSSFADE_LOW) / (CROSSFADE_HIGH - CROSSFADE_LOW);
-  return { country: t, blob: 1 - t };
+  return { country: 1, blob: t };
 }

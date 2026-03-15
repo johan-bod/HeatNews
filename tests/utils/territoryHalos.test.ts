@@ -128,26 +128,28 @@ describe('generateBlobPolygon', () => {
 });
 
 describe('crossfadeOpacity', () => {
-  it('returns { country: 1, blob: 0 } above 3500km', () => {
-    expect(crossfadeOpacity(5000)).toEqual({ country: 1, blob: 0 });
-    expect(crossfadeOpacity(3500)).toEqual({ country: 1, blob: 0 });
+  it('returns { country: 1, blob: 1 } above 5000km (international)', () => {
+    expect(crossfadeOpacity(6000)).toEqual({ country: 1, blob: 1 });
+    expect(crossfadeOpacity(5000)).toEqual({ country: 1, blob: 1 });
   });
 
-  it('returns { country: 0, blob: 1 } below 2500km', () => {
-    expect(crossfadeOpacity(1000)).toEqual({ country: 0, blob: 1 });
-    expect(crossfadeOpacity(2500)).toEqual({ country: 0, blob: 1 });
+  it('returns { country: 1, blob: 0 } below 2500km (regional/local)', () => {
+    expect(crossfadeOpacity(1000)).toEqual({ country: 1, blob: 0 });
+    expect(crossfadeOpacity(2500)).toEqual({ country: 1, blob: 0 });
   });
 
-  it('returns interpolated values in 2500-3500km range', () => {
-    const mid = crossfadeOpacity(3000);
-    expect(mid.country).toBeCloseTo(0.5, 1);
+  it('returns interpolated blob in 2500-5000km range, country always 1', () => {
+    const mid = crossfadeOpacity(3750);
+    expect(mid.country).toBe(1);
     expect(mid.blob).toBeCloseTo(0.5, 1);
   });
 
-  it('country + blob always sum to 1 within the crossfade range', () => {
-    for (const alt of [2600, 2800, 3000, 3200, 3400]) {
-      const { country, blob } = crossfadeOpacity(alt);
-      expect(country + blob).toBeCloseTo(1, 5);
-    }
+  it('blob increases linearly from 0 to 1 across crossfade range', () => {
+    const low = crossfadeOpacity(2600);
+    const high = crossfadeOpacity(4900);
+    expect(low.blob).toBeCloseTo(0.04, 1);
+    expect(high.blob).toBeCloseTo(0.96, 1);
+    expect(low.country).toBe(1);
+    expect(high.country).toBe(1);
   });
 });
