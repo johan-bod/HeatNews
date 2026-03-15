@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getCachedTranslation, translateArticle } from '@/services/translationService';
+import { useTranslationPreference } from '@/hooks/useTranslationPreference';
 import type { NewsArticle } from '@/types/news';
 
 const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
 
 export interface ArticleTranslation {
-  /** Title to display (translated or original depending on showOriginal) */
+  /** Title to display (translated or original depending on global preference) */
   displayTitle: string;
-  /** Description to display (translated or original depending on showOriginal) */
+  /** Description to display (translated or original depending on global preference) */
   displayDescription: string | undefined;
   /** Detected or known source language, e.g. 'fr'. Undefined for English articles. */
   detectedLang: string | undefined;
@@ -17,37 +18,42 @@ export interface ArticleTranslation {
   hasTranslation: boolean;
   /** Currently showing the original (non-English) text */
   showOriginal: boolean;
-  /** Toggle between translated and original */
+  /** Toggle the global translation preference */
   toggle: () => void;
 }
 
 /**
  * Translates a single article to English on mount (lazy, cached per article ID).
- * Shows translation by default; exposes a toggle to switch to original.
+ * Respects the global translation preference (auto-detected from navigator.language
+ * on first visit, persisted in localStorage).
  * No-ops when VITE_DEEPL_API_KEY is not set or article is already in English.
  */
 export function useArticleTranslation(article: NewsArticle): ArticleTranslation {
   const lang = (article.language ?? 'en').toLowerCase().slice(0, 2);
   const needsTranslation = lang !== 'en' && !!DEEPL_API_KEY;
 
+  const { showTranslations, toggle } = useTranslationPreference();
+
   const [trans, setTrans] = useState(() =>
     needsTranslation ? getCachedTranslation(article.id) : null,
   );
   const [isTranslating, setIsTranslating] = useState(false);
-  const [showOriginal, setShowOriginal] = useState(false);
 
   useEffect(() => {
     if (!needsTranslation || trans) return;
+
+    // Only fetch from DeepL if the user wants translations
+    if (!showTranslations) return;
 
     setIsTranslating(true);
     translateArticle(article.id, article.title, article.description, lang, DEEPL_API_KEY!)
       .then(result => { if (result) setTrans(result); })
       .finally(() => setIsTranslating(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [article.id]);
+  }, [article.id, showTranslations]);
 
   const hasTranslation = !!trans;
-  const useTranslated = hasTranslation && !showOriginal;
+  const useTranslated = hasTranslation && showTranslations;
 
   return {
     displayTitle: useTranslated ? trans!.titleEn : article.title,
@@ -57,7 +63,7 @@ export function useArticleTranslation(article: NewsArticle): ArticleTranslation 
     detectedLang: trans?.detectedLang ?? (lang !== 'en' ? lang : undefined),
     isTranslating,
     hasTranslation,
-    showOriginal,
-    toggle: () => setShowOriginal(p => !p),
+    showOriginal: !showTranslations,
+    toggle,
   };
 }

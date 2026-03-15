@@ -16,6 +16,7 @@ import { analyzeGeographicGap } from '@/utils/geographicGap';
 import { getCountryName } from '@/utils/countryNames';
 import { analyzeEditorialPerspective } from '@/utils/editorialPerspective';
 import { useArticleTranslation } from '@/hooks/useArticleTranslation';
+import { useTranslationPreference } from '@/hooks/useTranslationPreference';
 import { getCachedTranslation, translateArticle, type TranslationResult } from '@/services/translationService';
 const ClusterMiniMap = lazy(() => import('@/components/investigate/ClusterMiniMap'));
 const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
@@ -89,7 +90,7 @@ export default function InvestigatePage() {
   // ── Translation ────────────────────────────────────────────────────────────
   const mainTranslation = useArticleTranslation(article ?? { id: '', title: '', url: '', publishedAt: '', source: { name: '' }, language: 'en' });
 
-  const [showTranslations, setShowTranslations] = useState(true);
+  const { showTranslations, toggle: toggleTranslations } = useTranslationPreference();
   const [clusterTrans, setClusterTrans] = useState<Map<string, TranslationResult>>(() => {
     if (!cluster) return new Map();
     const map = new Map<string, TranslationResult>();
@@ -191,7 +192,7 @@ export default function InvestigatePage() {
             <>
               <span className="text-ivory-200/30">·</span>
               <button
-                onClick={() => setShowTranslations(p => !p)}
+                onClick={toggleTranslations}
                 className="flex items-center gap-1 text-xs text-ivory-200/40 hover:text-amber-400 transition-colors"
                 title={showTranslations ? 'Show original languages' : 'Show English translations'}
               >
