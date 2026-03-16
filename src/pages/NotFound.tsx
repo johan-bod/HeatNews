@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Flame } from 'lucide-react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export default function NotFound() {
+  useDocumentTitle('Page not found — HeatStory');
   const location = useLocation();
 
   return (

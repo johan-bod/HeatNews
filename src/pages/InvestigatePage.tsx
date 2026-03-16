@@ -18,6 +18,7 @@ import { getCountryName } from '@/utils/countryNames';
 import { analyzeEditorialPerspective } from '@/utils/editorialPerspective';
 import { useArticleTranslation } from '@/hooks/useArticleTranslation';
 import { useTranslationPreference } from '@/hooks/useTranslationPreference';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { getCachedTranslation, translateArticle, type TranslationResult } from '@/services/translationService';
 import {
   assessStoryPotential,
@@ -91,6 +92,10 @@ export default function InvestigatePage() {
   const navigate = useNavigate();
   const { isPaid } = useSubscription();
   const { cluster, article, hasArticleParam } = useInvestigateData();
+  const pageTitle = cluster && article
+    ? `${article.title.slice(0, 60)}${article.title.length > 60 ? '…' : ''} — HeatStory`
+    : 'Investigate — HeatStory';
+  useDocumentTitle(pageTitle);
   const coverageGap = useMemo(() => cluster ? analyzeCoverageGap(cluster) : null, [cluster]);
   const geoGap = useMemo(() => cluster ? analyzeGeographicGap(cluster) : null, [cluster]);
   const perspective = useMemo(() => cluster ? analyzeEditorialPerspective(cluster.articles) : null, [cluster]);

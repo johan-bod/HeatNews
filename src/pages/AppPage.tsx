@@ -26,6 +26,7 @@ import { RefreshCw, AlertTriangle, Flame, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useSourceFeeds } from '@/hooks/useSourceFeeds';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { Topic } from '@/data/keywords/taxonomy';
 import type { PreferenceLocation } from '@/types/preferences';
 
@@ -85,6 +86,7 @@ function combineArticles(config: Awaited<ReturnType<typeof getCachedNews>>): New
 }
 
 const Index = () => {
+  useDocumentTitle('Live Map — HeatStory');
   const [allArticles, setAllArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);

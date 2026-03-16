@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { getCacheData, clearExpiredCache } from '@/utils/cache';
 import { toast } from 'sonner';
 
 export default function Admin() {
+  useDocumentTitle('Admin — HeatStory');
   const { user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cacheStats, setCacheStats] = useState<Record<string, unknown> | null>(null);

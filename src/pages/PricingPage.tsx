@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { Check, Flame, Clock, Globe, Rss, BarChart2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import LandingNavbar from '@/components/landing/LandingNavbar';
@@ -177,6 +178,7 @@ const faqs = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
+  useDocumentTitle('Pricing — HeatStory');
   const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
