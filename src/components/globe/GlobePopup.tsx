@@ -2,7 +2,7 @@ import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { buildClusterArcs, countDistinctLocations } from '@/utils/arcBuilder';
 import type { ArcData } from '@/utils/arcBuilder';
-import { AlertTriangle, ExternalLink, Flame, MapPin } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Flame, MapPin, Rss } from 'lucide-react';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
 import { getTierLabel, getTierColor, buildSourceBreakdown, getClusterArticles } from './credibilityHelpers';
 import { useNavigate } from 'react-router-dom';
@@ -54,10 +54,10 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
       />
       {/* Popup */}
       <div
-        className="fixed z-50 w-80 bg-navy-900/95 backdrop-blur-md border border-amber-500/20 rounded-lg shadow-2xl shadow-black/50 p-4 max-h-[70vh] overflow-y-auto"
+        className="fixed z-50 w-80 max-w-[calc(100vw-2rem)] bg-navy-900/95 backdrop-blur-md border border-amber-500/20 rounded-lg shadow-2xl shadow-black/50 p-4 max-h-[80vh] overflow-y-auto"
         style={{
-          left: Math.min(position.x, window.innerWidth - 340),
-          top: Math.min(position.y, window.innerHeight - 450),
+          left: Math.min(position.x, Math.max(0, window.innerWidth - Math.min(320, window.innerWidth - 32))),
+          top: Math.min(position.y, window.innerHeight - Math.min(450, window.innerHeight * 0.85)),
         }}
       >
         {/* Header with heat indicator */}
@@ -83,14 +83,22 @@ export default function GlobePopup({ article, position, onClose, clusters, onSho
         </div>
 
         {/* Source + reach badge */}
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="font-body text-xs text-ivory-200/60">
             {article.source.name}
           </span>
-          <span className="font-body text-[10px] text-ivory-200/30">·</span>
-          <span className={`font-body text-[10px] ${getTierColor(tier)}`}>
-            {getTierLabel(tier)}
-          </span>
+          {article.sourceType === 'primary_source' ? (
+            <span className="flex items-center gap-1 font-body text-[10px] text-cyan-400/80 bg-cyan-400/10 border border-cyan-400/20 px-1.5 py-0.5 rounded">
+              <Rss className="w-2.5 h-2.5" /> Primary Source
+            </span>
+          ) : (
+            <>
+              <span className="font-body text-[10px] text-ivory-200/30">·</span>
+              <span className={`font-body text-[10px] ${getTierColor(tier)}`}>
+                {getTierLabel(tier)}
+              </span>
+            </>
+          )}
           {breakdown && breakdown.total > 1 && (
             <span className="font-body text-[10px] text-ivory-200/40">
               Covered by {breakdown.total} sources: {breakdown.summary}

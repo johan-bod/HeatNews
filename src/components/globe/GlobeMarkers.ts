@@ -15,6 +15,7 @@ export interface GlobeMarkerData {
   isCluster?: boolean;
   clusterCount?: number;
   clusterArticles?: NewsArticle[];
+  isPrimarySource?: boolean;
 }
 
 /**
@@ -37,11 +38,12 @@ export function articlesToMarkers(
         lat: a.coordinates!.lat,
         lng: a.coordinates!.lng,
         size: getMarkerSize(a.heatLevel || 0),
-        color: getMarkerColor(a.heatLevel || 0),
+        color: a.sourceType === 'primary_source' ? '#06B6D4' : getMarkerColor(a.heatLevel || 0),
         opacity: searchResultIds ? (searchResultIds.has(a.id) ? 1.0 : 0.1) : 1.0,
         heatLevel: a.heatLevel || 0,
         article: a,
         label: a.title,
+        isPrimarySource: a.sourceType === 'primary_source',
       }));
   }
 
@@ -54,11 +56,12 @@ export function articlesToMarkers(
       lat: a.coordinates!.lat,
       lng: a.coordinates!.lng,
       size: getMarkerSize(a.heatLevel || 0),
-      color: getMarkerColor(a.heatLevel || 0),
+      color: a.sourceType === 'primary_source' ? '#06B6D4' : getMarkerColor(a.heatLevel || 0),
       opacity: searchResultIds ? (searchResultIds.has(a.id) ? 1.0 : 0.1) : 1.0,
       heatLevel: a.heatLevel || 0,
       article: a,
       label: a.title,
+      isPrimarySource: a.sourceType === 'primary_source',
     }));
 
   const clusterMarkerData: GlobeMarkerData[] = clusters.map((c: ClusteredMarker, i: number) => ({

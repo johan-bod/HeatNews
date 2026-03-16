@@ -198,8 +198,6 @@ export async function refreshNewsCache(): Promise<CachedNewsConfig> {
   return getCachedNews(true);
 }
 
-const CACHE_KEY_PERSONALIZED = 'personalized_news';
-
 /**
  * Execute a personalized fetch for a signed-in user.
  * Uses their preference topics + locations to build targeted queries.
@@ -229,11 +227,11 @@ export async function fetchPersonalizedNews(
   }
 
   incrementUserFetch(uid);
-  syncUsageToFirestore(uid); // fire-and-forget
+  syncUsageToFirestore(uid).catch(console.warn); // fire-and-forget
 
   // Process and cache
   const processed = await processArticles(articles, 'international');
-  setCacheData(CACHE_KEY_PERSONALIZED, processed, {
+  setCacheData(`personalized_news_${uid}`, processed, {
     region: 'Personalized',
     scale: 'international',
     ttl: CACHE_TTL,
@@ -245,8 +243,8 @@ export async function fetchPersonalizedNews(
 /**
  * Get cached personalized articles (if any).
  */
-export function getCachedPersonalizedNews(): NewsArticle[] {
-  return getCacheData<NewsArticle[]>(CACHE_KEY_PERSONALIZED) || [];
+export function getCachedPersonalizedNews(uid: string): NewsArticle[] {
+  return getCacheData<NewsArticle[]>(`personalized_news_${uid}`) || [];
 }
 
 let refreshIntervalId: ReturnType<typeof setInterval> | null = null;

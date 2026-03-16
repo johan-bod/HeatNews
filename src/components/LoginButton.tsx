@@ -4,6 +4,7 @@ import { isConfigured } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, Shield, User, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +32,7 @@ export function LoginButton({ redirectTo }: LoginButtonProps = {}) {
       if (redirectTo) navigate(redirectTo);
     } catch (error) {
       console.error('Sign in failed:', error);
-      alert('Failed to sign in. Please try again.');
+      toast.error('Failed to sign in. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -43,7 +44,7 @@ export function LoginButton({ redirectTo }: LoginButtonProps = {}) {
       await logout();
     } catch (error) {
       console.error('Logout failed:', error);
-      alert('Failed to logout. Please try again.');
+      toast.error('Failed to logout. Please try again.');
     } finally {
       setIsLoading(false);
     }

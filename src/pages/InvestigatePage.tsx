@@ -1,7 +1,7 @@
 // src/pages/InvestigatePage.tsx
 import { useMemo, useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Languages, MapPin } from 'lucide-react';
+import { AlertTriangle, Languages, MapPin, Rss } from 'lucide-react';
 import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { analyzeArticleHeat, heatLevelToColor } from '@/utils/topicClustering';
@@ -24,10 +24,9 @@ import {
   computeLangBreakdown,
 } from '@/utils/storyBrief';
 import ExportBriefButton from '@/components/investigate/ExportBriefButton';
+import SaveButton from '@/components/investigate/SaveButton';
 import InvestigateDashboard from '@/components/investigate/InvestigateDashboard';
 const ClusterMiniMap = lazy(() => import('@/components/investigate/ClusterMiniMap'));
-const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
-
 interface InvestigateState {
   cluster: StoryCluster;
   article: NewsArticle;
@@ -109,7 +108,7 @@ export default function InvestigatePage() {
   });
 
   useEffect(() => {
-    if (!showTranslations || !DEEPL_API_KEY || !cluster) return;
+    if (!showTranslations || !cluster) return;
     const toTranslate = cluster.articles.filter(a => {
       const lang = (a.language ?? 'en').toLowerCase().slice(0, 2);
       return lang !== 'en' && !clusterTrans.has(a.id);
@@ -118,7 +117,7 @@ export default function InvestigatePage() {
 
     Promise.all(
       toTranslate.map(a =>
-        translateArticle(a.id, a.title, a.description, a.language ?? 'fr', DEEPL_API_KEY!)
+        translateArticle(a.id, a.title, a.description, a.language ?? 'fr')
           .then(result => (result ? { id: a.id, result } : null))
       ),
     ).then(results => {
@@ -205,7 +204,13 @@ export default function InvestigatePage() {
               Map
             </button>
           </div>
-          <ExportBriefButton input={{ article, cluster, coverageGap, geoGap, perspective }} />
+          <div className="flex items-center gap-3">
+            <SaveButton
+              cluster={cluster} lead={article} potential={potential}
+              timeline={timeline} coverageGap={coverageGap}
+            />
+            <ExportBriefButton input={{ article, cluster, coverageGap, geoGap, perspective }} />
+          </div>
         </div>
 
         {/* Story Header */}
@@ -252,7 +257,7 @@ export default function InvestigatePage() {
           )}
 
           {/* Translation toggle */}
-          {hasAnyNonEnglish && DEEPL_API_KEY && (
+          {hasAnyNonEnglish && (
             <>
               <span className="text-ivory-200/30">·</span>
               <button
@@ -342,6 +347,45 @@ export default function InvestigatePage() {
             </div>
           ))}
         </div>
+
+        {/* Primary Sources */}
+        {(() => {
+          const primarySources = cluster.articles.filter(a => a.sourceType === 'primary_source');
+          if (primarySources.length === 0) return null;
+          return (
+            <div className="border border-cyan-500/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-cyan-400/60 mb-3">
+                <Rss className="w-3 h-3" />
+                <span>Primary Sources</span>
+                <span className="normal-case text-cyan-400/40">({primarySources.length})</span>
+              </div>
+              <div className="divide-y divide-ivory-200/5">
+                {primarySources.map(a => (
+                  <div key={a.id} className="py-2 first:pt-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-sm font-bold text-cyan-300/80">
+                          {a.source.name}
+                        </span>
+                        <a
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-sm text-ivory-200/70 hover:text-ivory-100 transition-colors"
+                        >
+                          {getClusterTitle(a)}
+                        </a>
+                        <span className="text-xs text-ivory-200/40">
+                          {formatTimeAgo(a.publishedAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Coverage Analysis */}
         {(coverageGap?.hasGap || geoGap?.hasGeoGap) && (

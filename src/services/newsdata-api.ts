@@ -2,8 +2,7 @@ import type { NewsDataResponse, NewsDataArticle, NewsArticle } from '@/types/new
 import { MEDIA_OUTLETS } from '@/data/media-outlets';
 import { resolveCredibility } from '@/utils/credibilityService';
 
-const API_KEY = import.meta.env.VITE_NEWSDATA_API_KEY;
-const BASE_URL = 'https://newsdata.io/api/1';
+const BASE_URL = '/api/news';
 
 export interface NewsDataSearchParams {
   query?: string;
@@ -35,7 +34,6 @@ export async function fetchNewsDataArticles(
   } = params;
 
   const searchParams = new URLSearchParams({
-    apikey: API_KEY || '',
     language: Array.isArray(language) ? language.join(',') : language,
   });
 
@@ -53,7 +51,7 @@ export async function fetchNewsDataArticles(
   if (prioritydomain) searchParams.append('prioritydomain', prioritydomain);
   if (excludedomain) searchParams.append('excludedomain', excludedomain);
 
-  const url = `${BASE_URL}/news?${searchParams.toString()}`;
+  const url = `${BASE_URL}?${searchParams.toString()}`;
 
   const response = await fetch(url);
 

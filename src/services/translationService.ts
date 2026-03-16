@@ -1,8 +1,6 @@
 /**
  * DeepL translation service with localStorage cache and monthly budget tracking.
- *
- * NOTE: The API key is exposed client-side. Acceptable for a beta/personal tool;
- * move behind a serverless proxy before public launch.
+ * API key is server-side only — requests are proxied through /api/translate.
  */
 
 const CACHE_PREFIX = 'ht-trans-v1-';
@@ -20,15 +18,6 @@ export interface TranslationResult {
 interface BudgetState {
   month: string; // 'YYYY-MM'
   chars: number;
-}
-
-// ── DeepL endpoint detection ──────────────────────────────────────────────────
-
-function getApiEndpoint(apiKey: string): string {
-  // Free-tier keys end with ':fx'
-  return apiKey.endsWith(':fx')
-    ? 'https://api-free.deepl.com/v2/translate'
-    : 'https://api.deepl.com/v2/translate';
 }
 
 // ── Budget tracking ───────────────────────────────────────────────────────────
@@ -68,12 +57,55 @@ export function getMonthlyUsage(): { chars: number; limit: number; pct: number }
 
 // ── Translation cache ─────────────────────────────────────────────────────────
 
+const MAX_CACHE_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+interface CachedTranslation extends TranslationResult {
+  cachedAt: number; // Date.now()
+}
+
 export function getCachedTranslation(articleId: string): TranslationResult | null {
   try {
     const stored = localStorage.getItem(CACHE_PREFIX + articleId);
-    return stored ? (JSON.parse(stored) as TranslationResult) : null;
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as CachedTranslation;
+    // Treat entries without cachedAt (legacy) or older than 30 days as cache misses
+    if (!parsed.cachedAt || Date.now() - parsed.cachedAt > MAX_CACHE_AGE_MS) {
+      localStorage.removeItem(CACHE_PREFIX + articleId);
+      return null;
+    }
+    // Strip cachedAt before returning so the public API is TranslationResult
+    const { cachedAt: _cachedAt, ...result } = parsed;
+    return result;
   } catch {
     return null;
+  }
+}
+
+/** Remove all ht-trans-v1-* entries older than 30 days. */
+function pruneTranslationCache(): void {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(CACHE_PREFIX)) {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored) as Partial<CachedTranslation>;
+            if (!parsed.cachedAt || Date.now() - parsed.cachedAt > MAX_CACHE_AGE_MS) {
+              keysToRemove.push(key);
+            }
+          } catch {
+            keysToRemove.push(key); // unparseable — remove it
+          }
+        }
+      }
+    }
+    for (const key of keysToRemove) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    // localStorage unavailable
   }
 }
 
@@ -89,7 +121,6 @@ export async function translateArticle(
   title: string,
   description: string | undefined,
   sourceLang: string,
-  apiKey: string,
 ): Promise<TranslationResult | null> {
   // Already English — no-op
   const lang = sourceLang.toLowerCase().slice(0, 2);
@@ -107,17 +138,12 @@ export async function translateArticle(
   const charCount = texts.reduce((sum, t) => sum + t.length, 0);
 
   try {
-    const res = await fetch(getApiEndpoint(apiKey), {
+    const res = await fetch('/api/translate', {
       method: 'POST',
       headers: {
-        Authorization: `DeepL-Auth-Key ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        text: texts,
-        source_lang: lang.toUpperCase(),
-        target_lang: 'EN',
-      }),
+      body: JSON.stringify({ texts, sourceLang: lang.toUpperCase() }),
     });
 
     if (!res.ok) return null;
@@ -134,7 +160,15 @@ export async function translateArticle(
     };
 
     try {
-      localStorage.setItem(CACHE_PREFIX + articleId, JSON.stringify(result));
+      const entry: CachedTranslation = { ...result, cachedAt: Date.now() };
+      localStorage.setItem(CACHE_PREFIX + articleId, JSON.stringify(entry));
+      // Prune stale cache entries only when the cache grows large
+      let cacheKeyCount = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(CACHE_PREFIX)) cacheKeyCount++;
+      }
+      if (cacheKeyCount > 200) pruneTranslationCache();
     } catch {
       // localStorage full — still return result for this session
     }

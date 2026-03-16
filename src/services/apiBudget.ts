@@ -10,7 +10,19 @@ export const BUDGET_RESERVE = 20; // Reserve for emergency shared pool refresh
 const STORAGE_KEY = 'heatstory_budget';
 const DATE_KEY = 'heatstory_budget_date';
 
-interface BudgetState {
+function getBudgetChannel(): BroadcastChannel | null {
+  if (typeof BroadcastChannel === 'undefined') return null;
+  try {
+    return new BroadcastChannel('ht-budget');
+  } catch {
+    return null;
+  }
+}
+
+// Single shared channel instance for this tab
+const budgetChannel = getBudgetChannel();
+
+export interface BudgetState {
   requestCount: number;
   userFetches: Record<string, number>; // uid → fetch count
 }
@@ -33,6 +45,9 @@ function saveState(state: BudgetState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem(DATE_KEY, getToday());
+    try {
+      budgetChannel?.postMessage({ type: 'budget-updated' });
+    } catch { /* ignore */ }
   } catch {
     console.warn('Failed to save budget state');
   }
@@ -129,7 +144,7 @@ export async function loadUsageFromFirestore(uid: string): Promise<void> {
     const docRef = doc(db, 'users', uid);
     const snapshot = await getDoc(docRef);
     if (snapshot.exists()) {
-      const usage = snapshot.data().usage;
+      const usage = snapshot.data()?.usage;
       if (usage && usage.date === getToday()) {
         const state = loadState();
         const localCount = state.userFetches[uid] || 0;
@@ -141,4 +156,18 @@ export async function loadUsageFromFirestore(uid: string): Promise<void> {
   } catch (error) {
     console.warn('Failed to load usage from Firestore:', error);
   }
+}
+
+/**
+ * Subscribe to budget updates from other tabs via BroadcastChannel.
+ * Returns an unsubscribe function. Safe to call when BroadcastChannel
+ * is unavailable — returns a no-op.
+ */
+export function onRemoteBudgetUpdate(callback: () => void): () => void {
+  if (!budgetChannel) return () => {};
+  const handler = (e: MessageEvent) => {
+    if (e.data?.type === 'budget-updated') callback();
+  };
+  budgetChannel.addEventListener('message', handler);
+  return () => budgetChannel!.removeEventListener('message', handler);
 }

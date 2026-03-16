@@ -15,6 +15,20 @@ export interface RegionalGap {
   regionGapLabel: string;
 }
 
+let regionsByCountry: Map<string, typeof ADMIN_REGIONS> | null = null;
+
+function getRegionsByCountry(): Map<string, typeof ADMIN_REGIONS> {
+  if (!regionsByCountry) {
+    regionsByCountry = new Map();
+    for (const r of ADMIN_REGIONS) {
+      const list = regionsByCountry.get(r.country) ?? [];
+      list.push(r);
+      regionsByCountry.set(r.country, list);
+    }
+  }
+  return regionsByCountry;
+}
+
 const NO_GAP: GeographicGapResult = {
   hasGeoGap: false,
   coveredCountries: [],
@@ -64,7 +78,8 @@ const COUNTRY_DEMONYMS: Record<string, string> = {
 };
 
 export function resolveRegion(lat: number, lng: number, country: string): string | null {
-  const countryRegions = ADMIN_REGIONS.filter(r => r.country === country);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const countryRegions = getRegionsByCountry().get(country) ?? [];
   if (countryRegions.length === 0) return null;
 
   let nearest = countryRegions[0];
@@ -116,7 +131,7 @@ export function analyzeGeographicGap(cluster: StoryCluster): GeographicGapResult
       const withCoords = articles.filter(a => a.coordinates);
       if (withCoords.length < 2) continue;
 
-      const countryRegions = ADMIN_REGIONS.filter(r => r.country === country);
+      const countryRegions = getRegionsByCountry().get(country) ?? [];
       if (countryRegions.length === 0) continue;
 
       const coveredRegionSet = new Set<string>();

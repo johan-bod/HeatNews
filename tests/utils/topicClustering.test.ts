@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clusterArticles, calculateClusterHeat, heatLevelToColor } from '@/utils/topicClustering';
+import { clusterArticles, calculateClusterHeat, heatLevelToColor, deduplicateArticleCount } from '@/utils/topicClustering';
 import type { NewsArticle } from '@/types/news';
 
 const makeArticle = (id: string, title: string, source: string, hoursAgo = 1, sourceUrl?: string): NewsArticle => ({
@@ -88,6 +88,88 @@ describe('heatLevelToColor', () => {
   });
   it('returns deep red for very hot (81-100)', () => {
     expect(heatLevelToColor(95)).toBe('#DC2626');
+  });
+});
+
+// ── Source deduplication ──────────────────────────────────────────────────────
+
+describe('deduplicateArticleCount', () => {
+  it('counts a single article as 1', () => {
+    const articles = [makeArticle('1', 'Paris floods after heavy rain', 'lemonde', 1, 'https://lemonde.fr')];
+    expect(deduplicateArticleCount(articles)).toBe(1);
+  });
+
+  it('counts two articles from different orgs as 2', () => {
+    const articles = [
+      makeArticle('1', 'Paris floods after heavy rain', 'lemonde', 1, 'https://lemonde.fr'),
+      makeArticle('2', 'Paris flooding latest updates', 'lefigaro', 1, 'https://lefigaro.fr'),
+    ];
+    expect(deduplicateArticleCount(articles)).toBe(2);
+  });
+
+  it('counts same story published on web and Telegram as 1', () => {
+    const articles = [
+      makeArticle('1', 'Russia announces ceasefire in Ukraine', 'TASS', 1, 'https://tass.ru'),
+      makeArticle('2', 'Russia announces ceasefire in Ukraine', 'TASS Agency', 1, 'https://t.me/tass_agency'),
+    ];
+    // Same org (tass), same story → should be 1, not 2
+    expect(deduplicateArticleCount(articles)).toBe(1);
+  });
+
+  it('counts different stories from same org separately', () => {
+    const articles = [
+      makeArticle('1', 'Russia announces ceasefire in Ukraine', 'TASS', 1, 'https://tass.ru'),
+      makeArticle('2', 'Ukrainian forces advance near Kharkiv', 'TASS', 1, 'https://tass.ru'),
+    ];
+    // Same org, different stories → should be 2
+    expect(deduplicateArticleCount(articles)).toBe(2);
+  });
+
+  it('does not conflate different orgs with similar names', () => {
+    const articles = [
+      makeArticle('1', 'Election results announced', 'BBC News', 1, 'https://bbc.co.uk'),
+      makeArticle('2', 'Election results announced', 'CBC News', 1, 'https://cbc.ca'),
+    ];
+    // BBC ≠ CBC → 2 distinct orgs even though titles are identical
+    expect(deduplicateArticleCount(articles)).toBe(2);
+  });
+});
+
+describe('clusterArticles — source deduplication in heat', () => {
+  it('same org on web+Telegram scores lower than two independent orgs', () => {
+    // Scenario: TASS publishes on tass.ru AND t.me/tass_agency (same story)
+    const disseminated = [
+      makeArticle('1', 'Kremlin announces new sanctions response', 'TASS', 1, 'https://tass.ru'),
+      makeArticle('2', 'Kremlin announces new sanctions response', 'TASS Agency', 1, 'https://t.me/tass_agency'),
+    ];
+    // Scenario: Reuters AND AFP both independently cover the same story
+    const independent = [
+      makeArticle('3', 'Kremlin announces new sanctions response', 'Reuters', 1, 'https://reuters.com'),
+      makeArticle('4', 'Kremlin new response to sanctions announced', 'AFP', 1, 'https://afp.com'),
+    ];
+
+    const disseminatedCluster = clusterArticles(disseminated)[0];
+    const independentCluster  = clusterArticles(independent)[0];
+
+    // Independent coverage from two orgs should score higher than
+    // one org amplifying itself via two channels
+    expect(independentCluster.heatLevel).toBeGreaterThan(disseminatedCluster.heatLevel);
+  });
+
+  it('multiple channels from same org do not inflate heat beyond single channel', () => {
+    const singleChannel = [
+      makeArticle('1', 'Flood warning issued for southern France', 'lemonde', 1, 'https://lemonde.fr'),
+    ];
+    const multiChannel = [
+      makeArticle('2', 'Flood warning issued for southern France', 'lemonde', 1, 'https://lemonde.fr'),
+      makeArticle('3', 'Flood warning issued for southern France', 'Le Monde', 1, 'https://t.me/lemonde_channel'),
+    ];
+
+    const single = clusterArticles(singleChannel)[0];
+    const multi  = clusterArticles(multiChannel)[0];
+
+    // Adding a second channel for the same story should NOT increase heat
+    expect(multi.heatLevel).toBe(single.heatLevel);
   });
 });
 

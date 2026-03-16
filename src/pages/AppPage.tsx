@@ -7,21 +7,25 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { NewsFilters, type NewsFiltersType } from '../components/NewsFilters';
 import { NewsSearch, type SearchParams } from '../components/NewsSearch';
 import { getCachedNews, refreshNewsCache, initializeBackgroundRefresh, fetchPersonalizedNews, getCachedPersonalizedNews } from '@/services/cachedNews';
-import { getUserRemainingFetches, USER_DAILY_FETCHES, loadUsageFromFirestore } from '@/services/apiBudget';
+import { getUserRemainingFetches, USER_DAILY_FETCHES, loadUsageFromFirestore, onRemoteBudgetUpdate } from '@/services/apiBudget';
 import RefreshIndicator from '@/components/RefreshIndicator';
 import SoftGate from '@/components/SoftGate';
 import GlobeLegend from '@/components/GlobeLegend';
 import PersonalizeCTA from '@/components/PersonalizeCTA';
 import { useAuth } from '@/contexts/AuthContext';
+import { LoginButton } from '@/components/LoginButton';
+import useSubscription from '@/hooks/useSubscription';
 import { searchAndFilterNews } from '@/services/newsdata-api';
 import { geocodeArticles } from '@/utils/geocoding';
 import { analyzeArticleHeat, getArticleColor } from '@/utils/topicClustering';
 import type { StoryCluster } from '@/utils/topicClustering';
+import { useClusteringWorker } from '@/hooks/useClusteringWorker';
 import { indexArticleTopics } from '@/utils/topicIndexer';
 import type { NewsArticle } from '@/types/news';
-import { RefreshCw, AlertTriangle, Flame } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Flame, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/hooks/usePreferences';
+import { useSourceFeeds } from '@/hooks/useSourceFeeds';
 import type { Topic } from '@/data/keywords/taxonomy';
 import type { PreferenceLocation } from '@/types/preferences';
 
@@ -29,8 +33,6 @@ const OnboardingModal = lazy(() => import('@/components/onboarding/OnboardingMod
 
 type ArticleScale = 'local' | 'regional' | 'national' | 'international';
 type ScaleFilter = 'all' | ArticleScale;
-
-const API_KEY = import.meta.env.VITE_NEWSDATA_API_KEY;
 
 function processFilteredArticles(
   articles: NewsArticle[],
@@ -94,16 +96,20 @@ const Index = () => {
   const baseArticlesRef = useRef<NewsArticle[]>([]);
   const [searchResultIds, setSearchResultIds] = useState<Set<string> | null>(null);
   const { preferences, needsOnboarding, setTopics, setLocations, completeOnboarding, updatePreferences } = usePreferences();
+  const { feedArticles } = useSourceFeeds();
   const [showPreferences, setShowPreferences] = useState(false);
   const { user } = useAuth();
+  const subscription = useSubscription();
+  const dailyFetchQuota = subscription.isPaid ? 5 : USER_DAILY_FETCHES;
   const [personalizedArticles, setPersonalizedArticles] = useState<NewsArticle[]>([]);
   const [remainingFetches, setRemainingFetches] = useState(USER_DAILY_FETCHES);
   const [showSoftGate, setShowSoftGate] = useState(false);
   const [isPersonalizing, setIsPersonalizing] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const articles = useMemo(() => {
-    // Merge shared pool + personalized, deduplicate by id
-    const merged = [...allArticles, ...personalizedArticles];
+    // Merge shared pool + personalized + primary source feeds, deduplicate by id
+    const merged = [...allArticles, ...personalizedArticles, ...feedArticles];
     const seen = new Set<string>();
     const deduped = merged.filter(a => {
       if (seen.has(a.id)) return false;
@@ -112,13 +118,14 @@ const Index = () => {
     });
 
     if (selectedScale === 'all') return deduped;
-    return deduped.filter(a => a.scale === selectedScale);
-  }, [allArticles, personalizedArticles, selectedScale]);
+    // Primary source articles have scale='international' — always include them
+    return deduped.filter(a => a.scale === selectedScale || a.sourceType === 'primary_source');
+  }, [allArticles, personalizedArticles, feedArticles, selectedScale]);
 
-  const clusters = useMemo(() => {
-    if (allArticles.length === 0) return [];
-    return analyzeArticleHeat(allArticles, 'international');
-  }, [allArticles]);
+  const { clusters, isClustering, runClustering } = useClusteringWorker();
+  useEffect(() => {
+    runClustering(articles);
+  }, [articles, runClustering]);
 
   const loadNews = useCallback(async () => {
     try {
@@ -139,7 +146,10 @@ const Index = () => {
 
   useEffect(() => {
     const cleanup = initializeBackgroundRefresh();
-    const handleCacheRefresh = () => loadNews();
+    const handleCacheRefresh = () => {
+      setSearchResultIds(null); // clear stale search dimming after refresh
+      loadNews();
+    };
     window.addEventListener('cacheRefreshed', handleCacheRefresh);
     return () => {
       cleanup();
@@ -158,11 +168,16 @@ const Index = () => {
       setRemainingFetches(USER_DAILY_FETCHES);
       return;
     }
-    setPersonalizedArticles(getCachedPersonalizedNews());
+    setPersonalizedArticles(getCachedPersonalizedNews(user.uid));
     setRemainingFetches(getUserRemainingFetches(user.uid));
     loadUsageFromFirestore(user.uid).then(() => {
       setRemainingFetches(getUserRemainingFetches(user.uid));
     });
+
+    const unsubBudget = onRemoteBudgetUpdate(() => {
+      setRemainingFetches(getUserRemainingFetches(user.uid));
+    });
+    return () => unsubBudget();
   }, [user]);
 
   const handleRefresh = useCallback(async () => {
@@ -333,7 +348,7 @@ const Index = () => {
   }, []);
 
   // Full-page loading screen on initial load
-  if (isLoading && allArticles.length === 0) {
+  if ((isLoading || (isClustering && clusters.length === 0)) && allArticles.length === 0) {
     return (
       <div className="min-h-screen bg-background noise-bg relative flex flex-col">
         <Navbar />
@@ -384,40 +399,86 @@ const Index = () => {
       <Navbar onOpenPreferences={preferences.onboardingComplete ? handleOpenPreferences : undefined} />
 
       <main id="main-content">
-      {/* API key warning */}
-      {!API_KEY && (
-        <div className="max-w-5xl mx-auto px-6 pt-8">
-          <div className="bg-amber-50 border border-amber-300/50 rounded-lg p-5 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-display font-semibold text-amber-800 text-sm mb-1">API Key Required</h3>
-              <p className="font-body text-xs text-amber-700/80">
-                Add your NewsData.io API key to <code className="bg-amber-100 px-1 py-0.5 rounded text-[11px]">.env</code> as{' '}
-                <code className="bg-amber-100 px-1 py-0.5 rounded text-[11px]">VITE_NEWSDATA_API_KEY=your_key</code> and restart.
-                Free key at{' '}
-                <a href="https://newsdata.io/register" target="_blank" rel="noopener noreferrer" className="underline font-medium">
-                  newsdata.io
-                </a>.
-              </p>
-            </div>
+      {/* Demo mode banner — shown to unauthenticated visitors */}
+      {!user && (
+        <div className="w-full bg-amber-500/10 border-b border-amber-500/20">
+          <div className="max-w-4xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4 flex-wrap">
+            <p className="font-body text-xs text-amber-200/80">
+              <span className="font-semibold text-amber-300">Live demo</span>
+              {' '}— you're viewing the shared real-time feed.
+              Sign in to personalize your feed, save stories, and set alerts.
+            </p>
+            <LoginButton redirectTo="/app" />
           </div>
         </div>
       )}
 
       {/* Search & Filters — dark band above globe */}
       <div className="w-full bg-navy-900 border-b border-ivory-200/5">
-        <div className="max-w-4xl mx-auto px-6 py-4 space-y-3">
-          <NewsSearch
-            onSearch={handleSearch}
-            onClear={handleClearFilters}
-            isSearching={isSearching}
-            currentSearch={currentSearch || undefined}
-          />
-          <NewsFilters
-            onFilterChange={handleFilterChange}
-            onClear={handleClearFilters}
-            currentFilters={currentFilters || undefined}
-          />
+        <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6 sm:py-4 space-y-3">
+
+          {/* Mobile: icon toggle + active query label (hidden on sm+) */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              onClick={() => setSearchOpen(o => !o)}
+              aria-label="Toggle search"
+              aria-expanded={searchOpen}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-ivory-200/10 text-ivory-200/60 hover:text-amber-400 hover:bg-ivory-200/15 transition-colors text-xs font-body"
+            >
+              <Search className="w-4 h-4" />
+              {searchOpen ? 'Close' : 'Search'}
+            </button>
+            {currentSearch?.query && (
+              <span className="text-[11px] text-amber-400/80 font-body truncate max-w-[180px]">
+                "{currentSearch.query}"
+              </span>
+            )}
+            {currentSearch?.query && (
+              <button
+                onClick={handleClearFilters}
+                className="ml-auto text-[11px] text-ivory-200/40 hover:text-ivory-200/70 font-body"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Mobile: expandable search panel */}
+          {searchOpen && (
+            <div className="sm:hidden">
+              <NewsSearch
+                onSearch={(p) => { handleSearch(p); setSearchOpen(false); }}
+                onClear={handleClearFilters}
+                isSearching={isSearching}
+                currentSearch={currentSearch || undefined}
+              />
+            </div>
+          )}
+
+          {/* Desktop: always-visible full search + filters */}
+          <div className="hidden sm:block space-y-3">
+            <NewsSearch
+              onSearch={handleSearch}
+              onClear={handleClearFilters}
+              isSearching={isSearching}
+              currentSearch={currentSearch || undefined}
+            />
+            <NewsFilters
+              onFilterChange={handleFilterChange}
+              onClear={handleClearFilters}
+              currentFilters={currentFilters || undefined}
+            />
+          </div>
+
+          {/* Mobile: always-visible filters */}
+          <div className="sm:hidden">
+            <NewsFilters
+              onFilterChange={handleFilterChange}
+              onClear={handleClearFilters}
+              currentFilters={currentFilters || undefined}
+            />
+          </div>
+
         </div>
       </div>
 
@@ -452,7 +513,7 @@ const Index = () => {
           </Button>
           <RefreshIndicator
             remaining={remainingFetches}
-            total={USER_DAILY_FETCHES}
+            total={dailyFetchQuota}
             onRefresh={handlePersonalizedRefresh}
             isRefreshing={isPersonalizing}
             isSignedIn={!!user}

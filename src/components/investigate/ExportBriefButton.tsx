@@ -83,6 +83,16 @@ export default function ExportBriefButton({ input }: ExportBriefButtonProps) {
                 <p className="text-xs text-ivory-200/40 mt-0.5">
                   LLM-ready · paste into Claude, ChatGPT, or any AI tool
                 </p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[10px] text-ivory-200/25">
+                    {brief.json.coverage.total_articles} sources
+                  </span>
+                  {brief.json.primary_sources.length > 0 && (
+                    <span className="text-[10px] text-cyan-400/50">
+                      · {brief.json.primary_sources.length} primary
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => setOpen(false)}

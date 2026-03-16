@@ -26,6 +26,10 @@ export interface NewsArticle {
   language?: string;
   country?: string;
   locationConfidence?: 'exact' | 'inferred' | 'centroid';
+  /** Set to 'primary_source' for articles from user-configured RSS/social feeds. */
+  sourceType?: 'primary_source';
+  /** Feed ID this article came from (only when sourceType === 'primary_source'). */
+  feedId?: string;
 }
 
 export interface NewsDataArticle {

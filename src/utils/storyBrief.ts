@@ -90,6 +90,7 @@ export interface BriefJSON {
   };
   topics: { topic: string; count: number }[];
   investigative_angles: string[];
+  primary_sources: { source: string; title: string; url: string; published: string }[];
   sources: {
     source: string;
     title: string;
@@ -372,6 +373,24 @@ function buildMarkdown(
   lines.push('---');
   lines.push('');
 
+  // ── Primary sources ──
+  const primarySources = cluster.articles.filter(a => a.sourceType === 'primary_source');
+  if (primarySources.length > 0) {
+    lines.push(`## Primary Source Activity`);
+    lines.push('');
+    const sortedPS = [...primarySources].sort(
+      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+    for (const a of sortedPS) {
+      const pub = fmtDate(new Date(a.publishedAt));
+      const titleLink = `[${escMd(truncate(a.title, 100))}](${a.url})`;
+      lines.push(`- **${escMd(a.source.name)}** — ${titleLink} *(${pub})*`);
+    }
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+  }
+
   // ── What's being reported ──
   lines.push(`## What's Being Reported`);
   lines.push('');
@@ -567,6 +586,15 @@ function buildJson(
     },
     topics,
     investigative_angles: angles,
+    primary_sources: cluster.articles
+      .filter(a => a.sourceType === 'primary_source')
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .map(a => ({
+        source: a.source.name,
+        title: a.title,
+        url: a.url,
+        published: a.publishedAt,
+      })),
     sources: cluster.articles
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
       .map(a => {

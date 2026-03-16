@@ -3,8 +3,6 @@ import { getCachedTranslation, translateArticle } from '@/services/translationSe
 import { useTranslationPreference } from '@/hooks/useTranslationPreference';
 import type { NewsArticle } from '@/types/news';
 
-const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY as string | undefined;
-
 export interface ArticleTranslation {
   /** Title to display (translated or original depending on global preference) */
   displayTitle: string;
@@ -26,11 +24,11 @@ export interface ArticleTranslation {
  * Translates a single article to English on mount (lazy, cached per article ID).
  * Respects the global translation preference (auto-detected from navigator.language
  * on first visit, persisted in localStorage).
- * No-ops when VITE_DEEPL_API_KEY is not set or article is already in English.
+ * No-ops when article is already in English (server returns 503 if DeepL is not configured).
  */
 export function useArticleTranslation(article: NewsArticle): ArticleTranslation {
   const lang = (article.language ?? 'en').toLowerCase().slice(0, 2);
-  const needsTranslation = lang !== 'en' && !!DEEPL_API_KEY;
+  const needsTranslation = lang !== 'en';
 
   const { showTranslations, toggle } = useTranslationPreference();
 
@@ -46,7 +44,7 @@ export function useArticleTranslation(article: NewsArticle): ArticleTranslation 
     if (!showTranslations) return;
 
     setIsTranslating(true);
-    translateArticle(article.id, article.title, article.description, lang, DEEPL_API_KEY!)
+    translateArticle(article.id, article.title, article.description, lang)
       .then(result => { if (result) setTrans(result); })
       .finally(() => setIsTranslating(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps

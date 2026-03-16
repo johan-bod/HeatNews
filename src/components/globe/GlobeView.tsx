@@ -129,7 +129,7 @@ export default function GlobeView({
     if (isActive && !isMobile) {
       autoRotation.setActive(true);
     }
-  }, [isActive, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isActive, isMobile, autoRotation]);
 
   // Toggle globe zoom controls based on active state
   useEffect(() => {
@@ -221,7 +221,7 @@ export default function GlobeView({
       .pointsData([])
       .pointLat('lat')
       .pointLng('lng')
-      .pointAltitude(0.01)
+      .pointAltitude((d: object) => (d as GlobeMarkerData).isPrimarySource ? 0.04 : 0.01)
       .pointRadius('size')
       .pointColor((d: object) => {
         const marker = d as GlobeMarkerData;

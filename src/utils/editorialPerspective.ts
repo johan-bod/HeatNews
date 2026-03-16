@@ -132,69 +132,73 @@ function buildProfile(article: NewsArticle): ArticleProfile {
 export function analyzeEditorialPerspective(articles: NewsArticle[]): PerspectiveResult {
   if (articles.length < 3) return NO_INSIGHTS;
 
-  const profiles = articles.map(buildProfile);
+  try {
+    const profiles = articles.map(buildProfile);
 
-  // 1. Unique angles
-  const uniqueAngles: PerspectiveInsight[] = [];
+    // 1. Unique angles
+    const uniqueAngles: PerspectiveInsight[] = [];
 
-  for (const profile of profiles) {
-    const uniqueEntities = profile.taggedEntities.filter(entity => {
-      const otherProfiles = profiles.filter(p => p.source !== profile.source);
-      return !otherProfiles.some(p => p.allEntities.has(entity.text));
-    });
-
-    uniqueEntities.sort((a, b) => SPECIFICITY_ORDER[a.type] - SPECIFICITY_ORDER[b.type]);
-
-    for (const entity of uniqueEntities.slice(0, 5)) {
-      (uniqueAngles as (PerspectiveInsight & { _type: EntityType })[]).push({
-        source: profile.source,
-        entity: entity.text,
-        label: `Only ${profile.source} mentions ${entity.text}`,
-        _type: entity.type,
+    for (const profile of profiles) {
+      const uniqueEntities = profile.taggedEntities.filter(entity => {
+        const otherProfiles = profiles.filter(p => p.source !== profile.source);
+        return !otherProfiles.some(p => p.allEntities.has(entity.text));
       });
+
+      uniqueEntities.sort((a, b) => SPECIFICITY_ORDER[a.type] - SPECIFICITY_ORDER[b.type]);
+
+      for (const entity of uniqueEntities.slice(0, 5)) {
+        (uniqueAngles as (PerspectiveInsight & { _type: EntityType })[]).push({
+          source: profile.source,
+          entity: entity.text,
+          label: `Only ${profile.source} mentions ${entity.text}`,
+          _type: entity.type,
+        });
+      }
     }
-  }
 
-  // Sort globally by entity type specificity (people first, then orgs, places, nouns)
-  (uniqueAngles as (PerspectiveInsight & { _type: EntityType })[]).sort(
-    (a, b) => SPECIFICITY_ORDER[a._type] - SPECIFICITY_ORDER[b._type]
-  );
+    // Sort globally by entity type specificity (people first, then orgs, places, nouns)
+    (uniqueAngles as (PerspectiveInsight & { _type: EntityType })[]).sort(
+      (a, b) => SPECIFICITY_ORDER[a._type] - SPECIFICITY_ORDER[b._type]
+    );
 
-  // Clean up internal _type field and cap at 8
-  for (const angle of uniqueAngles) {
-    delete (angle as Record<string, unknown>)['_type'];
-  }
-  uniqueAngles.splice(8);
-
-  // 2. Emphasis differences
-  const emphasisDifferences: PerspectiveInsight[] = [];
-
-  const allEntityTexts = new Set<string>();
-  for (const profile of profiles) {
-    for (const e of profile.allEntities) allEntityTexts.add(e);
-  }
-
-  for (const entity of allEntityTexts) {
-    const inProfiles = profiles.filter(p => p.allEntities.has(entity));
-    if (inProfiles.length < 2) continue;
-
-    const titleProfiles = inProfiles.filter(p => p.titleEntities.has(entity));
-    const descOnlyProfiles = inProfiles.filter(p => !p.titleEntities.has(entity) && p.descEntities.has(entity));
-
-    if (titleProfiles.length === 1 && descOnlyProfiles.length >= 1) {
-      emphasisDifferences.push({
-        source: titleProfiles[0].source,
-        entity,
-        label: `${titleProfiles[0].source} leads with ${entity}`,
-      });
+    // Clean up internal _type field and cap at 8
+    for (const angle of uniqueAngles) {
+      delete (angle as Record<string, unknown>)['_type'];
     }
+    uniqueAngles.splice(8);
+
+    // 2. Emphasis differences
+    const emphasisDifferences: PerspectiveInsight[] = [];
+
+    const allEntityTexts = new Set<string>();
+    for (const profile of profiles) {
+      for (const e of profile.allEntities) allEntityTexts.add(e);
+    }
+
+    for (const entity of allEntityTexts) {
+      const inProfiles = profiles.filter(p => p.allEntities.has(entity));
+      if (inProfiles.length < 2) continue;
+
+      const titleProfiles = inProfiles.filter(p => p.titleEntities.has(entity));
+      const descOnlyProfiles = inProfiles.filter(p => !p.titleEntities.has(entity) && p.descEntities.has(entity));
+
+      if (titleProfiles.length === 1 && descOnlyProfiles.length >= 1) {
+        emphasisDifferences.push({
+          source: titleProfiles[0].source,
+          entity,
+          label: `${titleProfiles[0].source} leads with ${entity}`,
+        });
+      }
+    }
+
+    emphasisDifferences.splice(5);
+
+    const hasInsights = uniqueAngles.length > 0 || emphasisDifferences.length > 0;
+
+    if (!hasInsights) return NO_INSIGHTS;
+
+    return { hasInsights, uniqueAngles, emphasisDifferences };
+  } catch {
+    return { ...NO_INSIGHTS };
   }
-
-  emphasisDifferences.splice(5);
-
-  const hasInsights = uniqueAngles.length > 0 || emphasisDifferences.length > 0;
-
-  if (!hasInsights) return NO_INSIGHTS;
-
-  return { hasInsights, uniqueAngles, emphasisDifferences };
 }

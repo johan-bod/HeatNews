@@ -1,5 +1,6 @@
 import type { NewsArticle } from '@/types/news';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
+import { normalizeOrgId } from '@/utils/sourceNormalization';
 
 // Stopwords for title normalization (English + French)
 const STOPWORDS = new Set([
@@ -23,7 +24,7 @@ export interface StoryCluster {
  * Normalize title: lowercase, strip punctuation, remove stopwords,
  * extract significant terms (3+ chars).
  */
-function extractTerms(text: string): Set<string> {
+export function extractTerms(text: string): Set<string> {
   const words = text
     .toLowerCase()
     .replace(/[^\w\sàâäéèêëïîôùûüÿçñ-]/g, '')
@@ -35,7 +36,7 @@ function extractTerms(text: string): Set<string> {
 /**
  * Jaccard similarity between two term sets.
  */
-function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+export function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
   if (a.size === 0 && b.size === 0) return 0;
   let intersection = 0;
   for (const term of a) {
@@ -46,6 +47,54 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
 }
 
 const CLUSTER_THRESHOLD = 0.25;
+/** Within-org duplicate story threshold: higher bar than clustering. */
+const DEDUP_THRESHOLD = 0.70;
+
+/**
+ * Count distinct stories across a set of articles from the SAME organization.
+ * Articles with Jaccard similarity ≥ DEDUP_THRESHOLD are considered the same
+ * story (cross-channel reposts) and counted only once.
+ */
+function countDistinctStoriesForOrg(articles: NewsArticle[]): number {
+  if (articles.length <= 1) return articles.length;
+  const storyClusters: Set<string>[] = [];
+  for (const a of articles) {
+    const terms = extractTerms(a.title);
+    let matched = false;
+    for (const story of storyClusters) {
+      if (jaccardSimilarity(terms, story) >= DEDUP_THRESHOLD) {
+        for (const t of terms) story.add(t);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) storyClusters.push(new Set(terms));
+  }
+  return storyClusters.length;
+}
+
+/**
+ * Count "distinct stories" across all articles in a cluster, deduplicating
+ * cross-channel reposts from the same organization.
+ *
+ * Articles from the same canonical org with near-identical titles count as
+ * ONE story, regardless of how many channels (web, Telegram, Facebook, etc.)
+ * the org used to publish it.
+ */
+export function deduplicateArticleCount(articles: NewsArticle[]): number {
+  const byOrg = new Map<string, NewsArticle[]>();
+  for (const a of articles) {
+    const orgId = normalizeOrgId(a.source.name, a.source.url);
+    const group = byOrg.get(orgId) ?? [];
+    group.push(a);
+    byOrg.set(orgId, group);
+  }
+  let total = 0;
+  for (const [, orgArticles] of byOrg) {
+    total += countDistinctStoriesForOrg(orgArticles);
+  }
+  return total;
+}
 
 /**
  * Cluster articles by title similarity using Jaccard index.
@@ -85,13 +134,25 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
 
   // Calculate heat for each cluster
   for (const cluster of clusters) {
-    // Compute weighted sources and hyperlocal count
+    // Group articles by canonical org — prevents same org from contributing
+    // multiple times via different channels (web, Telegram, Facebook, etc.).
+    const canonicalOrgs = new Map<string, { weight: number; isHyperlocal: boolean }>();
+    for (const article of cluster.articles) {
+      const orgId  = normalizeOrgId(article.source.name, article.source.url);
+      const domain = extractDomain(article.source.url);
+      const { weight, tier } = resolveCredibilityByDomain(domain);
+      const existing = canonicalOrgs.get(orgId);
+      // Keep only the highest-credibility channel per org
+      if (!existing || weight > existing.weight) {
+        canonicalOrgs.set(orgId, { weight, isHyperlocal: tier === 'hyperlocal' });
+      }
+    }
+
     let weightedSources = 0;
     let hyperlocalCount = 0;
-    for (const [, domain] of cluster.sourceDomains) {
-      const { weight, tier } = resolveCredibilityByDomain(domain);
+    for (const { weight, isHyperlocal } of canonicalOrgs.values()) {
       weightedSources += weight;
-      if (tier === 'hyperlocal') hyperlocalCount++;
+      if (isHyperlocal) hyperlocalCount++;
     }
 
     const newestArticleHoursAgo = Math.min(
@@ -100,9 +161,14 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
         return diffMs / (1000 * 60 * 60);
       })
     );
+
+    // Use deduplicated article count: same org publishing same story via
+    // multiple channels counts as ONE, not N.
+    const deduplicatedCount = deduplicateArticleCount(cluster.articles);
+
     cluster.heatLevel = calculateClusterHeat(
       weightedSources,
-      cluster.articles.length,
+      deduplicatedCount,
       newestArticleHoursAgo,
       hyperlocalCount
     );

@@ -104,3 +104,13 @@ html {
 
 /* Note: very-hot marker pulse (81-100 heat) is handled via WebGL
    altitude oscillation in GlobeView's animation loop, not CSS. */
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -27,6 +27,8 @@ export function useGlobeInteraction({
   const [showScrollToast, setShowScrollToast] = useState(false);
   const dezoomCountRef = useRef(0);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onDeactivateRef = useRef(onDeactivate);
+  useEffect(() => { onDeactivateRef.current = onDeactivate; });
 
   const effectiveActive = isMobile ? true : isActive;
 
@@ -40,8 +42,8 @@ export function useGlobeInteraction({
     if (isMobile) return;
     setIsActive(false);
     dezoomCountRef.current = 0;
-    onDeactivate?.();
-  }, [isMobile, onDeactivate]);
+    onDeactivateRef.current?.();
+  }, [isMobile]);
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
@@ -59,7 +61,7 @@ export function useGlobeInteraction({
         if (dezoomCountRef.current >= MAX_DEZOOM_BUFFER) {
           setIsActive(false);
           dezoomCountRef.current = 0;
-          onDeactivate?.();
+          onDeactivateRef.current?.();
 
           setShowScrollToast(true);
           if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -69,7 +71,7 @@ export function useGlobeInteraction({
         dezoomCountRef.current = 0;
       }
     },
-    [isActive, altitudeKm, minAltitudeKm, isMobile, onDeactivate]
+    [isActive, altitudeKm, minAltitudeKm, isMobile]
   );
 
   useEffect(() => {
