@@ -22,6 +22,7 @@ import {
   aggregateCountryHeat,
   heatToFillOpacity,
   crossfadeOpacity,
+  heatmapLayerOpacity,
   audienceScaleToRadiusKm,
   generateBlobPolygon,
 } from '@/utils/territoryHalos';
@@ -66,6 +67,15 @@ interface GlobeViewProps {
 
 // Spec: 300ms transition for marker fade in/out
 const MARKER_TRANSITION_MS = 300;
+
+// Gaussian KDE heatmap color scale: transparent → amber → orange → red
+const heatColorFn = (t: number): string => {
+  if (t < 0.04) return 'rgba(0,0,0,0)';
+  const a = Math.min(1, t * 1.3);
+  if (t < 0.35) return `rgba(245,158,11,${(a * 0.55).toFixed(3)})`;
+  if (t < 0.70) return `rgba(249,115,22,${(a * 0.72).toFixed(3)})`;
+  return `rgba(220,38,38,${(a * 0.88).toFixed(3)})`;
+};
 
 // ISO 3166-1 numeric → alpha-2 for countries with media outlets
 const NUMERIC_TO_ALPHA2: Record<string, string> = {
@@ -304,29 +314,30 @@ export default function GlobeView({
       }
     }
 
-    // Hex-bin heatmap glow layer
+    // Gaussian KDE heatmap layer (replaces hexbin)
     globe
-      .hexBinPointsData(articles.filter(a => a.coordinates).map(a => ({
-        lat: a.coordinates!.lat,
-        lng: a.coordinates!.lng,
-        heatLevel: a.heatLevel || 0,
-      })))
-      .hexBinPointLat('lat')
-      .hexBinPointLng('lng')
-      .hexBinPointWeight((d: object) => (d as { heatLevel: number }).heatLevel)
-      .hexBinResolution(3)
-      .hexAltitude(0.003)
-      .hexTopColor((d: object) => {
-        const pts = d as { points: { heatLevel: number }[] };
-        const avgHeat = pts.points.reduce((s, p) => s + p.heatLevel, 0) / pts.points.length;
-        // Fine resolution at close zoom → lower threshold to show signal; coarse → higher
-        const maxAlpha = hexResRef.current >= 6 ? 0.70 : hexResRef.current === 5 ? 0.55 : hexResRef.current === 4 ? 0.40 : 0.25;
-        const alpha = Math.min(maxAlpha, avgHeat / 150);
-        return `rgba(245, 158, 11, ${alpha})`;
-      })
-      .hexSideColor(() => 'rgba(245, 158, 11, 0.02)')
-      .hexBinMerge(true)
-      .hexTransitionDuration(MARKER_TRANSITION_MS);
+      .heatmapsData([])
+      .heatmapPoints('points')
+      .heatmapPointLat('lat')
+      .heatmapPointLng('lng')
+      .heatmapPointWeight('weight')
+      .heatmapBandwidth('bandwidth')
+      .heatmapColorFn('colorFn')
+      .heatmapColorSaturation('colorSaturation')
+      .heatmapBaseAltitude('baseAltitude')
+      .heatmapsTransitionDuration(600);
+
+    // Rings layer for breaking hotspots
+    globe
+      .ringsData([])
+      .ringLat('lat')
+      .ringLng('lng')
+      .ringColor('color')
+      .ringMaxRadius(3)
+      .ringPropagationSpeed(1.5)
+      .ringRepeatPeriod(1200)
+      .ringAltitude(0.005)
+      .ringResolution(64);
 
     // Arc layer for story threads (starts empty)
     globe
@@ -475,37 +486,48 @@ export default function GlobeView({
       });
   }, [mergedPolygons, searchResultIds]);
 
-  // Update hex-bin heatmap when articles change (debounced)
-  const hexBinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hexAltRef = useRef<number>(2);
-  const hexResRef = useRef<number>(3); // tracks current hexBinResolution
-
-  // Maps globe altitude to hex resolution: close zoom = fine hexagons, far = coarse
-  const altToHexRes = useCallback((alt: number): number => {
-    if (alt < 0.25) return 7;  // city-block: ~5 km² cells
-    if (alt < 0.45) return 6;  // neighbourhood: ~36 km² cells
-    if (alt < 0.75) return 5;  // city: ~250 km² cells
-    if (alt < 1.30) return 4;  // regional: ~1700 km² cells
-    if (alt < 2.20) return 3;  // national: ~12000 km² cells
-    return 2;                   // continental/global: ~86000 km² cells
-  }, []);
+  // Update Gaussian KDE heatmap when articles or zoom changes
   useEffect(() => {
     if (!globeRef.current) return;
-    if (hexBinTimeoutRef.current) clearTimeout(hexBinTimeoutRef.current);
-    hexBinTimeoutRef.current = setTimeout(() => {
-      if (!globeRef.current) return;
-      globeRef.current.hexBinPointsData(
-        articles.filter(a => a.coordinates).map(a => ({
+    const opacity = heatmapLayerOpacity(altitudeKm);
+    if (opacity === 0) {
+      globeRef.current.heatmapsData([]);
+      return;
+    }
+    // Bandwidth narrows as user zooms in: wide blobs at global, tight at national
+    const bandwidth = altitudeKm > 5000 ? 4.0 : altitudeKm > 2500 ? 3.0 : 2.0;
+    globeRef.current.heatmapsData([{
+      points: articles
+        .filter(a => a.coordinates)
+        .map(a => ({
           lat: a.coordinates!.lat,
           lng: a.coordinates!.lng,
-          heatLevel: a.heatLevel || 0,
-        }))
-      );
-    }, 300);
-    return () => {
-      if (hexBinTimeoutRef.current) clearTimeout(hexBinTimeoutRef.current);
-    };
-  }, [articles]);
+          weight: (a.heatLevel || 1) / 100,
+        })),
+      bandwidth,
+      colorFn: heatColorFn,
+      colorSaturation: 1.5,
+      baseAltitude: 0.001,
+    }]);
+  }, [articles, altitudeKm]);
+
+  // Update rings for the hottest articles (national→regional zoom only)
+  useEffect(() => {
+    if (!globeRef.current) return;
+    if (altitudeKm > 8000 || altitudeKm < 300) {
+      globeRef.current.ringsData([]);
+      return;
+    }
+    const hotArticles = articles
+      .filter(a => a.coordinates && (a.heatLevel || 0) >= 60)
+      .sort((a, b) => (b.heatLevel || 0) - (a.heatLevel || 0))
+      .slice(0, 15);
+    globeRef.current.ringsData(hotArticles.map(a => ({
+      lat: a.coordinates!.lat,
+      lng: a.coordinates!.lng,
+      color: [(t: number) => `rgba(245,158,11,${(Math.max(0, 1 - t) * 0.55).toFixed(3)})`],
+    })));
+  }, [articles, altitudeKm]);
 
   // Pause RAF when globe is off-screen
   const isVisibleRef = useRef(true);
@@ -533,22 +555,6 @@ export default function GlobeView({
           }
         }
 
-        // Update hexbin resolution + color when zoom level crosses a threshold
-        const newRes = altToHexRes(pov.altitude);
-        if (newRes !== hexResRef.current) {
-          hexResRef.current = newRes;
-          hexAltRef.current = pov.altitude;
-          globeRef.current
-            .hexBinResolution(newRes)
-            .hexTopColor((d: object) => {
-              const pts = d as { points: { heatLevel: number }[] };
-              const avgHeat = pts.points.reduce((s, p) => s + p.heatLevel, 0) / pts.points.length;
-              const maxAlpha = hexResRef.current >= 6 ? 0.70 : hexResRef.current === 5 ? 0.55 : hexResRef.current === 4 ? 0.40 : 0.25;
-              const alpha = Math.min(maxAlpha, avgHeat / 150);
-              return `rgba(245, 158, 11, ${alpha})`;
-            });
-        }
-
         const time = Date.now() / 1000;
         globeRef.current.pointAltitude((d: object) => {
           const marker = d as GlobeMarkerData;
@@ -563,7 +569,7 @@ export default function GlobeView({
     animationId = requestAnimationFrame(animate);
 
     return () => cancelAnimationFrame(animationId);
-  }, [isMobile, autoRotation, altToHexRes]);
+  }, [isMobile, autoRotation]);
 
   const handleRegionJump = useCallback((loc: PreferenceLocation, index: number) => {
     if (globeRef.current) {

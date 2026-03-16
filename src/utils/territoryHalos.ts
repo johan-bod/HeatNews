@@ -93,6 +93,14 @@ export function generateBlobPolygon(
   };
 }
 
+// --- Heatmap layer opacity (fades out when zoomed in close) ---
+
+export function heatmapLayerOpacity(altitudeKm: number): number {
+  if (altitudeKm >= 2500) return 1;
+  if (altitudeKm <= 800) return 0;
+  return (altitudeKm - 800) / (2500 - 800);
+}
+
 // --- Altitude crossfade ---
 
 const CROSSFADE_LOW = 2500;
