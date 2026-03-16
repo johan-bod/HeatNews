@@ -23,7 +23,12 @@ export function LoginButton({ redirectTo }: LoginButtonProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  if (!isConfigured) return null;
+  if (!isConfigured) return (
+    <Button disabled variant="outline" size="sm" title="Auth not configured">
+      <LogIn className="w-4 h-4 mr-2" />
+      Sign in
+    </Button>
+  );
 
   const handleSignIn = async () => {
     try {
