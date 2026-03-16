@@ -43,20 +43,30 @@ export function filterArticlesByAltitude(
 }
 
 /**
- * Marker size based on heat level.
- * Spec visual mapping:
- * 0-20: small (cold)
- * 21-40: small (warming)
- * 41-60: medium (warm)
- * 61-80: large (hot)
- * 81-100: large (very hot)
+ * Marker size based on heat level, scaled by current altitude.
+ * globe.gl pointRadius is in arc-degrees — same angular size appears
+ * physically larger the closer you zoom. Scale down at low altitudes
+ * to keep dots visually consistent and prevent close-up clutter.
+ *
+ * altitudeKm thresholds:
+ *   ≥ 2000 km (national / international) → full size
+ *   1000 km (regional)                  → 0.7×
+ *   500 km (local)                      → 0.5×
+ *   ≤ 200 km (hyper-local)              → 0.4× (floor)
  */
-export function getMarkerSize(heatLevel: number): number {
-  if (heatLevel <= 20) return 0.2;
-  if (heatLevel <= 40) return 0.3;
-  if (heatLevel <= 60) return 0.5;
-  if (heatLevel <= 80) return 0.8;
-  return 1.0;
+export function getMarkerSize(heatLevel: number, altitudeKm?: number): number {
+  let baseSize: number;
+  if (heatLevel <= 20) baseSize = 0.2;
+  else if (heatLevel <= 40) baseSize = 0.3;
+  else if (heatLevel <= 60) baseSize = 0.5;
+  else if (heatLevel <= 80) baseSize = 0.8;
+  else baseSize = 1.0;
+
+  if (!altitudeKm) return baseSize;
+
+  // Scale factor: clamp between 0.4 (very close) and 1.0 (far)
+  const scaleFactor = Math.max(0.4, Math.min(1.0, altitudeKm / 2000));
+  return baseSize * scaleFactor;
 }
 
 /**

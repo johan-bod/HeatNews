@@ -115,6 +115,9 @@ export default function GlobeView({
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
   const isMobile = screenWidth < 768;
 
+  // Track whether we've already done the initial auto-focus
+  const hasAutoFocused = useRef(false);
+
   const autoRotation = useGlobeAutoRotation({
     enabled: !isMobile,
     idleTimeout: 4000,
@@ -300,7 +303,15 @@ export default function GlobeView({
         console.warn('Could not load country polygons');
       });
 
-    // Set initial point of view (France centered, national scale)
+    // Reduce pixel ratio to cap GPU work — full devicePixelRatio (2–3 on
+    // Retina) renders 4–9× more pixels with little visible quality gain.
+    // Capping at 1.5 cuts rendering cost ~44% on typical Retina screens.
+    const renderer = globe.renderer();
+    if (renderer) {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    }
+
+    // Set initial point of view — will be overridden by auto-focus once data loads
     globe.pointOfView({ lat: 46.5, lng: 2.5, altitude: 0.8 }, 0);
 
     // Set zoom distance limits + dormant state
@@ -423,6 +434,50 @@ export default function GlobeView({
     }, 500);
     return () => clearTimeout(timer);
   }, [primaryLocKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-focus on the hottest story cluster when data first loads.
+  // Gives users an immediate close-up of what matters most rather than
+  // starting far away and zooming in (which triggers lag).
+  // Skipped if the user has preference locations (those set their own POV).
+  useEffect(() => {
+    if (hasAutoFocused.current || !globeRef.current || clusters.length === 0) return;
+
+    // If preference locations are set, let that focus take over instead
+    if (preferenceLocations.length > 0) {
+      hasAutoFocused.current = true;
+      return;
+    }
+
+    // Find the hottest cluster that has a geocoded article
+    const sorted = [...clusters].sort((a, b) => b.heatLevel - a.heatLevel);
+    const hottest = sorted.find(c => c.articles.some(a => a.coordinates));
+    if (!hottest) {
+      hasAutoFocused.current = true;
+      return;
+    }
+
+    // Use the lead article's coordinates as the focal point
+    const leadArticle = hottest.articles
+      .filter(a => a.coordinates)
+      .sort((a, b) => (b.heatLevel || 0) - (a.heatLevel || 0))[0];
+
+    if (!leadArticle?.coordinates) {
+      hasAutoFocused.current = true;
+      return;
+    }
+
+    hasAutoFocused.current = true;
+
+    // Fly in close (altitude 0.3 ≈ 1900 km) so dots start at readable size
+    setTimeout(() => {
+      if (globeRef.current) {
+        globeRef.current.pointOfView(
+          { lat: leadArticle.coordinates!.lat, lng: leadArticle.coordinates!.lng, altitude: 0.3 },
+          2000
+        );
+      }
+    }, 400);
+  }, [clusters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fly to preset altitude when scale changes
   const prevScaleRef = useRef(selectedScale);
