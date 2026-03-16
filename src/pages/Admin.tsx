@@ -13,6 +13,7 @@ export default function Admin() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cacheStats, setCacheStats] = useState<Record<string, unknown> | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [clearPending, setClearPending] = useState(false);
 
   useEffect(() => {
     loadCacheStats();
@@ -48,8 +49,13 @@ export default function Admin() {
   };
 
   const handleClearCache = () => {
-    if (!confirm('Are you sure you want to clear all cache? This will trigger a fresh API fetch.')) return;
-
+    if (!clearPending) {
+      setClearPending(true);
+      // Auto-reset the pending state after 4 seconds if not confirmed
+      setTimeout(() => setClearPending(false), 4000);
+      return;
+    }
+    setClearPending(false);
     localStorage.removeItem('news_cache_local_news');
     localStorage.removeItem('news_cache_regional_news');
     localStorage.removeItem('news_cache_national_news');
@@ -172,9 +178,13 @@ export default function Admin() {
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 {isRefreshing ? 'Refreshing...' : 'Force Refresh Cache'}
               </Button>
-              <Button onClick={handleClearCache} variant="destructive" className="flex items-center gap-2">
+              <Button
+                onClick={handleClearCache}
+                variant="destructive"
+                className={`flex items-center gap-2 transition-all ${clearPending ? 'ring-2 ring-red-400' : ''}`}
+              >
                 <Trash2 className="w-4 h-4" />
-                Clear All Cache
+                {clearPending ? 'Click again to confirm' : 'Clear All Cache'}
               </Button>
             </div>
           </CardContent>

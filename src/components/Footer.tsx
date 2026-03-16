@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Flame, Mail, Github } from 'lucide-react';
 
 const Footer = () => {
@@ -23,18 +24,18 @@ const Footer = () => {
             <div>
               <h3 className="font-body text-xs font-semibold text-navy-700/40 uppercase tracking-widest mb-4">Product</h3>
               <ul className="space-y-2.5">
-                <li><a href="#" className="font-body text-sm text-navy-700/60 hover:text-amber-600 transition-colors">Features</a></li>
-                <li><a href="#" className="font-body text-sm text-navy-700/60 hover:text-amber-600 transition-colors">API</a></li>
-                <li><a href="#" className="font-body text-sm text-navy-700/60 hover:text-amber-600 transition-colors">Documentation</a></li>
+                <li><Link to="/app" className="font-body text-sm text-navy-700/60 hover:text-amber-600 transition-colors">Live map</Link></li>
+                <li><Link to="/app/investigate" className="font-body text-sm text-navy-700/60 hover:text-amber-600 transition-colors">Investigate</Link></li>
+                <li><Link to="/pricing" className="font-body text-sm text-navy-700/60 hover:text-amber-600 transition-colors">Pricing</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="font-body text-xs font-semibold text-navy-700/40 uppercase tracking-widest mb-4">Connect</h3>
               <div className="flex gap-3">
-                <a href="#" className="text-navy-700/40 hover:text-amber-600 transition-colors">
+                <a href="https://github.com/johan-bod/HeatNews" target="_blank" rel="noopener noreferrer" className="text-navy-700/40 hover:text-amber-600 transition-colors" aria-label="GitHub repository">
                   <Github className="w-4 h-4" />
                 </a>
-                <a href="#" className="text-navy-700/40 hover:text-amber-600 transition-colors">
+                <a href="mailto:contact@heatstory.app" className="text-navy-700/40 hover:text-amber-600 transition-colors" aria-label="Contact by email">
                   <Mail className="w-4 h-4" />
                 </a>
               </div>
