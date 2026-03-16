@@ -22,12 +22,11 @@ export default function LandingPage() {
       const destination = (location.state as { from?: string })?.from || '/app';
       navigate(destination);
     } catch (error) {
+      const code = (error as { code?: string }).code ?? '';
       const msg = error instanceof Error ? error.message : String(error);
-      // Ignore user-cancelled popup (not an error worth showing)
-      if (!msg.includes('popup-closed') && !msg.includes('cancelled')) {
-        console.error('Sign in failed:', error);
-        toast.error('Sign in failed. Please try again.');
-      }
+      if (code.includes('popup-closed') || code.includes('cancelled') || msg.includes('popup-closed')) return;
+      console.error('Sign in failed:', error);
+      toast.error(`Sign in failed: ${code || msg}`, { duration: 8000 });
     }
   };
 

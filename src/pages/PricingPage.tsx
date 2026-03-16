@@ -209,10 +209,10 @@ export default function PricingPage() {
         await signInWithGoogle();
         navigate('/app');
       } catch (error) {
+        const code = (error as { code?: string }).code ?? '';
         const msg = error instanceof Error ? error.message : String(error);
-        if (!msg.includes('popup-closed') && !msg.includes('cancelled')) {
-          toast.error('Sign in failed. Please try again.');
-        }
+        if (code.includes('popup-closed') || code.includes('cancelled') || msg.includes('popup-closed')) return;
+        toast.error(`Sign in failed: ${code || msg}`, { duration: 8000 });
       }
     } else {
       navigate('/app');
@@ -452,10 +452,10 @@ export default function PricingPage() {
                   await signInWithGoogle();
                   navigate('/app');
                 } catch (error) {
+                  const code = (error as { code?: string }).code ?? '';
                   const msg = error instanceof Error ? error.message : String(error);
-                  if (!msg.includes('popup-closed') && !msg.includes('cancelled')) {
-                    toast.error('Sign in failed. Please try again.');
-                  }
+                  if (code.includes('popup-closed') || code.includes('cancelled') || msg.includes('popup-closed')) return;
+                  toast.error(`Sign in failed: ${code || msg}`, { duration: 8000 });
                 }
               }}
               className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"

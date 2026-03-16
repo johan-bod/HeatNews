@@ -36,8 +36,10 @@ export function LoginButton({ redirectTo }: LoginButtonProps = {}) {
       await signInWithGoogle();
       if (redirectTo) navigate(redirectTo);
     } catch (error) {
+      const code = (error as { code?: string }).code ?? '';
+      const msg = error instanceof Error ? error.message : String(error);
       console.error('Sign in failed:', error);
-      toast.error('Failed to sign in. Please try again.');
+      toast.error(`Sign in failed: ${code || msg}`, { duration: 8000 });
     } finally {
       setIsLoading(false);
     }
