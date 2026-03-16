@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Check, Flame, Clock, Globe, Rss, BarChart2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import LandingNavbar from '@/components/landing/LandingNavbar';
+import { toast } from '@/components/ui/sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -177,6 +178,7 @@ const faqs = [
 
 export default function PricingPage() {
   const { user, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
 
   function formatPrice(tier: Tier): string {
@@ -203,7 +205,17 @@ export default function PricingPage() {
       return;
     }
     if (!user) {
-      try { await signInWithGoogle(); } catch { /* user dismissed */ }
+      try {
+        await signInWithGoogle();
+        navigate('/app');
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (!msg.includes('popup-closed') && !msg.includes('cancelled')) {
+          toast.error('Sign in failed. Please try again.');
+        }
+      }
+    } else {
+      navigate('/app');
     }
   }
 
@@ -436,7 +448,15 @@ export default function PricingPage() {
           ) : (
             <button
               onClick={async () => {
-                try { await signInWithGoogle(); } catch { /* dismissed */ }
+                try {
+                  await signInWithGoogle();
+                  navigate('/app');
+                } catch (error) {
+                  const msg = error instanceof Error ? error.message : String(error);
+                  if (!msg.includes('popup-closed') && !msg.includes('cancelled')) {
+                    toast.error('Sign in failed. Please try again.');
+                  }
+                }
               }}
               className="bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors text-lg"
             >

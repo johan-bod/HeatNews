@@ -52,8 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInWithGoogle = async () => {
     if (!auth || !googleProvider) {
-      console.warn('Firebase not configured. Set VITE_FIREBASE_* env vars.');
-      return;
+      throw new Error('Firebase not configured. Set VITE_FIREBASE_* env vars.');
     }
     try {
       setLoading(true);

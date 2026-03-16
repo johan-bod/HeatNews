@@ -5,6 +5,7 @@ import HeroGlobe from '@/components/landing/HeroGlobe';
 import FeatureCard from '@/components/landing/FeatureCard';
 import BetaNudge from '@/components/landing/BetaNudge';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/sonner';
 
 function GradientLine() {
   return <div className="h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />;
@@ -21,7 +22,12 @@ export default function LandingPage() {
       const destination = (location.state as { from?: string })?.from || '/app';
       navigate(destination);
     } catch (error) {
-      console.error('Sign in failed:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      // Ignore user-cancelled popup (not an error worth showing)
+      if (!msg.includes('popup-closed') && !msg.includes('cancelled')) {
+        console.error('Sign in failed:', error);
+        toast.error('Sign in failed. Please try again.');
+      }
     }
   };
 
