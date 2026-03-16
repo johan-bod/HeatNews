@@ -319,7 +319,9 @@ export default function GlobeView({
       .hexTopColor((d: object) => {
         const pts = d as { points: { heatLevel: number }[] };
         const avgHeat = pts.points.reduce((s, p) => s + p.heatLevel, 0) / pts.points.length;
-        const alpha = Math.min(0.35, avgHeat / 200);
+        // Fine resolution at close zoom → lower threshold to show signal; coarse → higher
+        const maxAlpha = hexResRef.current >= 6 ? 0.70 : hexResRef.current === 5 ? 0.55 : hexResRef.current === 4 ? 0.40 : 0.25;
+        const alpha = Math.min(maxAlpha, avgHeat / 150);
         return `rgba(245, 158, 11, ${alpha})`;
       })
       .hexSideColor(() => 'rgba(245, 158, 11, 0.02)')
@@ -475,6 +477,18 @@ export default function GlobeView({
 
   // Update hex-bin heatmap when articles change (debounced)
   const hexBinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hexAltRef = useRef<number>(2);
+  const hexResRef = useRef<number>(3); // tracks current hexBinResolution
+
+  // Maps globe altitude to hex resolution: close zoom = fine hexagons, far = coarse
+  const altToHexRes = useCallback((alt: number): number => {
+    if (alt < 0.25) return 7;  // city-block: ~5 km² cells
+    if (alt < 0.45) return 6;  // neighbourhood: ~36 km² cells
+    if (alt < 0.75) return 5;  // city: ~250 km² cells
+    if (alt < 1.30) return 4;  // regional: ~1700 km² cells
+    if (alt < 2.20) return 3;  // national: ~12000 km² cells
+    return 2;                   // continental/global: ~86000 km² cells
+  }, []);
   useEffect(() => {
     if (!globeRef.current) return;
     if (hexBinTimeoutRef.current) clearTimeout(hexBinTimeoutRef.current);
@@ -510,12 +524,29 @@ export default function GlobeView({
     let animationId: number;
     const animate = () => {
       if (globeRef.current && isVisibleRef.current) {
+        const pov = globeRef.current.pointOfView();
+
         if (!isMobile) {
           const angle = autoRotation.getRotationAngle();
-          if (angle !== null && globeRef.current) {
-            const pov = globeRef.current.pointOfView();
+          if (angle !== null) {
             globeRef.current.pointOfView({ lat: pov.lat, lng: angle, altitude: pov.altitude }, 0);
           }
+        }
+
+        // Update hexbin resolution + color when zoom level crosses a threshold
+        const newRes = altToHexRes(pov.altitude);
+        if (newRes !== hexResRef.current) {
+          hexResRef.current = newRes;
+          hexAltRef.current = pov.altitude;
+          globeRef.current
+            .hexBinResolution(newRes)
+            .hexTopColor((d: object) => {
+              const pts = d as { points: { heatLevel: number }[] };
+              const avgHeat = pts.points.reduce((s, p) => s + p.heatLevel, 0) / pts.points.length;
+              const maxAlpha = hexResRef.current >= 6 ? 0.70 : hexResRef.current === 5 ? 0.55 : hexResRef.current === 4 ? 0.40 : 0.25;
+              const alpha = Math.min(maxAlpha, avgHeat / 150);
+              return `rgba(245, 158, 11, ${alpha})`;
+            });
         }
 
         const time = Date.now() / 1000;
@@ -532,7 +563,7 @@ export default function GlobeView({
     animationId = requestAnimationFrame(animate);
 
     return () => cancelAnimationFrame(animationId);
-  }, [isMobile, autoRotation]);
+  }, [isMobile, autoRotation, altToHexRes]);
 
   const handleRegionJump = useCallback((loc: PreferenceLocation, index: number) => {
     if (globeRef.current) {
