@@ -26,7 +26,7 @@ export default defineConfig({
           'vendor-globe': ['globe.gl'],
           'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'vendor-leaflet': ['leaflet', 'react-leaflet'],
-          'vendor-ui': ['@radix-ui/react-dropdown-menu', '@radix-ui/react-dialog', '@radix-ui/react-slot', 'sonner'],
+          'vendor-ui': ['@radix-ui/react-dropdown-menu', '@radix-ui/react-slot', 'sonner', 'lucide-react'],
         },
       },
     },
