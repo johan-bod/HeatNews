@@ -27,6 +27,8 @@ import { Button } from '@/components/ui/button';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useSourceFeeds } from '@/hooks/useSourceFeeds';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { toast } from '@/components/ui/sonner';
+import { useLocation } from 'react-router-dom';
 import type { Topic } from '@/data/keywords/taxonomy';
 import type { PreferenceLocation } from '@/types/preferences';
 
@@ -87,6 +89,19 @@ function combineArticles(config: Awaited<ReturnType<typeof getCachedNews>>): New
 
 const Index = () => {
   useDocumentTitle('Live Map — HeatStory');
+  const location = useLocation();
+
+  // Show success toast when returning from Stripe checkout
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('checkout') === 'success') {
+      toast.success('Welcome to Pro! Your subscription is now active.', { duration: 6000 });
+      // Clean the URL without triggering a navigation
+      window.history.replaceState({}, '', '/app');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [allArticles, setAllArticles] = useState<NewsArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
