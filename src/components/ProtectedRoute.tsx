@@ -15,11 +15,8 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   // Show loading spinner while checking authentication
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-slate-600">Checking authentication...</p>
-        </div>
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
       </div>
     );
   }
