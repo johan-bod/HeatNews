@@ -10,7 +10,7 @@ import { auth, googleProvider, isConfigured } from '@/lib/firebase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<User>;
   logout: () => Promise<void>;
   isAdmin: boolean;
 }
@@ -50,13 +50,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<User> => {
     if (!auth || !googleProvider) {
       throw new Error('Firebase not configured. Set VITE_FIREBASE_* env vars.');
     }
     try {
       setLoading(true);
-      await signInWithPopup(auth, googleProvider);
+      const credential = await signInWithPopup(auth, googleProvider);
+      return credential.user;
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;

@@ -20,15 +20,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { priceId, firebaseUid, userEmail, billingInterval } = req.body as {
-    priceId: string;
+  const { planKey, firebaseUid, userEmail, billingInterval } = req.body as {
+    planKey: string;
     firebaseUid: string;
     userEmail: string;
-    billingInterval: 'monthly' | 'yearly';
+    billingInterval?: 'monthly' | 'yearly';
   };
 
-  if (!priceId || !firebaseUid || !userEmail) {
-    return res.status(400).json({ error: 'Missing required fields: priceId, firebaseUid, userEmail' });
+  // Server-side plan → price ID mapping (price IDs never exposed to client)
+  const PLAN_PRICE_MAP: Record<string, string | undefined> = {
+    pro_monthly:        process.env.STRIPE_PRICE_PRO_MONTHLY,
+    pro_yearly:         process.env.STRIPE_PRICE_PRO_YEARLY,
+    team_monthly:       process.env.STRIPE_PRICE_TEAM_MONTHLY,
+    team_yearly:        process.env.STRIPE_PRICE_TEAM_YEARLY,
+    newsroom_monthly:   process.env.STRIPE_PRICE_NEWSROOM_MONTHLY,
+    newsroom_yearly:    process.env.STRIPE_PRICE_NEWSROOM_YEARLY,
+  };
+  const priceId = PLAN_PRICE_MAP[planKey] ?? '';
+
+  if (!planKey || !priceId || !firebaseUid || !userEmail) {
+    return res.status(400).json({ error: 'Missing or invalid fields: planKey, firebaseUid, userEmail' });
   }
 
   const appUrl = process.env.VITE_APP_URL || 'https://heatstory.app';

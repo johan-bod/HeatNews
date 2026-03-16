@@ -180,6 +180,7 @@ export default function PricingPage() {
   const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   function formatPrice(tier: Tier): string {
     if (tier.monthlyPrice === null) return 'Custom';
@@ -204,18 +205,59 @@ export default function PricingPage() {
       window.location.href = `mailto:contact@heatstory.app?subject=${encodeURIComponent(`${tier.name} plan inquiry`)}`;
       return;
     }
-    if (!user) {
-      try {
-        await signInWithGoogle();
+    // Free tier: just sign in and go to app
+    if (tier.name === 'Free') {
+      if (!user) {
+        try {
+          await signInWithGoogle();
+          navigate('/app');
+        } catch (error) {
+          const code = (error as { code?: string }).code ?? '';
+          const msg = error instanceof Error ? error.message : String(error);
+          if (code.includes('popup-closed') || code.includes('cancelled') || msg.includes('popup-closed')) return;
+          toast.error(`Sign in failed: ${code || msg}`, { duration: 8000 });
+        }
+      } else {
         navigate('/app');
+      }
+      return;
+    }
+    // Paid tier: sign in if needed, then start Stripe checkout
+    let currentUser = user;
+    if (!currentUser) {
+      try {
+        // signInWithGoogle returns the User directly — no stale closure issue
+        currentUser = await signInWithGoogle();
       } catch (error) {
         const code = (error as { code?: string }).code ?? '';
         const msg = error instanceof Error ? error.message : String(error);
         if (code.includes('popup-closed') || code.includes('cancelled') || msg.includes('popup-closed')) return;
         toast.error(`Sign in failed: ${code || msg}`, { duration: 8000 });
+        return;
       }
-    } else {
-      navigate('/app');
+    }
+    const tierName = tier.name.toLowerCase();
+    const interval = billing === 'yearly' ? 'yearly' : 'monthly';
+    const planKey = `${tierName}_${interval}`;
+    setCheckoutLoading(planKey);
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planKey, firebaseUid: currentUser!.uid, userEmail: currentUser!.email ?? '', billingInterval: interval }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({})) as { error?: string };
+        toast.error(err.error ?? 'Failed to start checkout. Please try again.', { duration: 8000 });
+        return;
+      }
+      const { url } = await response.json() as { url: string };
+      if (url) window.location.href = url;
+      else toast.error('No checkout URL returned. Please try again.', { duration: 8000 });
+    } catch {
+      toast.error('Network error. Please check your connection and try again.', { duration: 8000 });
+    } finally {
+      setCheckoutLoading(null);
     }
   }
 
@@ -344,13 +386,14 @@ export default function PricingPage() {
                 ) : (
                   <button
                     onClick={() => handleCta(tier)}
-                    className={`font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm ${
+                    disabled={checkoutLoading !== null}
+                    className={`font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm disabled:opacity-60 ${
                       tier.highlighted
                         ? 'bg-amber-500 hover:bg-amber-400 text-[#0a0a0f]'
                         : 'border border-ivory-200/20 text-ivory-100 hover:border-amber-500/40 hover:text-amber-400'
                     }`}
                   >
-                    {tier.cta}
+                    {checkoutLoading === `${tier.name.toLowerCase()}_${billing}` ? 'Loading…' : tier.cta}
                   </button>
                 )}
               </div>

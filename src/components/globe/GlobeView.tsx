@@ -621,7 +621,7 @@ export default function GlobeView({
       <div className="absolute top-4 left-4 z-10">
         <div className="bg-navy-900/80 backdrop-blur-sm border border-amber-500/20 rounded-lg px-3 py-2 font-body text-xs">
           <div className="text-ivory-200/80 font-semibold">
-            🇫🇷 France
+            {preferenceLocations.length > 0 ? preferenceLocations[0].name : 'Global'}
           </div>
           <div className="text-ivory-200/50 mt-0.5">
             {altitudeKm > 8000 && 'International view'}

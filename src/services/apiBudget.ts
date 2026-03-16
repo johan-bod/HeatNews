@@ -101,17 +101,17 @@ export function incrementUserFetch(uid: string): void {
 }
 
 /** Whether a user can do a personalized fetch */
-export function canUserFetch(uid: string): boolean {
+export function canUserFetch(uid: string, quota: number = USER_DAILY_FETCHES): boolean {
   resetIfNewDay();
   const count = getUserFetchCount(uid);
-  return count < USER_DAILY_FETCHES && canMakeRequest(1);
+  return count < quota && canMakeRequest(1);
 }
 
 /** Remaining personalized fetches for a user */
-export function getUserRemainingFetches(uid: string): number {
+export function getUserRemainingFetches(uid: string, quota: number = USER_DAILY_FETCHES): number {
   resetIfNewDay();
   const used = getUserFetchCount(uid);
-  return Math.max(0, USER_DAILY_FETCHES - used);
+  return Math.max(0, quota - used);
 }
 
 /**

@@ -1,7 +1,8 @@
 // src/pages/InvestigatePage.tsx
 import { useMemo, useState, useEffect, lazy, Suspense } from 'react';
-import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Languages, MapPin, Rss } from 'lucide-react';
+import { Link, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
+import { AlertTriangle, Languages, Lock, MapPin, Rss } from 'lucide-react';
+import useSubscription from '@/hooks/useSubscription';
 import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import { analyzeArticleHeat, heatLevelToColor } from '@/utils/topicClustering';
@@ -88,6 +89,7 @@ export function groupByTier(items: ClusterArticleItem[]): { tier: CredibilityTie
 
 export default function InvestigatePage() {
   const navigate = useNavigate();
+  const { isPaid } = useSubscription();
   const { cluster, article, hasArticleParam } = useInvestigateData();
   const coverageGap = useMemo(() => cluster ? analyzeCoverageGap(cluster) : null, [cluster]);
   const geoGap = useMemo(() => cluster ? analyzeGeographicGap(cluster) : null, [cluster]);
@@ -209,7 +211,19 @@ export default function InvestigatePage() {
               cluster={cluster} lead={article} potential={potential}
               timeline={timeline} coverageGap={coverageGap}
             />
-            <ExportBriefButton input={{ article, cluster, coverageGap, geoGap, perspective }} />
+            {isPaid
+              ? <ExportBriefButton input={{ article, cluster, coverageGap, geoGap, perspective }} />
+              : (
+                <Link
+                  to="/pricing"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ivory-200/30 border border-ivory-200/10 rounded-md hover:border-amber-500/30 hover:text-amber-400/60 transition-colors"
+                  title="Upgrade to Pro to export investigation briefs"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Export Brief
+                </Link>
+              )
+            }
           </div>
         </div>
 
@@ -432,34 +446,42 @@ export default function InvestigatePage() {
           </div>
         )}
 
-        {/* Perspective Comparison */}
+        {/* Perspective Comparison — Pro feature */}
         {perspective?.hasInsights && (
           <div className="mb-10">
             <h2 className="text-sm font-semibold text-ivory-200/60 mb-3">
               Perspective Comparison
             </h2>
-            {perspective!.uniqueAngles.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Unique angles</p>
-                <ul className="space-y-1">
-                  {perspective!.uniqueAngles.map((insight, i) => (
-                    <li key={i} className="text-sm text-ivory-200/60">
-                      {insight.label}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {perspective!.emphasisDifferences.length > 0 && (
-              <div>
-                <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Emphasis differences</p>
-                <ul className="space-y-1">
-                  {perspective!.emphasisDifferences.map((insight, i) => (
-                    <li key={i} className="text-sm text-ivory-200/60">
-                      {insight.label}
-                    </li>
-                  ))}
-                </ul>
+            {isPaid ? (
+              <>
+                {perspective!.uniqueAngles.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Unique angles</p>
+                    <ul className="space-y-1">
+                      {perspective!.uniqueAngles.map((insight, i) => (
+                        <li key={i} className="text-sm text-ivory-200/60">{insight.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {perspective!.emphasisDifferences.length > 0 && (
+                  <div>
+                    <p className="text-xs text-ivory-200/30 uppercase tracking-wide mb-2">Emphasis differences</p>
+                    <ul className="space-y-1">
+                      {perspective!.emphasisDifferences.map((insight, i) => (
+                        <li key={i} className="text-sm text-ivory-200/60">{insight.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-6 text-center">
+                <Lock className="w-4 h-4 text-amber-500/50 mx-auto mb-2" />
+                <p className="text-xs text-ivory-200/50 mb-3">Perspective analysis is a Pro feature.</p>
+                <Link to="/pricing" className="text-xs text-amber-400 hover:text-amber-300 underline transition-colors">
+                  Upgrade to Pro →
+                </Link>
               </div>
             )}
           </div>

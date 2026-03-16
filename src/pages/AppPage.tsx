@@ -34,6 +34,8 @@ const OnboardingModal = lazy(() => import('@/components/onboarding/OnboardingMod
 type ArticleScale = 'local' | 'regional' | 'national' | 'international';
 type ScaleFilter = 'all' | ArticleScale;
 
+// KNOWN ISSUE (L18): runs on main thread — can cause brief jank on large sets.
+// Long-term fix: route through useClusteringWorker (same pattern as initial load).
 function processFilteredArticles(
   articles: NewsArticle[],
   scale: ScaleFilter
@@ -96,11 +98,11 @@ const Index = () => {
   const baseArticlesRef = useRef<NewsArticle[]>([]);
   const [searchResultIds, setSearchResultIds] = useState<Set<string> | null>(null);
   const { preferences, needsOnboarding, setTopics, setLocations, completeOnboarding, updatePreferences } = usePreferences();
-  const { feedArticles } = useSourceFeeds();
   const [showPreferences, setShowPreferences] = useState(false);
   const { user } = useAuth();
   const subscription = useSubscription();
   const dailyFetchQuota = subscription.isPaid ? 5 : USER_DAILY_FETCHES;
+  const { feedArticles } = useSourceFeeds(subscription.isPaid);
   const [personalizedArticles, setPersonalizedArticles] = useState<NewsArticle[]>([]);
   const [remainingFetches, setRemainingFetches] = useState(USER_DAILY_FETCHES);
   const [showSoftGate, setShowSoftGate] = useState(false);
@@ -169,16 +171,16 @@ const Index = () => {
       return;
     }
     setPersonalizedArticles(getCachedPersonalizedNews(user.uid));
-    setRemainingFetches(getUserRemainingFetches(user.uid));
+    setRemainingFetches(getUserRemainingFetches(user.uid, dailyFetchQuota));
     loadUsageFromFirestore(user.uid).then(() => {
-      setRemainingFetches(getUserRemainingFetches(user.uid));
+      setRemainingFetches(getUserRemainingFetches(user.uid, dailyFetchQuota));
     });
 
     const unsubBudget = onRemoteBudgetUpdate(() => {
-      setRemainingFetches(getUserRemainingFetches(user.uid));
+      setRemainingFetches(getUserRemainingFetches(user.uid, dailyFetchQuota));
     });
     return () => unsubBudget();
-  }, [user]);
+  }, [user, dailyFetchQuota]);
 
   const handleRefresh = useCallback(async () => {
     try {
@@ -317,7 +319,7 @@ const Index = () => {
       setIsPersonalizing(true);
       const newArticles = await fetchPersonalizedNews(user.uid, preferences);
       setPersonalizedArticles(newArticles);
-      setRemainingFetches(getUserRemainingFetches(user.uid));
+      setRemainingFetches(getUserRemainingFetches(user.uid, dailyFetchQuota));
     } catch (error) {
       if ((error as Error).message.includes('limit reached')) {
         setShowSoftGate(true);
