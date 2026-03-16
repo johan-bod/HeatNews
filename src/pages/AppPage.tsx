@@ -30,6 +30,7 @@ import type { Topic } from '@/data/keywords/taxonomy';
 import type { PreferenceLocation } from '@/types/preferences';
 
 const OnboardingModal = lazy(() => import('@/components/onboarding/OnboardingModal'));
+const GuideTour = lazy(() => import('@/components/GuideTour'));
 
 type ArticleScale = 'local' | 'regional' | 'national' | 'international';
 type ScaleFilter = 'all' | ArticleScale;
@@ -569,6 +570,11 @@ const Index = () => {
             initialLocations={preferences.locations}
           />
         )}
+      </Suspense>
+
+      {/* First-use guide tour — fires once after onboarding is done */}
+      <Suspense fallback={null}>
+        {!needsOnboarding && !isLoading && <GuideTour isReady={!isLoading && clusters.length > 0} />}
       </Suspense>
     </div>
   );

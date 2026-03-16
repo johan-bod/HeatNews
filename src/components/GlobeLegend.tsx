@@ -1,6 +1,6 @@
 export default function GlobeLegend() {
   return (
-    <div className="w-full bg-navy-900 border-t border-ivory-200/5">
+    <div id="globe-legend" className="w-full bg-navy-900 border-t border-ivory-200/5">
       <div className="max-w-4xl mx-auto px-6 py-2.5 flex items-center justify-center gap-4">
         <span className="font-body text-[10px] text-ivory-200/30 uppercase tracking-wider">Heat</span>
         <div className="flex items-center gap-3">

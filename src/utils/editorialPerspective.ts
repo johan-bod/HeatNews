@@ -130,10 +130,14 @@ function buildProfile(article: NewsArticle): ArticleProfile {
 }
 
 export function analyzeEditorialPerspective(articles: NewsArticle[]): PerspectiveResult {
-  if (articles.length < 3) return NO_INSIGHTS;
+  // compromise is English-only NLP — filter non-English articles before analysis
+  const englishArticles = articles.filter(
+    a => (a.language ?? 'en').toLowerCase().slice(0, 2) === 'en'
+  );
+  if (englishArticles.length < 3) return NO_INSIGHTS;
 
   try {
-    const profiles = articles.map(buildProfile);
+    const profiles = englishArticles.map(buildProfile);
 
     // 1. Unique angles
     const uniqueAngles: PerspectiveInsight[] = [];

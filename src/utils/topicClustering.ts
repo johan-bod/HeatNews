@@ -1,6 +1,7 @@
 import type { NewsArticle } from '@/types/news';
 import { resolveCredibilityByDomain, extractDomain } from '@/utils/credibilityService';
 import { normalizeOrgId } from '@/utils/sourceNormalization';
+import { mergeCrossLanguageClusters } from '@/utils/crossLanguageMerge';
 
 // Stopwords for title normalization (English + French)
 const STOPWORDS = new Set([
@@ -132,8 +133,11 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
     }
   }
 
+  // Pass 2: merge cross-language clusters about the same story
+  const mergedClusters = mergeCrossLanguageClusters(clusters);
+
   // Calculate heat for each cluster
-  for (const cluster of clusters) {
+  for (const cluster of mergedClusters) {
     // Group articles by canonical org — prevents same org from contributing
     // multiple times via different channels (web, Telegram, Facebook, etc.).
     const canonicalOrgs = new Map<string, { weight: number; isHyperlocal: boolean }>();
@@ -175,7 +179,7 @@ export function clusterArticles(articles: NewsArticle[]): StoryCluster[] {
     cluster.coverage = cluster.uniqueSources.size;
   }
 
-  return clusters;
+  return mergedClusters;
 }
 
 /**

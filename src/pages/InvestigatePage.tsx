@@ -299,7 +299,14 @@ export default function InvestigatePage() {
             ))}
           </div>
         )}
-        {topLangs.length <= 1 && <div className="mb-8" />}
+        {topLangs.length <= 1 && <div className="mb-4" />}
+
+        {/* Story summary — lead article description */}
+        {article.description && (
+          <p className="text-sm text-ivory-200/60 leading-relaxed mb-8 pl-3 border-l-2 border-amber-500/30">
+            {article.description}
+          </p>
+        )}
 
         {/* Source List by Tier */}
         <div className="space-y-6 mb-10">
