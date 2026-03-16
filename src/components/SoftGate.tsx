@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Flame, Check, Clock } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -64,10 +65,10 @@ export default function SoftGate({ onDismiss }: SoftGateProps) {
       <div className="max-w-md mx-auto text-center py-8 px-6">
         <Check className="w-8 h-8 text-green-400 mx-auto mb-3" />
         <h3 className="font-display text-lg font-semibold text-navy-800 mb-2">
-          You're on the list
+          Thanks for the feedback
         </h3>
         <p className="font-body text-sm text-navy-700/50 mb-4">
-          We'll let you know when more features are available.
+          Your feed refreshes again tomorrow. <Link to="/pricing" className="text-amber-600 hover:text-amber-500 transition-colors">Upgrade to Pro</Link> for 5× more daily fetches.
         </p>
         <button
           onClick={onDismiss}
@@ -93,17 +94,24 @@ export default function SoftGate({ onDismiss }: SoftGateProps) {
         </p>
       </div>
 
-      {/* Waitlist */}
+      {/* Upgrade CTA */}
       <div className="bg-ivory-50 border border-amber-200/30 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <Flame className="w-4 h-4 text-amber-500" />
           <h4 className="font-display text-sm font-semibold text-navy-800">
-            Join the waitlist for unlimited access
+            Upgrade for more refreshes
           </h4>
         </div>
         <p className="font-body text-xs text-navy-700/40 mb-4">
-          We're building something new. Help us grow.
+          Pro users get 5× more daily personalized fetches, unlimited alerts, and export tools.
         </p>
+        <Link
+          to="/pricing"
+          className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-navy-900 font-body font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors mb-4"
+        >
+          See pricing →
+        </Link>
+        <p className="font-body text-xs text-navy-700/30 text-center mb-4">— or tell us what you need —</p>
 
         {/* Email (pre-filled) */}
         <div className="mb-4">
@@ -153,7 +161,7 @@ export default function SoftGate({ onDismiss }: SoftGateProps) {
           disabled={isSubmitting || selected.length === 0}
           className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-amber-200 text-navy-900 font-body font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors"
         >
-          {isSubmitting ? 'Submitting...' : 'Join waitlist'}
+          {isSubmitting ? 'Sending...' : 'Send feedback'}
         </button>
       </div>
     </div>

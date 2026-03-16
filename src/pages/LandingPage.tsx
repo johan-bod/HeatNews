@@ -207,19 +207,30 @@ export default function LandingPage() {
 
       <GradientLine />
 
-      {/* Testimonial Placeholder / Early Access */}
+      {/* Pricing CTA */}
       <section className="py-20 px-6 animate-fade-up">
         <div className="max-w-2xl mx-auto text-center">
           <Quote className="w-24 h-24 text-amber-500/10 mx-auto mb-6" />
-          <p className="font-display text-2xl font-semibold text-ivory-100 mb-6">
-            Early access is open. Be among the first newsrooms and research teams to use HeatStory.
+          <p className="font-display text-2xl font-semibold text-ivory-100 mb-3">
+            Free to explore. Pro for professionals.
           </p>
-          <a
-            href="mailto:contact@heatstory.app"
-            className="inline-block border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 font-semibold px-8 py-3 rounded-lg transition-colors"
-          >
-            Request early access →
-          </a>
+          <p className="font-body text-sm text-ivory-200/40 mb-8 max-w-md mx-auto leading-relaxed">
+            The live map and story feed are open to everyone. Upgrade for investigation briefs, custom alerts, and team access.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/pricing"
+              className="inline-block bg-amber-500 hover:bg-amber-400 text-[#0a0a0f] font-semibold px-8 py-3 rounded-lg transition-colors"
+            >
+              See pricing →
+            </Link>
+            <a
+              href="mailto:contact@heatstory.app"
+              className="inline-block border border-ivory-200/15 text-ivory-200/50 hover:border-amber-500/40 hover:text-amber-400 font-semibold px-6 py-3 rounded-lg transition-colors text-sm"
+            >
+              Contact for Newsroom
+            </a>
+          </div>
         </div>
       </section>
 
