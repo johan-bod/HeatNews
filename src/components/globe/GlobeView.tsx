@@ -91,6 +91,10 @@ export default function GlobeView({
   // Track whether we've already done the initial auto-focus
   const hasAutoFocused = useRef(false);
 
+  // Debounce refs for altitude state — prevents React re-renders on every pan/zoom frame
+  const prevAltRef = useRef(0.8);
+  const altTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const autoRotation = useGlobeAutoRotation({
     enabled: !isMobile,
     idleTimeout: 4000,
@@ -158,14 +162,20 @@ export default function GlobeView({
       .pointsData([])
       .pointLat('lat')
       .pointLng('lng')
-      .pointAltitude((d: object) => (d as GlobeMarkerData).isPrimarySource ? 0.04 : 0.01)
+      .pointAltitude((d: object) => {
+        // Static heat-based elevation — hot dots rise above cold ones.
+        // Set once at init; no per-frame updates needed.
+        const m = d as GlobeMarkerData;
+        if (m.isPrimarySource) return 0.035;
+        if (m.heatLevel >= 75) return 0.020;
+        if (m.heatLevel >= 45) return 0.010;
+        return 0.004;
+      })
       .pointRadius('size')
       .pointColor((d: object) => {
+        // Always apply hexToRgba — cold markers now have opacity < 1 by design
         const marker = d as GlobeMarkerData;
-        if (marker.opacity < 1) {
-          return hexToRgba(marker.color, marker.opacity);
-        }
-        return marker.color;
+        return hexToRgba(marker.color, marker.opacity);
       })
       .pointLabel('')
       .pointsMerge(false)
@@ -289,11 +299,19 @@ export default function GlobeView({
       .arcDashAnimateTime(2000)
       .arcsTransitionDuration(300);
 
-    // Track zoom changes
+    // Track zoom changes — debounced to avoid React re-renders every animation frame.
+    // During pan or auto-rotation altitude doesn't change, so we skip those entirely.
+    // During zoom we debounce 200 ms so expensive memos only fire once per gesture.
     globe.controls().addEventListener('change', () => {
-      const pov = globe.pointOfView();
-      setAltitude(pov.altitude);
       autoRotation.onUserInteraction();
+      const newAlt = globe.pointOfView().altitude;
+      // Skip if altitude hasn't meaningfully changed (pan / auto-rotation frames)
+      if (Math.abs(newAlt - prevAltRef.current) < 0.01) return;
+      if (altTimerRef.current) clearTimeout(altTimerRef.current);
+      altTimerRef.current = setTimeout(() => {
+        prevAltRef.current = newAlt;
+        setAltitude(newAlt);
+      }, 200);
     });
 
     globeRef.current = globe;
@@ -484,33 +502,22 @@ export default function GlobeView({
     return () => observer.disconnect();
   }, []);
 
-  // Auto-rotation + very-hot marker pulse animation loop
+  // Auto-rotation loop — pure RAF, no React state changes, no globe data updates.
+  // pointAltitude is a static accessor set at init; no per-frame override needed.
   useEffect(() => {
+    if (isMobile) return; // no auto-rotation on mobile
     let animationId: number;
     const animate = () => {
       if (globeRef.current && isVisibleRef.current) {
-        const pov = globeRef.current.pointOfView();
-
-        if (!isMobile) {
-          const angle = autoRotation.getRotationAngle();
-          if (angle !== null) {
-            globeRef.current.pointOfView({ lat: pov.lat, lng: angle, altitude: pov.altitude }, 0);
-          }
+        const angle = autoRotation.getRotationAngle();
+        if (angle !== null) {
+          const pov = globeRef.current.pointOfView();
+          globeRef.current.pointOfView({ lat: pov.lat, lng: angle, altitude: pov.altitude }, 0);
         }
-
-        const time = Date.now() / 1000;
-        globeRef.current.pointAltitude((d: object) => {
-          const marker = d as GlobeMarkerData;
-          if (marker.heatLevel >= 81) {
-            return 0.01 + Math.sin(time * 2) * 0.008;
-          }
-          return 0.01;
-        });
       }
       animationId = requestAnimationFrame(animate);
     };
     animationId = requestAnimationFrame(animate);
-
     return () => cancelAnimationFrame(animationId);
   }, [isMobile, autoRotation]);
 

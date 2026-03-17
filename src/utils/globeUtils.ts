@@ -70,16 +70,37 @@ export function getMarkerSize(heatLevel: number, altitudeKm?: number): number {
 }
 
 /**
- * Marker color matching spec visual mapping.
- * Same as heatLevelToColor in topicClustering.ts but kept
- * here for globe-specific independence.
+ * Marker color — 4 distinct tiers readable on a dark globe background.
  */
 export function getMarkerColor(heatLevel: number): string {
-  if (heatLevel <= 20) return '#94A3B8'; // grey (cold)
-  if (heatLevel <= 40) return '#F59E0B'; // amber (warming)
-  if (heatLevel <= 60) return '#F97316'; // orange (warm)
-  if (heatLevel <= 80) return '#EA580C'; // orange-red (hot)
-  return '#DC2626'; // red with pulse (very hot)
+  if (heatLevel <= 30) return '#94A3B8'; // slate gray  — background noise
+  if (heatLevel <= 55) return '#FCD34D'; // bright amber — trending
+  if (heatLevel <= 75) return '#FB923C'; // vivid orange — hot
+  return '#F87171';                       // soft red     — urgent
+}
+
+/**
+ * Marker opacity — cold dots recede, hot dots demand attention.
+ * Combined with color this creates a clear visual hierarchy without
+ * relying purely on size.
+ */
+export function getMarkerOpacity(heatLevel: number): number {
+  if (heatLevel <= 30) return 0.40;
+  if (heatLevel <= 55) return 0.72;
+  if (heatLevel <= 75) return 0.90;
+  return 1.0;
+}
+
+/**
+ * Marker elevation above globe surface.
+ * Hot dots "rise up" — they stand above cold ones when they overlap,
+ * and cast a longer shadow that improves click targeting.
+ */
+export function getMarkerAltitude(heatLevel: number, isPrimarySource?: boolean): number {
+  if (isPrimarySource) return 0.035;
+  if (heatLevel >= 75) return 0.020;
+  if (heatLevel >= 45) return 0.010;
+  return 0.004;
 }
 
 /**

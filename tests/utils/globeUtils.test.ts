@@ -45,39 +45,44 @@ describe('altitudeToScale', () => {
 });
 
 describe('getMarkerSize', () => {
-  it('returns small size for cold heat', () => {
+  it('returns small size for cold heat (no altitude)', () => {
     expect(getMarkerSize(10)).toBeLessThanOrEqual(0.3);
   });
 
-  it('returns large size for hot heat', () => {
-    expect(getMarkerSize(90)).toBeGreaterThanOrEqual(0.8);
+  it('scales with altitude — close zoom produces smaller dots', () => {
+    const closeZoom = getMarkerSize(90, 1913);  // alt 0.3
+    const farZoom   = getMarkerSize(90, 5097);  // alt 0.8
+    expect(closeZoom).toBeLessThan(farZoom);
   });
 
-  it('clamps size within valid range', () => {
-    expect(getMarkerSize(0)).toBeGreaterThan(0);
-    expect(getMarkerSize(100)).toBeLessThanOrEqual(1.2);
+  it('clamps size to minimum (never zero)', () => {
+    expect(getMarkerSize(0, 200)).toBeGreaterThan(0);
+  });
+
+  it('clamps size to maximum 2.0', () => {
+    expect(getMarkerSize(100, 20000)).toBeLessThanOrEqual(2.0);
   });
 });
 
 describe('getMarkerColor', () => {
-  it('returns grey for cold (0-20)', () => {
+  it('returns slate gray for cold (≤ 30)', () => {
     expect(getMarkerColor(10)).toBe('#94A3B8');
+    expect(getMarkerColor(30)).toBe('#94A3B8');
   });
 
-  it('returns amber for warming (21-40)', () => {
-    expect(getMarkerColor(30)).toBe('#F59E0B');
+  it('returns bright amber for trending (31–55)', () => {
+    expect(getMarkerColor(40)).toBe('#FCD34D');
+    expect(getMarkerColor(55)).toBe('#FCD34D');
   });
 
-  it('returns orange for warm (41-60)', () => {
-    expect(getMarkerColor(50)).toBe('#F97316');
+  it('returns vivid orange for hot (56–75)', () => {
+    expect(getMarkerColor(60)).toBe('#FB923C');
+    expect(getMarkerColor(75)).toBe('#FB923C');
   });
 
-  it('returns orange-red for hot (61-80)', () => {
-    expect(getMarkerColor(70)).toBe('#EA580C');
-  });
-
-  it('returns deep red for very hot (81-100)', () => {
-    expect(getMarkerColor(95)).toBe('#DC2626');
+  it('returns soft red for urgent (> 75)', () => {
+    expect(getMarkerColor(80)).toBe('#F87171');
+    expect(getMarkerColor(95)).toBe('#F87171');
   });
 });
 
