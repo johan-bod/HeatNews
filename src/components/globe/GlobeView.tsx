@@ -18,15 +18,7 @@ import { useGlobeInteraction } from './useGlobeInteraction';
 import GlobeOverlay from './GlobeOverlay';
 import GlobePopup from './GlobePopup';
 import GlobeTooltip from './GlobeTooltip';
-import {
-  aggregateCountryHeat,
-  heatToFillOpacity,
-  crossfadeOpacity,
-  heatmapLayerOpacity,
-  audienceScaleToRadiusKm,
-  generateBlobPolygon,
-} from '@/utils/territoryHalos';
-import { MEDIA_OUTLETS } from '@/data/media-outlets';
+import { heatmapLayerOpacity } from '@/utils/territoryHalos';
 
 // Minimal GeoJSON feature shape returned by topojson feature()
 interface GeoFeature {
@@ -34,15 +26,6 @@ interface GeoFeature {
   type: string;
   geometry: object;
   properties: Record<string, unknown>;
-}
-
-// Merged polygon: either a GeoJSON country feature or a blob, with __type metadata
-interface MergedPolygon extends GeoFeature {
-  __type: 'country' | 'blob';
-  __heat: number;
-  __color: string | null;
-  __crossfadeOpacity: number;
-  __articleId?: string;
 }
 
 // Subset of Three.js OrbitControls we actually use
@@ -75,16 +58,6 @@ const heatColorFn = (t: number): string => {
   if (t < 0.35) return `rgba(245,158,11,${(a * 0.55).toFixed(3)})`;
   if (t < 0.70) return `rgba(249,115,22,${(a * 0.72).toFixed(3)})`;
   return `rgba(220,38,38,${(a * 0.88).toFixed(3)})`;
-};
-
-// ISO 3166-1 numeric → alpha-2 for countries with media outlets
-const NUMERIC_TO_ALPHA2: Record<string, string> = {
-  '032': 'ar', '036': 'au', '056': 'be', '076': 'br', '124': 'ca',
-  '156': 'cn', '250': 'fr', '276': 'de', '356': 'in', '360': 'id',
-  '380': 'it', '392': 'jp', '404': 'ke', '410': 'kr', '458': 'my',
-  '484': 'mx', '528': 'nl', '566': 'ng', '620': 'pt', '643': 'ru',
-  '682': 'sa', '702': 'sg', '710': 'za', '724': 'es', '756': 'ch',
-  '764': 'th', '784': 'ae', '818': 'eg', '826': 'gb', '840': 'us',
 };
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -164,55 +137,6 @@ export default function GlobeView({
     () => articlesToMarkers(visibleArticles, searchResultIds, altitudeKm),
     [visibleArticles, searchResultIds, altitudeKm]
   );
-
-  // Build merged polygon data (country fills + radial blobs)
-  const mergedPolygons = useMemo(() => {
-    if (countryPolygonsRef.current.length === 0) return [];
-
-    const { country: countryOpacity, blob: blobOpacity } = crossfadeOpacity(altitudeKm);
-    const countryHeatMap = aggregateCountryHeat(articles);
-
-    // Country polygons tagged with type
-    const countryPolys = countryPolygonsRef.current.map((feat) => {
-      const numericCode = String(feat.id).padStart(3, '0');
-      const alpha2 = NUMERIC_TO_ALPHA2[numericCode] || '';
-      const heatEntry = countryHeatMap.get(alpha2);
-      return {
-        ...feat,
-        __type: 'country',
-        __heat: heatEntry?.heat || 0,
-        __color: heatEntry?.color || null,
-        __crossfadeOpacity: countryOpacity,
-      };
-    });
-
-    // Radial blob polygons (skip on mobile for performance)
-    let blobPolys: MergedPolygon[] = [];
-    if (blobOpacity > 0 && !isMobile && altitudeKm > 500) {
-      const withCoords = articles.filter(a => a.coordinates);
-      blobPolys = withCoords.map(article => {
-        const outlet = MEDIA_OUTLETS.find(o =>
-          o.domain && article.source?.url?.includes(o.domain)
-        );
-        const radiusKm = audienceScaleToRadiusKm(outlet?.audienceScale);
-        const blob = generateBlobPolygon(
-          article.coordinates!.lat,
-          article.coordinates!.lng,
-          radiusKm
-        );
-        return {
-          ...blob,
-          __type: 'blob',
-          __color: article.color || '#94A3B8',
-          __heat: article.heatLevel || 0,
-          __crossfadeOpacity: blobOpacity,
-          __articleId: article.id,
-        };
-      });
-    }
-
-    return [...countryPolys, ...blobPolys];
-  }, [articles, altitudeKm, isMobile]);
 
   // Track screen width for responsive behavior
   useEffect(() => {
@@ -504,42 +428,6 @@ export default function GlobeView({
     if (!globeRef.current) return;
     globeRef.current.pointsData(markers);
   }, [markers]);
-
-  // Update polygon data (territory halos) when merged polygons change
-  useEffect(() => {
-    if (!globeRef.current || mergedPolygons.length === 0) return;
-    globeRef.current
-      .polygonsData(mergedPolygons)
-      .polygonCapColor((d: object) => {
-        const poly = d as MergedPolygon;
-        if (poly.__type === 'blob') {
-          const alpha = 0.15 * poly.__crossfadeOpacity;
-          if (searchResultIds && !searchResultIds.has(poly.__articleId ?? '')) {
-            return 'rgba(0,0,0,0)';
-          }
-          return hexToRgba(poly.__color ?? '#94A3B8', alpha);
-        }
-        if (!poly.__color) return 'rgba(30, 42, 58, 0.6)';
-        const heatAlpha = heatToFillOpacity(poly.__heat);
-        const alpha = heatAlpha * poly.__crossfadeOpacity;
-        return hexToRgba(poly.__color, alpha);
-      })
-      .polygonSideColor((d: object) => {
-        const poly = d as MergedPolygon;
-        if (poly.__type === 'blob') return 'rgba(0,0,0,0)';
-        return 'rgba(30, 42, 58, 0.2)';
-      })
-      .polygonStrokeColor((d: object) => {
-        const poly = d as MergedPolygon;
-        if (poly.__type === 'blob') return 'rgba(0,0,0,0)';
-        return 'rgba(148, 163, 184, 0.15)';
-      })
-      .polygonAltitude((d: object) => {
-        const poly = d as MergedPolygon;
-        if (poly.__type === 'blob') return 0.006;
-        return 0.005;
-      });
-  }, [mergedPolygons, searchResultIds]);
 
   // Update Gaussian KDE heatmap when articles or zoom changes
   useEffect(() => {
