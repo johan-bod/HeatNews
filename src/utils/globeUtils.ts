@@ -43,30 +43,30 @@ export function filterArticlesByAltitude(
 }
 
 /**
- * Marker size based on heat level, scaled by current altitude.
- * globe.gl pointRadius is in arc-degrees — same angular size appears
- * physically larger the closer you zoom. Scale down at low altitudes
- * to keep dots visually consistent and prevent close-up clutter.
+ * Marker size — altitude-proportional so dots look consistent in pixel
+ * size regardless of zoom level.
  *
- * altitudeKm thresholds:
- *   ≥ 2000 km (national / international) → full size
- *   1000 km (regional)                  → 0.7×
- *   500 km (local)                      → 0.5×
- *   ≤ 200 km (hyper-local)              → 0.4× (floor)
+ * globe.gl pointRadius is in arc-degrees. A fixed degree value looks
+ * physically larger as you zoom in, so we scale radius linearly with
+ * altitude: radius = heatFactor × (altitudeKm / 6371) × K
+ *
+ * K = 0.9 gives:
+ *   close zoom  (alt 0.3 / 1913 km) → hot: 0.27°, cold: 0.11°
+ *   national    (alt 0.8 / 5097 km) → hot: 0.72°, cold: 0.29°
+ *   continental (alt 2.0 /12742 km) → hot: 1.80°, cold: 0.72°
+ *
+ * 3 visual tiers:
+ *   cold   (≤ 30)  → 0.40 × altitude
+ *   medium (31–65) → 0.65 × altitude
+ *   hot    (> 65)  → 1.00 × altitude
  */
 export function getMarkerSize(heatLevel: number, altitudeKm?: number): number {
-  let baseSize: number;
-  if (heatLevel <= 20) baseSize = 0.2;
-  else if (heatLevel <= 40) baseSize = 0.3;
-  else if (heatLevel <= 60) baseSize = 0.5;
-  else if (heatLevel <= 80) baseSize = 0.8;
-  else baseSize = 1.0;
+  const heatFactor = heatLevel <= 30 ? 0.40 : heatLevel <= 65 ? 0.65 : 1.00;
 
-  if (!altitudeKm) return baseSize;
+  if (!altitudeKm) return heatFactor * 0.5; // safe fallback (no zoom context)
 
-  // Scale factor: clamp between 0.4 (very close) and 1.0 (far)
-  const scaleFactor = Math.max(0.4, Math.min(1.0, altitudeKm / 2000));
-  return baseSize * scaleFactor;
+  const altFraction = altitudeKm / 6371; // = raw globe.gl altitude value
+  return Math.max(0.08, Math.min(2.0, heatFactor * altFraction * 0.9));
 }
 
 /**

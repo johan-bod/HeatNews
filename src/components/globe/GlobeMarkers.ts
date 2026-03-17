@@ -64,11 +64,12 @@ export function articlesToMarkers(
       isPrimarySource: a.sourceType === 'primary_source',
     }));
 
+  const altFraction = altitudeKm ? altitudeKm / 6371 : 0.5;
   const clusterMarkerData: GlobeMarkerData[] = clusters.map((c: ClusteredMarker, i: number) => ({
     id: `cluster-${i}`,
     lat: c.lat,
     lng: c.lng,
-    size: Math.min(1.5, 0.4 + c.count * 0.1),
+    size: Math.max(0.1, Math.min(2.0, (0.5 + Math.min(c.count, 10) * 0.05) * altFraction * 0.9)),
     color: c.color,
     opacity: 1.0,
     heatLevel: c.maxHeatLevel,
