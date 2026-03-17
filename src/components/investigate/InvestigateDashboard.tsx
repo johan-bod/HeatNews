@@ -9,13 +9,14 @@ import { matchesRule, computeStaleHours } from '@/services/watchRules';
 import { getCacheData } from '@/utils/cache';
 import { getCachedTranslation } from '@/services/translationService';
 import { useTranslationPreference } from '@/hooks/useTranslationPreference';
-import { useSavedStories, reconstructCluster } from '@/hooks/useSavedStories';
+import { useSavedStories, reconstructCluster, FREE_SAVE_LIMIT } from '@/hooks/useSavedStories';
 import { useWatchRules } from '@/hooks/useWatchRules';
 import useSubscription from '@/hooks/useSubscription';
 import { useHeatSnapshot } from '@/hooks/useHeatSnapshot';
 import SaveButton from '@/components/investigate/SaveButton';
 import AlertsPanel from '@/components/investigate/AlertsPanel';
 import SourceFeedsPanel from '@/components/investigate/SourceFeedsPanel';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import type { NewsArticle } from '@/types/news';
 import type { StoryCluster } from '@/utils/topicClustering';
 import type { SavedStory } from '@/types/savedStory';
@@ -262,12 +263,22 @@ export default function InvestigateDashboard() {
             {stats.totalArticles} articles · {stats.total} active stories
           </p>
         </div>
-        <button
-          onClick={() => navigate('/app')}
-          className="text-sm text-amber-400 hover:text-amber-300 transition-colors flex-shrink-0"
-        >
-          ← Map
-        </button>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {!subscription.isPaid && !subscription.isLoading && (
+            <a
+              href="/pricing"
+              className="text-[10px] px-2 py-1 rounded-md border border-amber-500/30 text-amber-400/70 hover:text-amber-400 hover:border-amber-500/50 transition-colors"
+            >
+              Free plan · Upgrade
+            </a>
+          )}
+          <button
+            onClick={() => navigate('/app')}
+            className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            ← Map
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -452,6 +463,7 @@ export default function InvestigateDashboard() {
                   <SaveButton
                     cluster={cluster} lead={lead} potential={potential}
                     timeline={timeline} coverageGap={coverageGap} size="sm"
+                    isPaid={subscription.isPaid}
                   />
                 </span>
               </div>
@@ -620,6 +632,13 @@ export default function InvestigateDashboard() {
                   </div>
                 );
               })
+          )}
+          {!subscription.isPaid && saved.length >= FREE_SAVE_LIMIT && (
+            <UpgradePrompt
+              feature="saved stories"
+              limitReached={`You've saved ${saved.length}/${FREE_SAVE_LIMIT} stories on the free plan.`}
+              className="mt-3"
+            />
           )}
         </div>
       )}

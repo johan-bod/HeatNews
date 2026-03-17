@@ -11,6 +11,9 @@ import type { SavedStory } from '@/types/savedStory';
 import type { StoryCluster } from '@/utils/topicClustering';
 import type { NewsArticle } from '@/types/news';
 
+/** Free tier: max saved stories before upgrade prompt. */
+export const FREE_SAVE_LIMIT = 5;
+
 /** Reconstruct a minimal StoryCluster from stored articles (used when live cache has expired). */
 export function reconstructCluster(
   story: SavedStory,
@@ -35,7 +38,7 @@ export function reconstructCluster(
   return { cluster, article: lead };
 }
 
-export function useSavedStories() {
+export function useSavedStories(isPaid = false) {
   const { user } = useAuth();
   const [saved, setSaved] = useState<SavedStory[]>(() =>
     user ? getLocalSaved(user.uid) : [],
@@ -51,11 +54,13 @@ export function useSavedStories() {
       .finally(() => setIsLoading(false));
   }, [user]);
 
-  const save = useCallback(async (story: SavedStory) => {
-    if (!user) return;
+  const save = useCallback(async (story: SavedStory): Promise<{ success: boolean; limitReached?: boolean }> => {
+    if (!user) return { success: false };
+    if (!isPaid && saved.length >= FREE_SAVE_LIMIT) return { success: false, limitReached: true };
     setSaved(prev => [...prev.filter(s => s.id !== story.id), story]);
     await saveStory(user.uid, story);
-  }, [user]);
+    return { success: true };
+  }, [user, isPaid, saved]);
 
   const remove = useCallback(async (storyId: string) => {
     if (!user) return;

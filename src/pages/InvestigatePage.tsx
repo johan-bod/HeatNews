@@ -214,7 +214,7 @@ export default function InvestigatePage() {
           <div className="flex items-center gap-3">
             <SaveButton
               cluster={cluster} lead={article} potential={potential}
-              timeline={timeline} coverageGap={coverageGap}
+              timeline={timeline} coverageGap={coverageGap} isPaid={isPaid}
             />
             {isPaid
               ? <ExportBriefButton input={{ article, cluster, coverageGap, geoGap, perspective }} />

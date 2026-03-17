@@ -15,12 +15,13 @@ interface SaveButtonProps {
   coverageGap: CoverageGapResult | null;
   /** 'sm' for dashboard cards, 'md' for Investigate page header */
   size?: 'sm' | 'md';
+  isPaid?: boolean;
 }
 
 export default function SaveButton({
-  cluster, lead, potential, timeline, coverageGap, size = 'md',
+  cluster, lead, potential, timeline, coverageGap, size = 'md', isPaid = false,
 }: SaveButtonProps) {
-  const { isSaved, getSaved, save, remove } = useSavedStories();
+  const { isSaved, getSaved, save, remove } = useSavedStories(isPaid);
   const alreadySaved = isSaved(lead.id);
   const existing = getSaved(lead.id);
 
@@ -30,8 +31,12 @@ export default function SaveButton({
       await remove(existing.id);
       toast.success('Removed from watchlist.');
     } else {
-      await save(createSavedStory(cluster, lead, potential, timeline, coverageGap));
-      toast.success('Story saved to watchlist.');
+      const result = await save(createSavedStory(cluster, lead, potential, timeline, coverageGap));
+      if (result.limitReached) {
+        toast.error('Upgrade to Pro to save more than 5 stories.');
+      } else if (result.success) {
+        toast.success('Story saved to watchlist.');
+      }
     }
   }
 
